@@ -21,7 +21,4 @@ This project involves:
 - **Clustering**: KMeans for customer segmentation.
 - **SMOTE**: Applied for addressing class imbalance in training data.
 
-## Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/username/cih-bank-analytics-tool.git
+
