@@ -43,7 +43,7 @@ ledger-check:
     uv run --frozen strata ledger check
 
 # Everything CI runs. A milestone is done only when this is green.
-check: lint test privacy ledger-check
+check: lint test privacy ledger-check dashboard-check
 
 # Write the public synthetic extract.
 synth:
@@ -82,6 +82,25 @@ anomaly: dbt
 # Serve the API on the public workspace (http://127.0.0.1:8000/docs).
 serve:
     uv run --frozen strata serve
+
+# The dashboard in development (http://localhost:5173), proxying /api to `just serve`.
+dashboard:
+    corepack pnpm --dir apps/dashboard install --frozen-lockfile
+    corepack pnpm --dir apps/dashboard dev
+
+# The dashboard's checks: types, unit tests, the production build with its bundle check, Storybook.
+dashboard-check:
+    corepack pnpm --dir apps/dashboard install --frozen-lockfile
+    corepack pnpm --dir apps/dashboard typecheck
+    corepack pnpm --dir apps/dashboard test
+    corepack pnpm --dir apps/dashboard build
+    corepack pnpm --dir apps/dashboard storybook:build
+
+# Playwright smoke tests with axe checks against the running stack (`just up`). Set
+# STRATA_DASHBOARD_URL when the dashboard port is moved and STRATA_E2E_CHANNEL=msedge (or chrome)
+# to drive an installed browser instead of one downloaded by `pnpm exec playwright install`.
+dashboard-e2e:
+    corepack pnpm --dir apps/dashboard e2e
 
 # The whole stack on synthetic data: API, PostgreSQL, MLflow UI and the dashboard. Port overrides
 # of this machine (STRATA_*_PORT) are read from .env.local when it exists.

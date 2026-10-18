@@ -82,14 +82,41 @@ jobs:
       - run: uv sync
       - run: uv run strata ledger check
 
+  dashboard:
+    name: dashboard (types, unit tests, build with the bundle check, Storybook)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/dashboard
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm storybook:build
+
   compose:
-    name: Docker Compose stack on synthetic data (every endpoint answers)
+    name: Docker Compose stack on synthetic data (every endpoint answers; dashboard smoke and axe)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: docker compose up --build --detach
       - run: python3 docker/smoke.py http://localhost:8000
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable && pnpm install --frozen-lockfile && pnpm exec playwright install --with-deps chromium
+        working-directory: apps/dashboard
+      - run: pnpm e2e
+        working-directory: apps/dashboard
+        env:
+          STRATA_DASHBOARD_URL: http://localhost:5173
       - if: always()
-        run: docker compose logs api
+        run: docker compose logs api dashboard
       - if: always()
         run: docker compose down --volumes
