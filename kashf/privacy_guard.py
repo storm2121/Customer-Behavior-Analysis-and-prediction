@@ -43,7 +43,7 @@ from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
 from kashf.contracts.specs import ENCODING, EXTRACTS
-from kashf.ledger.allowlist import MIN_PUBLIC_CELL_N, PUBLIC_CLAIM_IDS
+from kashf.ledger.allowlist import public_violations
 
 MAX_CSV_ROWS = 200
 CSV_ALLOWED_PREFIXES = ("tests/fixtures/", "dbt/seeds/")
@@ -263,32 +263,7 @@ def _ledger_findings(path: str, text: str) -> list[Finding]:
     records = _claim_records(payload)
     if records is None:
         return [Finding(path, 0, "ledger-allowlist", "ledger JSON has no list of claims")]
-    findings: list[Finding] = []
-    for index, record in enumerate(records):
-        if not isinstance(record, dict) or "id" not in record:
-            findings.append(Finding(path, 0, "ledger-allowlist", f"claim #{index} has no id"))
-            continue
-        claim_id = str(record["id"])
-        if claim_id not in PUBLIC_CLAIM_IDS:
-            findings.append(
-                Finding(path, 0, "ledger-allowlist", f"claim '{claim_id}' is not allow-listed")
-            )
-            continue
-        sizes: list[object] = [record.get("n")]
-        value_n = record.get("value_n")
-        if isinstance(value_n, dict):
-            sizes.extend(value_n.values())
-        if any(not isinstance(size, int) or size < MIN_PUBLIC_CELL_N for size in sizes):
-            findings.append(
-                Finding(
-                    path,
-                    0,
-                    "ledger-allowlist",
-                    f"claim '{claim_id}' has a value computed on fewer than "
-                    "the minimum number of clients for publication",
-                )
-            )
-    return findings
+    return [Finding(path, 0, "ledger-allowlist", problem) for problem in public_violations(records)]
 
 
 def _notebook_findings(path: str, text: str) -> list[Finding]:

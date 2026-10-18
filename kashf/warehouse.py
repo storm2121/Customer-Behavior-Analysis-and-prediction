@@ -44,8 +44,15 @@ def replace_table(
 
 
 def read_table(con: duckdb.DuckDBPyConnection, schema: str, table: str) -> pd.DataFrame:
-    """A whole table as a frame (the warehouse is small enough for this to be the simple path)."""
-    return con.table(f"{_identifier(schema)}.{_identifier(table)}").df()
+    """A whole table or view as a frame (the warehouse is small enough for this simple path)."""
+    relation = f"{_identifier(schema)}.{_identifier(table)}"
+    return con.sql(f"select * from {relation}").df()  # noqa: S608 - validated identifiers
+
+
+def read_relation(con: duckdb.DuckDBPyConnection, name: str) -> pd.DataFrame:
+    """``read_table`` for a qualified ``schema.table`` name."""
+    schema, _, table = name.partition(".")
+    return read_table(con, schema, table)
 
 
 def table_exists(con: duckdb.DuckDBPyConnection, schema: str, table: str) -> bool:
