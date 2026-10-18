@@ -17,6 +17,7 @@ from typer.testing import CliRunner
 
 from strata import privacy_guard as pg
 from strata.cli import app
+from strata.config import Settings
 from strata.contracts.specs import AGGREGATE, BRANCH, CARD, CLIENTS, ENCODING, EXTRACTS, ExtractSpec
 from tests.conftest import GitRunner
 
@@ -290,3 +291,29 @@ def test_cli_reports_clean_trees_and_usage_errors(
     monkeypatch.chdir(git_repo)
     assert runner.invoke(app, ["privacy-check", "fine.md"]).exit_code == 0
     assert runner.invoke(app, ["privacy-check"]).exit_code == 2
+
+
+@pytest.mark.parametrize("name", [".env", ".env.local", "config/.env.production"])
+def test_local_configuration_files_are_blocked(name: str) -> None:
+    assert "env-file" in checks(name, "STRATA_SEED=1\n")
+
+
+def test_an_example_env_file_is_allowed() -> None:
+    assert "env-file" not in checks(".env.example", "STRATA_DATA_DIR=\n")
+
+
+def test_the_guard_learns_private_locations_from_the_settings(tmp_path: Path) -> None:
+    write_fake_extract(tmp_path / "extract", [FAKE_ID])
+    settings = Settings(  # type: ignore[call-arg]
+        _env_file=None, repo_root=tmp_path / "repo", data_dir=tmp_path / "extract"
+    )
+    scanner = pg.Scanner.from_environment({}, settings=settings)
+    assert scanner.matcher.source == "derived"
+    assert "private-path" in checks("notes.md", str(tmp_path / "extract"), scanner)
+
+
+def test_the_legacy_variable_names_are_still_honoured(tmp_path: Path) -> None:
+    write_fake_extract(tmp_path / "extract", [FAKE_ID])
+    scanner = pg.Scanner.from_environment({"KASHF_DATA_DIR": str(tmp_path / "extract")})
+    assert scanner.matcher.source == "derived"
+    assert scanner.private_literals

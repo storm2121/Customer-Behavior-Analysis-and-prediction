@@ -1,9 +1,10 @@
 """Shared fixtures.
 
-Every test runs on synthetic data, in an environment scrubbed of ``STRATA_*`` variables and from a
-temporary working directory, so a developer's real configuration (or a stray ``.env``) can never
-leak into a test run. Tests marked ``private`` are the only exception and are skipped unless
-``--run-private`` is given on a machine where ``STRATA_DATA_DIR`` is set.
+Every test runs on synthetic data, in an environment scrubbed of ``STRATA_*`` variables, with the
+local ``.env`` and ``.env.local`` files switched off and from a temporary working directory, so a
+developer's real configuration can never leak into a test run. Tests marked ``private`` are the
+only exception and are skipped unless ``--run-private`` is given on a machine where the extract's
+location is configured.
 """
 
 from __future__ import annotations
@@ -47,10 +48,18 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
+def _extract_configured() -> bool:
+    """True when the extract's location is known, from the environment or from `.env.local`."""
+    try:
+        return Settings().data_dir is not None
+    except Exception:  # noqa: BLE001 - a misconfigured machine simply runs no private test
+        return False
+
+
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    if config.getoption("--run-private") and os.environ.get("STRATA_DATA_DIR"):
+    if config.getoption("--run-private") and _extract_configured():
         return
-    skip = pytest.mark.skip(reason="private: needs --run-private and STRATA_DATA_DIR")
+    skip = pytest.mark.skip(reason="private: needs --run-private and a configured extract")
     for item in items:
         if "private" in item.keywords:
             item.add_marker(skip)
@@ -63,8 +72,10 @@ def _isolated_environment(
     if "private" in request.keywords:
         return
     for key in list(os.environ):
-        if key.startswith("STRATA_"):
+        if key.startswith(("STRATA_", "KASHF_")):
             monkeypatch.delenv(key, raising=False)
+    # The machine's `.env.local` names the real extract; no test may read it.
+    monkeypatch.setitem(Settings.model_config, "env_file", None)
     # No test may write into the developer's public workspace.
     monkeypatch.setenv("STRATA_DB", str(tmp_path / "work" / "strata.duckdb"))
     monkeypatch.setenv("STRATA_WORK_DIR", str(tmp_path / "work"))

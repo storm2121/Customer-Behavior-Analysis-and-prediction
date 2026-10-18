@@ -162,7 +162,7 @@ def privacy_check(
     else:
         err_console.print("privacy-check: give paths, --staged or --all-files")
         raise typer.Exit(code=2)
-    scanner = privacy_guard.Scanner.from_environment()
+    scanner = privacy_guard.Scanner.from_environment(settings=_state(ctx).settings)
     findings = privacy_guard.scan(files, scanner)
     if findings:
         for finding in findings:

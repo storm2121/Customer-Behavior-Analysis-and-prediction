@@ -21,6 +21,7 @@ private_out/
 *.joblib
 claims.private.json
 .env
+.env.local
 .env.*
 
 # ------------------------------------------------------------------ local workspace

@@ -22,7 +22,11 @@ Rules (ids appear in every finding):
     A JSON file under ``docs/ledger/`` holding a claim id outside the allowlist, a claim computed on
     fewer than the minimum number of clients, or a file that cannot be parsed.
 ``private-path``
-    The literal location of the extract or of the private outputs, read from the environment.
+    The literal location of the extract or of the private outputs, read from the environment and
+    from the settings (which read the gitignored ``.env.local``).
+``env-file``
+    A local configuration file (``.env``, ``.env.local``, ...): it names private locations, so it
+    stays untracked. It is gitignored as well; the rule only fires if one is force-added.
 ``notebook-outputs``
     A notebook with outputs or execution counts (outputs can carry data).
 """
@@ -42,6 +46,7 @@ from collections.abc import Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
+from strata.config import Settings
 from strata.contracts.specs import ENCODING, EXTRACTS
 from strata.ledger.allowlist import public_violations
 
@@ -68,6 +73,13 @@ DATA_SUFFIXES = frozenset(
     }
 )
 DATA_NAMES = frozenset({"claims.private.json"})
+LOCATION_VARIABLES = (
+    "STRATA_DATA_DIR",
+    "STRATA_PRIVATE_DIR",
+    "KASHF_DATA_DIR",
+    "KASHF_PRIVATE_DIR",
+)
+"""Where the private locations may be named; the ``KASHF_`` names predate the rename to Strata."""
 LEDGER_PREFIX = "docs/ledger/"
 
 ARCHITECT_DOCUMENTS = frozenset({"AGENT_RULES.md", "ARCHITECTURE.md", "MILESTONES.md"})
@@ -224,7 +236,7 @@ def _first_line(text: str) -> tuple[int, str] | None:
 def _private_literals(environ: dict[str, str]) -> list[str]:
     """Spellings of the private locations, as they could appear in a file (lower-cased)."""
     literals: set[str] = set()
-    for variable in ("STRATA_DATA_DIR", "STRATA_PRIVATE_DIR"):
+    for variable in LOCATION_VARIABLES:
         raw = environ.get(variable, "").strip().strip('"')
         if len(raw) < 4:
             continue
@@ -287,6 +299,10 @@ def _name_findings(rel: str, name: str, suffix: str) -> list[Finding]:
         findings.append(Finding(rel, 0, "extract-filename", "file named like a bank extract"))
     if suffix in DATA_SUFFIXES or name in DATA_NAMES:
         findings.append(Finding(rel, 0, "data-file", "data file format that may hold rows"))
+    if name == ".env" or (name.startswith(".env.") and name != ".env.example"):
+        findings.append(
+            Finding(rel, 0, "env-file", "local configuration file (may name private locations)")
+        )
     return findings
 
 
@@ -320,9 +336,23 @@ class Scanner:
     private_literals: list[str] = field(default_factory=list)
 
     @classmethod
-    def from_environment(cls, environ: dict[str, str] | None = None) -> Scanner:
+    def from_environment(
+        cls, environ: dict[str, str] | None = None, *, settings: Settings | None = None
+    ) -> Scanner:
+        """Learn the private locations from the environment and from the settings.
+
+        The settings read the gitignored ``.env.local``, so on the machine that holds the extract
+        the guard derives the identifier rule and the private-path rule on every commit without
+        any variable being exported. Elsewhere (CI, other clones) it falls back to the
+        conservative rules.
+        """
         env = dict(os.environ if environ is None else environ)
-        data_dir = env.get("STRATA_DATA_DIR")
+        if settings is not None:
+            if settings.data_dir is not None:
+                env.setdefault("STRATA_DATA_DIR", str(settings.data_dir))
+            if settings.private_dir is not None:
+                env.setdefault("STRATA_PRIVATE_DIR", str(settings.private_dir))
+        data_dir = env.get("STRATA_DATA_DIR") or env.get("KASHF_DATA_DIR")
         matcher = IdentifierMatcher.from_data_dir(Path(data_dir) if data_dir else None)
         return cls(matcher=matcher, private_literals=_private_literals(env))
 

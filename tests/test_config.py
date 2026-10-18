@@ -7,10 +7,12 @@ from pathlib import Path
 import pytest
 
 from strata.config import (
+    ENV_FILES,
     PRIVATE_SUBDIR,
     PrivacyBoundaryError,
     Settings,
     Zone,
+    default_env_files,
     find_repo_root,
     get_settings,
     is_within,
@@ -144,3 +146,30 @@ def test_get_settings_is_cached() -> None:
     get_settings.cache_clear()
     assert get_settings() is get_settings()
     get_settings.cache_clear()
+
+
+def test_local_env_files_are_anchored_at_the_repository_root(tmp_path: Path) -> None:
+    files = default_env_files(tmp_path)
+    assert files == (str(tmp_path / ".env"), str(tmp_path / ".env.local"))
+    assert default_env_files() == ENV_FILES
+
+
+def test_env_local_supplies_private_locations_and_the_environment_wins(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    extract = tmp_path / "extract"
+    local = tmp_path / ".env.local"
+    local.write_text(f"STRATA_DATA_DIR={extract}\nSTRATA_SEED=11\n", encoding="utf-8")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    settings = Settings(_env_file=(str(tmp_path / ".env"), str(local)), repo_root=repo)  # type: ignore[call-arg]
+    assert settings.data_dir == extract.resolve()
+    assert settings.seed == 11
+    monkeypatch.setenv("STRATA_SEED", "12")
+    assert Settings(_env_file=str(local), repo_root=repo).seed == 12  # type: ignore[call-arg]
+
+
+def test_the_test_suite_never_reads_the_machine_configuration() -> None:
+    """The real repository may hold a `.env.local` naming the extract; tests must not see it."""
+    assert Settings().data_dir is None
+    assert Settings().private_dir is None

@@ -83,6 +83,21 @@ class Workspace:
         return self.zone is Zone.PRIVATE
 
 
+def default_env_files(root: Path | None = None) -> tuple[str, ...]:
+    """Local configuration files read by :class:`Settings`, lowest precedence first.
+
+    ``.env.local`` holds this machine's private locations (``STRATA_DATA_DIR``,
+    ``STRATA_PRIVATE_DIR``) so that private runs need no manual export. Both files are gitignored
+    and anchored at the repository root, so a command run from a subfolder reads the same file.
+    Real environment variables override them.
+    """
+    base = root or find_repo_root()
+    return (str(base / ".env"), str(base / ".env.local"))
+
+
+ENV_FILES = default_env_files()
+
+
 class Settings(BaseSettings):
     """Typed view of the ``STRATA_*`` environment.
 
@@ -92,7 +107,7 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix="STRATA_",
-        env_file=".env",
+        env_file=ENV_FILES,
         env_file_encoding="utf-8",
         extra="ignore",
     )
