@@ -1,10 +1,11 @@
-# The dashboard: built with pnpm (the version pinned in package.json, through corepack) and served
-# by nginx, which also proxies /api/ to the API container so the browser talks to one origin. The
+# The dashboard: built with pnpm (the version pinned in package.json) and served by nginx, which
+# also proxies /api/ to the API container so the browser talks to one origin. The
 # build fails if the bundle carries data (scripts/check-bundle.mjs reads the public ledger copied
 # below, only to make sure none of its values is baked into the bundle).
 FROM node:22.12.0-alpine AS build
-ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0 CI=true
-RUN corepack enable
+ENV CI=true
+# pnpm from npm, not corepack: the corepack of this Node release fails to verify npm's current keys.
+RUN npm install --global pnpm@9.15.4
 WORKDIR /app
 COPY apps/dashboard/package.json apps/dashboard/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile

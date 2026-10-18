@@ -60,8 +60,11 @@ def main() -> None:
     checks = [
         ("GET", "/health", None, 200),
         ("GET", f"/clients/{client}/360", None, 200),
+        ("GET", "/overview", None, 200),
         ("GET", "/segments", None, 200),
+        ("GET", "/segments/points?limit=100", None, 200),
         ("GET", "/risk/silence?top=10", None, 200),
+        ("GET", "/risk/silence/evaluation", None, 200),
         ("GET", "/adoption/deciles", None, 200),
         ("GET", "/alerts?budget=10", None, 200),
         ("POST", f"/alerts/{alert}/feedback", {"label": "dismissed", "analyst": "smoke"}, 201),
