@@ -66,6 +66,8 @@ def test_rule_thresholds_are_the_dbt_variables() -> None:
     passing = RULES.get("pass_through").params
     assert passing["min_deposit"] == variables["pass_through_min_deposit"]
     assert passing["window_days"] == variables["pass_through_days"]
+    cash_only = RULES.get("cash_only_high_volume").params
+    assert cash_only["min_deposit_amount"] == variables["large_deposit_threshold"]
     burst = RULES.get("dormant_then_burst").params
     assert burst["min_gap_months"] == variables["burst_min_gap_months"]
     assert burst["min_events"] == variables["burst_min_events"]
@@ -121,9 +123,13 @@ def test_large_deposits_dormancy_and_cash_intensity() -> None:
         ("a", "2024-01-01", 60_000),
         ("b", "2024-01-01", 60_000),
         ("c", "2024-01-01", 40_000),
+        ("d", "2024-01-01", 60_000),
+        ("e", "2024-01-01", 120_000),
     ]
-    spend = {"a": 10_000.0, "b": 20_000.0, "c": 0.0}
+    spend = {"a": 10_000.0, "b": 20_000.0, "c": 0.0, "d": 0.0, "e": 0.0}
+    # A client without card spend is never cash-intensive; large sums make it cash-only instead.
     assert _clients("cash_intensive", _inputs(deposits, card_spend=spend)) == ["a"]
+    assert _clients("cash_only_high_volume", _inputs(deposits, card_spend=spend)) == ["e"]
 
 
 def test_pseudo_labels_need_two_families() -> None:

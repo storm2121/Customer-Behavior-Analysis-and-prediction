@@ -13,8 +13,10 @@ explained. Rule kinds:
   branch withdrawal of at least ``min_share`` of it;
 - ``dormant_then_burst``: a month with at least ``min_events`` events after at least
   ``min_gap_months`` months without any;
-- ``cash_intensive``: branch deposits of at least ``min_deposit_amount`` and at least ``ratio``
-  times the client's card spend.
+- ``cash_intensive``: a client with card spend above zero whose branch deposits reach
+  ``min_deposit_amount`` and at least ``ratio`` times that spend;
+- ``cash_only``: a client with no card spend at all whose branch deposits reach
+  ``min_deposit_amount`` over the window.
 """
 
 from __future__ import annotations
@@ -38,6 +40,7 @@ Kind = Literal[
     "pass_through",
     "dormant_then_burst",
     "cash_intensive",
+    "cash_only",
 ]
 
 
@@ -258,7 +261,7 @@ def cash_intensive(rule: Rule, data: Inputs) -> list[Hit]:
     ratio, minimum = rule.params["ratio"], rule.params["min_deposit_amount"]
     totals = data.deposits.groupby("client_id")["amount"].sum()
     spend = data.card_spend.reindex(totals.index).fillna(0.0)
-    flagged = totals[(totals >= minimum) & (totals >= ratio * spend)]
+    flagged = totals[(spend > 0) & (totals >= minimum) & (totals >= ratio * spend)]
     spend_of = {str(client): float(value) for client, value in spend.items()}
     return [
         Hit(
@@ -275,6 +278,22 @@ def cash_intensive(rule: Rule, data: Inputs) -> list[Hit]:
     ]
 
 
+def cash_only(rule: Rule, data: Inputs) -> list[Hit]:
+    minimum = rule.params["min_deposit_amount"]
+    totals = data.deposits.groupby("client_id")["amount"].sum()
+    spend = data.card_spend.reindex(totals.index).fillna(0.0)
+    flagged = totals[(spend <= 0) & (totals >= minimum)]
+    return [
+        Hit(
+            rule.id,
+            rule.family,
+            str(client),
+            {"branch_deposits": float(total), "card_spend": 0.0, "threshold": minimum},
+        )
+        for client, total in flagged.sort_index().items()
+    ]
+
+
 ENGINES: dict[str, Callable[[Rule, Inputs], list[Hit]]] = {
     "large_deposit": large_deposit,
     "structuring": structuring,
@@ -282,6 +301,7 @@ ENGINES: dict[str, Callable[[Rule, Inputs], list[Hit]]] = {
     "pass_through": pass_through,
     "dormant_then_burst": dormant_then_burst,
     "cash_intensive": cash_intensive,
+    "cash_only": cash_only,
 }
 
 

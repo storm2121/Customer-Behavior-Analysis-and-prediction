@@ -56,10 +56,18 @@ rules:
     kind: cash_intensive
     family: mix
     weight: 1.0
-    description: branch deposits far above the client's card spend
+    description: branch deposits far above the card spend of a client who does use a card
     params:
-      ratio: 5.0
+      ratio: 5.0                   # deposits at least this many times the card spend (above zero)
       min_deposit_amount: 50000
+
+  - id: cash_only_high_volume
+    kind: cash_only
+    family: mix
+    weight: 1.0
+    description: large branch deposits from a client with no card spend at all
+    params:
+      min_deposit_amount: 100000   # dbt var large_deposit_threshold
 
 combine:
   # Weights of the score components; each component is scaled to [0, 1] before weighting.

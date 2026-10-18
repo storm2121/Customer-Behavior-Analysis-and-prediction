@@ -19,7 +19,8 @@ mart also uses are the project variables of `dbt/dbt_project.yml`, and a test ke
 | `deposit_velocity` | many branch deposits within a window | frequency |
 | `pass_through` | a large deposit is followed within days by a branch withdrawal of most of it | flow |
 | `dormant_then_burst` | a busy month follows months without any event | activity |
-| `cash_intensive` | branch deposits are large and far above the client's card spend | mix |
+| `cash_intensive` | a client who uses a card deposits at the branch far more than the card spends | mix |
+| `cash_only_high_volume` | a client with no card spend at all makes large branch deposits over the window | mix |
 
 A client is a **pseudo-label** when rules of at least two different families fire: two independent
 reasons to look.
