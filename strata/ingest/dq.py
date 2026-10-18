@@ -646,7 +646,11 @@ def canonical_results(con: duckdb.DuckDBPyConnection, covered: set[Extract]) -> 
 
 def _stored_rows(con: duckdb.DuckDBPyConnection, row: object) -> int:
     """Rows of one manifest entry in the warehouse: its landing table, or its canonical rows."""
-    extract, role, filename = (str(getattr(row, name)) for name in ("extract", "role", "filename"))
+    # A warehouse loaded before mappings existed has no role column; its files all have landing
+    # tables (or raw tables of the same name), so the role is only needed for mapped sources.
+    extract, role, filename = (
+        str(getattr(row, name, "")) for name in ("extract", "role", "filename")
+    )
     if table_exists(con, LANDING, extract):
         return row_count(con, LANDING, extract)
     if role == "events":
