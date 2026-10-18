@@ -1,0 +1,51 @@
+# Channels and age
+
+## {{ text("channel_mix", "title") }}
+
+*{{ text("channel_mix", "question") }}*
+
+{{ meta("channel_mix", "profile_definition") }}
+
+| Profile | Share of clients | Interval |
+|---|---|---|
+| No event in the year | {{ ledger("channel_mix", "share_none") }} | {{ ci("channel_mix", "share_none") }} |
+| Branch only | {{ ledger("channel_mix", "share_branch_only") }} | {{ ci("channel_mix", "share_branch_only") }} |
+| Digital only | {{ ledger("channel_mix", "share_digital_only") }} | {{ ci("channel_mix", "share_digital_only") }} |
+| Branch and digital | {{ ledger("channel_mix", "share_mixed") }} | {{ ci("channel_mix", "share_mixed") }} |
+
+Context: {{ context("channel_mix") }}.
+
+Method: {{ text("channel_mix", "method") }}
+
+Caveats:
+
+{% for caveat in caveats("channel_mix") %}
+- {{ caveat }}
+{% endfor %}
+
+## {{ text("age_digital_divide", "title") }}
+
+*{{ text("age_digital_divide", "question") }}*
+
+| Age band | Branch only | Digital only |
+|---|---|---|
+{% for label, key in rows("age_digital_divide", "bands") %}
+| {{ label }} | {{ ledger("age_digital_divide", "branch_only_" ~ key) }} ({{ ci("age_digital_divide", "branch_only_" ~ key) }}) | {{ ledger("age_digital_divide", "digital_only_" ~ key) }} ({{ ci("age_digital_divide", "digital_only_" ~ key) }}) |
+{% endfor %}
+
+The branch-only share differs between the two gender codes by
+{{ ledger("age_digital_divide", "branch_only_gender_gap") }}
+({{ ci("age_digital_divide", "branch_only_gender_gap") }}).
+
+**Robustness verdict: {{ verdict("age_digital_divide") }}.** The headline compares
+{{ meta("age_digital_divide", "contrast") }}. {{ mechanism("age_digital_divide") }}
+
+Context: {{ context("age_digital_divide") }}.
+
+Method: {{ text("age_digital_divide", "method") }}
+
+Caveats:
+
+{% for caveat in caveats("age_digital_divide") %}
+- {{ caveat }}
+{% endfor %}

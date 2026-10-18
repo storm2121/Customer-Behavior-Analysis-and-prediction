@@ -1,0 +1,31 @@
+# The week
+
+## {{ text("weekday_pattern", "title") }}
+
+*{{ text("weekday_pattern", "question") }}*
+
+Share of each channel's events falling on each day of the week:
+
+| Day | Card | Online | Branch |
+|---|---|---|---|
+{% for label, key in rows("weekday_pattern", "weekdays") %}
+| {{ label }} | {{ ledger("weekday_pattern", "card_" ~ key) }} | {{ ledger("weekday_pattern", "online_" ~ key) }} | {{ ledger("weekday_pattern", "branch_" ~ key) }} |
+{% endfor %}
+
+On cards, the busiest day of the week carries {{ ledger("weekday_pattern", "card_peak_to_trough") }}
+the events of the quietest.
+
+Intervals (client bootstrap) for the card shares:
+{% for label, key in rows("weekday_pattern", "weekdays") %}
+{{ label }} {{ ci("weekday_pattern", "card_" ~ key) }}{{ "." if loop.last else ";" }}
+{% endfor %}
+
+Context: {{ context("weekday_pattern") }}.
+
+Method: {{ text("weekday_pattern", "method") }}
+
+Caveats:
+
+{% for caveat in caveats("weekday_pattern") %}
+- {{ caveat }}
+{% endfor %}

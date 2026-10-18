@@ -1,0 +1,24 @@
+## What the data says
+
+Rendered from the evidence ledger; see [the findings](docs/findings/index.md) for the tables,
+methods and caveats behind each sentence.
+
+- **Channels.** {{ ledger("channel_mix", "share_mixed") }} of clients use both the branch and a
+  digital channel, {{ ledger("channel_mix", "share_digital_only") }} only digital channels and
+  {{ ledger("channel_mix", "share_branch_only") }} only the branch
+  ({{ context("channel_mix") }}).
+{% set oldest = rows("age_digital_divide", "bands")[-1] %}
+{% set youngest = rows("age_digital_divide", "bands")[0] %}
+- **Age.** The branch-only share is
+  {{ ledger("age_digital_divide", "branch_only_" ~ youngest[1]) }} in the {{ youngest[0] }} band and
+  {{ ledger("age_digital_divide", "branch_only_" ~ oldest[1]) }} in the {{ oldest[0] }} band, while the
+  gap between the two gender codes is {{ ledger("age_digital_divide", "branch_only_gender_gap") }}.
+  Robustness verdict: **{{ verdict("age_digital_divide") }}**
+  ({{ context("age_digital_divide") }}).
+- **The week.** On cards, the busiest day of the week carries
+  {{ ledger("weekday_pattern", "card_peak_to_trough") }} the events of the quietest
+  ({{ context("weekday_pattern") }}).
+- **Prices.** Card purchase amounts show {{ meta("benford_purchases", "conformity") }} with Benford's
+  law; the share of leading nines differs from the law's expectation by
+  {{ ledger("benford_purchases", "digit_9_excess") }}{% if raw("benford_purchases", "digit_9_excess") > 0 %},
+  the usual mark of psychological pricing{% endif %} ({{ context("benford_purchases") }}).

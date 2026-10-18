@@ -1,0 +1,30 @@
+# Leading digits
+
+## {{ text("benford_purchases", "title") }}
+
+*{{ text("benford_purchases", "question") }}*
+
+| First digit | Observed share | Benford's law | Interval |
+|---|---|---|---|
+{% for label, key in rows("benford_purchases", "digits") %}
+| {{ label }} | {{ ledger("benford_purchases", "share_digit_" ~ key) }} | {{ ledger("benford_purchases", "expected_digit_" ~ key) }} | {{ ci("benford_purchases", "share_digit_" ~ key) }} |
+{% endfor %}
+
+The mean absolute deviation from Benford's law is {{ ledger("benford_purchases", "mad") }}
+({{ ci("benford_purchases", "mad") }}), which Nigrini's bands read as
+**{{ meta("benford_purchases", "conformity") }}**. The share of leading nines differs from the
+law's expectation by {{ ledger("benford_purchases", "digit_9_excess") }}
+({{ ci("benford_purchases", "digit_9_excess") }}){% if raw("benford_purchases", "digit_9_excess") > 0 %},
+the usual mark of prices set just below a round number{% endif %}. The chi-square statistic is
+{{ ledger("benford_purchases", "chi2") }} ({{ ledger("benford_purchases", "p_value") }}){% if raw("benford_purchases", "p_value") < 0.05 %};
+with this many amounts a rejection says more about the sample size than about the amounts{% endif %}.
+
+Context: {{ context("benford_purchases") }}.
+
+Method: {{ text("benford_purchases", "method") }}
+
+Caveats:
+
+{% for caveat in caveats("benford_purchases") %}
+- {{ caveat }}
+{% endfor %}
