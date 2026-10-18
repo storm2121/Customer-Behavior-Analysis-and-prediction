@@ -16,5 +16,10 @@ private_out
 legacy
 dbt/target
 dbt/logs
-node_modules
+**/node_modules
+.pnpm-store
+apps/dashboard/dist
+apps/dashboard/storybook-static
+apps/dashboard/test-results
+apps/dashboard/playwright-report
 mlruns
