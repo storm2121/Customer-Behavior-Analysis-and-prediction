@@ -20,7 +20,8 @@ Every command runs in one of two zones, chosen explicitly:
 
 - **public** (the default) reads data produced by `kashf synth`, which carries a `SYNTHETIC.json`
   marker, and writes under `.kashf/` (gitignored). A public run refuses any data folder without the
-  marker, so forgetting a flag fails closed (enforced by `kashf ingest`, which arrives with M1).
+  marker, so forgetting a flag fails closed. The marker records the hash of every
+  file, so real files copied into a synthetic folder are refused as well.
 - **private** (`kashf --private …`) reads the real extract from `KASHF_DATA_DIR` and writes only
   under `KASHF_PRIVATE_DIR`, which defaults to a `private_out` folder next to the extract. Both
   variables are refused if they resolve inside the repository.

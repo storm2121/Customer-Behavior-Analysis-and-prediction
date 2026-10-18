@@ -17,6 +17,15 @@ The Kashf rebuild (`kashf` package), developed on branch `feat/kashf-rebuild`.
   that reports failures without tracebacks or identifiers.
 - The privacy guard (`kashf privacy-check`), run on every commit and in CI.
 - `PRIVACY.md`, architecture decision records 0001 to 0006 filled in, and ADR 0008.
+- Code-map seeds (`dbt/seeds/codes_*.csv`) as the single definition of every categorical value,
+  with the evidence behind each assumed meaning.
+- Typed pandera contracts for the five extracts; violations are reported as counts, never values.
+- `kashf synth`: the public parametric generator (hand-specified distributions, the extract's
+  quirks and file format, planted monitoring scenarios, a hash-carrying synthetic marker).
+- `kashf ingest`: contract checks, the DuckDB raw layer, a manifest with a data fingerprint, and
+  reconciliation between files and warehouse; public runs refuse unmarked data.
+- `kashf dq`: a sample-free data-quality report (exact repeats, zero and sub-one amounts,
+  vocabulary, plausibility, join coverage, the aggregate file's empty rows and semantics).
 
 ### Changed
 
