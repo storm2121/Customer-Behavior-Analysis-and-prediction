@@ -284,6 +284,104 @@ def dbt_command(ctx: typer.Context) -> None:
         raise typer.Exit(code=1)
 
 
+ledger_app = typer.Typer(
+    name="ledger",
+    help="The evidence ledger: build claims, render documents, check for drift.",
+    no_args_is_help=True,
+)
+app.add_typer(ledger_app)
+
+
+@ledger_app.command("build")
+def ledger_build(
+    ctx: typer.Context,
+    public: Annotated[
+        bool,
+        typer.Option(
+            "--public", help="Also write the allow-listed claims to docs/ledger (private zone)."
+        ),
+    ] = False,
+    resamples: Annotated[
+        int, typer.Option("--resamples", min=50, help="Bootstrap resamples.")
+    ] = 1000,
+    only: Annotated[
+        list[str] | None, typer.Option("--only", help="Compute only these claim ids.")
+    ] = None,
+) -> None:
+    """Evaluate every registered claim on the zone's warehouse and write the ledger."""
+    from kashf.ledger.build import build_ledger
+
+    state = _state(ctx)
+    result = build_ledger(
+        state.settings, state.zone, public=public, n_resamples=resamples, only=only
+    )
+    table = Table(title=f"ledger ({state.zone.value}, {result.ledger.source_kind} data)")
+    for column in ("claim", "clients", "headline", "verdict", "public"):
+        table.add_column(column, overflow="fold")
+    for record in result.ledger.claims:
+        verdict = record.robustness.verdict if record.robustness else ""
+        table.add_row(
+            record.id,
+            str(record.n),
+            "yes" if record.headline else "",
+            verdict,
+            "yes" if record.public else "",
+        )
+    console.print(table)
+    console.print(f"ledger: {_describe(result.path, state)}")
+    if result.public_path is not None:
+        console.print(
+            f"public claims: {_describe(result.public_path, AppState(state.settings, Zone.PUBLIC))}"
+        )
+    for claim_id, reason in result.skipped.items():
+        err_console.print(f"[yellow]skipped[/yellow] {claim_id}: {escape(reason)}")
+
+
+@ledger_app.command("render")
+def ledger_render(ctx: typer.Context) -> None:
+    """Render docs/findings and the README section from docs/ledger/claims.public.json."""
+    from kashf.ledger.build import PUBLIC_LEDGER, load_ledger
+    from kashf.ledger.render import render_all
+
+    root = _state(ctx).settings.repo_root
+    written = render_all(root, load_ledger(root / PUBLIC_LEDGER))
+    for path in written:
+        console.print(f"rendered {path.relative_to(root).as_posix()}")
+
+
+@ledger_app.command("check")
+def ledger_check(ctx: typer.Context) -> None:
+    """Fail on drift, on hand-typed numbers in governed documents, or on non-allow-listed claims."""
+    from kashf.ledger.check import check_repository
+
+    problems = check_repository(_state(ctx).settings.repo_root)
+    for problem in problems:
+        err_console.print(f"[red]ledger[/red] {escape(problem.render())}", highlight=False)
+    if problems:
+        err_console.print(f"ledger check: {len(problems)} problem(s)")
+        raise typer.Exit(code=1)
+    console.print("ledger check: documents match the ledger; no hand-typed numbers")
+
+
+@app.command()
+def report(
+    ctx: typer.Context,
+    variant: Annotated[
+        str, typer.Option("--variant", help="public (synthetic demo) or private.")
+    ] = "public",
+) -> None:
+    """Render the HTML report: private (every real claim, private folder) or public (demo)."""
+    from kashf.report.build import build_report
+
+    state = _state(ctx)
+    if variant not in {"public", "private"}:
+        err_console.print("--variant must be public or private")
+        raise typer.Exit(code=2)
+    path = build_report(state.settings, "private" if variant == "private" else "public")
+    shown = AppState(state.settings, Zone.PRIVATE if variant == "private" else Zone.PUBLIC)
+    console.print(f"report: {_describe(path, shown)}")
+
+
 def _report_failure(error: BaseException) -> None:
     """Print a sanitised error; keep the full traceback in the private log on private runs."""
     message = mask_identifiers(str(error))[:500]

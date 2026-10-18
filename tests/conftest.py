@@ -20,6 +20,7 @@ import pytest
 from kashf.config import Settings, Zone
 
 if TYPE_CHECKING:
+    from kashf.ledger.model import Ledger
     from kashf.synthetic.parametric import SyntheticExtract
 
 # Fixtures import the pipeline lazily: collecting the suite stays fast, and a test module that
@@ -110,6 +111,40 @@ def public_warehouse(tmp_path_factory: pytest.TempPathFactory, synthetic_dir: Pa
     settings = public_settings(tmp_path_factory.mktemp("warehouse"))
     ingest(settings, Zone.PUBLIC, synthetic_dir)
     return settings
+
+
+def build_warehouse(settings: Settings, zone: Zone, source: Path | None) -> None:
+    """Ingest, measure quality and run the whole dbt build into ``settings``' warehouse."""
+    from kashf.dbt_runner import run_dbt
+    from kashf.ingest import dq
+    from kashf.ingest.load import ingest
+    from kashf.warehouse import connect
+
+    ingest(settings, zone, source)
+    con = connect(settings.workspace(zone).warehouse)
+    try:
+        dq.run(con)
+    finally:
+        con.close()
+    assert run_dbt(settings, zone, ["build"]).success
+
+
+@pytest.fixture(scope="session")
+def built_warehouse(tmp_path_factory: pytest.TempPathFactory, synthetic_dir: Path) -> Settings:
+    """A public warehouse with every dbt model built from the default synthetic extract."""
+    settings = public_settings(tmp_path_factory.mktemp("built"))
+    build_warehouse(settings, Zone.PUBLIC, synthetic_dir)
+    return settings
+
+
+@pytest.fixture(scope="session")
+def synthetic_ledger(built_warehouse: Settings) -> Ledger:
+    """Every registered claim computed on the built synthetic warehouse."""
+    from kashf.ledger.build import build_ledger
+
+    result = build_ledger(built_warehouse, Zone.PUBLIC)
+    assert result.skipped == {}
+    return result.ledger
 
 
 @pytest.fixture

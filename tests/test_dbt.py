@@ -20,10 +20,9 @@ from kashf.cli import app
 from kashf.config import SYNTHETIC_MARKER, Settings, Zone, is_within
 from kashf.contracts.vocab import silence_cutoffs
 from kashf.dbt_runner import dbt_arguments, run_dbt
-from kashf.ingest import dq
-from kashf.ingest.load import ingest, load_manifest
+from kashf.ingest.load import load_manifest
 from kashf.warehouse import connect
-from tests.conftest import public_settings
+from tests.conftest import build_warehouse, public_settings
 
 MARTS = (
     "client_360",
@@ -35,26 +34,9 @@ MARTS = (
 )
 
 
-def build(settings: Settings, zone: Zone, source: Path | None) -> None:
-    ingest(settings, zone, source)
-    con = connect(settings.workspace(zone).warehouse)
-    try:
-        dq.run(con)
-    finally:
-        con.close()
-    assert run_dbt(settings, zone, ["build"]).success
-
-
-@pytest.fixture(scope="session")
-def built(tmp_path_factory: pytest.TempPathFactory, synthetic_dir: Path) -> Settings:
-    settings = public_settings(tmp_path_factory.mktemp("dbt"))
-    build(settings, Zone.PUBLIC, synthetic_dir)
-    return settings
-
-
 @pytest.fixture
-def con(built: Settings) -> Iterator[duckdb.DuckDBPyConnection]:
-    connection = connect(built.workspace(Zone.PUBLIC).warehouse, read_only=True)
+def con(built_warehouse: Settings) -> Iterator[duckdb.DuckDBPyConnection]:
+    connection = connect(built_warehouse.workspace(Zone.PUBLIC).warehouse, read_only=True)
     yield connection
     connection.close()
 
@@ -71,9 +53,9 @@ def test_every_mart_is_built(con: duckdb.DuckDBPyConnection) -> None:
 
 
 def test_marts_row_counts_match_the_manifest(
-    built: Settings, con: duckdb.DuckDBPyConnection
+    built_warehouse: Settings, con: duckdb.DuckDBPyConnection
 ) -> None:
-    manifest = load_manifest(built.workspace(Zone.PUBLIC))
+    manifest = load_manifest(built_warehouse.workspace(Zone.PUBLIC))
     rows = {item.extract: item.rows for item in manifest.files}
     assert scalar(con, "select count(*) from marts.client_360") == rows["clients"]
     events = rows["card_transactions"] + rows["online_operations"] + rows["branch_operations"]
@@ -132,16 +114,16 @@ def test_repeat_flags_agree_with_the_quality_report(con: duckdb.DuckDBPyConnecti
     assert flagged == reported > 0
 
 
-def test_documentation_is_generated(built: Settings) -> None:
-    assert run_dbt(built, Zone.PUBLIC, ["docs", "generate"]).success
-    target = built.workspace(Zone.PUBLIC).dbt_target_dir
+def test_documentation_is_generated(built_warehouse: Settings) -> None:
+    assert run_dbt(built_warehouse, Zone.PUBLIC, ["docs", "generate"]).success
+    target = built_warehouse.workspace(Zone.PUBLIC).dbt_target_dir
     assert (target / "catalog.json").is_file()
     assert (target / "manifest.json").is_file()
 
 
-def test_dbt_arguments_point_at_the_zone(built: Settings) -> None:
-    workspace = built.workspace(Zone.PUBLIC)
-    arguments = dbt_arguments(built, workspace, ["run"])
+def test_dbt_arguments_point_at_the_zone(built_warehouse: Settings) -> None:
+    workspace = built_warehouse.workspace(Zone.PUBLIC)
+    arguments = dbt_arguments(built_warehouse, workspace, ["run"])
     assert arguments[0] == "run"
     assert str(workspace.dbt_target_dir) in arguments
     assert str(workspace.dbt_log_dir) in arguments
@@ -175,7 +157,7 @@ def test_a_private_build_keeps_every_artefact_outside_the_repository(
     shutil.copytree(synthetic_dir, extract)
     (extract / SYNTHETIC_MARKER).unlink()
     settings = Settings(_env_file=None, repo_root=repo, data_dir=extract)  # type: ignore[call-arg]
-    build(settings, Zone.PRIVATE, None)
+    build_warehouse(settings, Zone.PRIVATE, None)
     workspace = settings.workspace(Zone.PRIVATE)
     assert is_within(workspace.dbt_target_dir, extract / "private_out")
     assert (workspace.dbt_target_dir / "run_results.json").is_file()
