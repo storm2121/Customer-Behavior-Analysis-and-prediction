@@ -1,15 +1,66 @@
+# ------------------------------------------------------------------ privacy (see PRIVACY.md)
+# The bank extract and everything derived from it stay outside the repository. These patterns are
+# a second line of defence; the first is that private outputs are written to KASHF_PRIVATE_DIR.
+data/
+private_out/
+*.csv
+!dbt/seeds/*.csv
+!tests/fixtures/**/*.csv
+*.tsv
+*.parquet
+*.feather
+*.arrow
+*.duckdb
+*.duckdb.wal
+*.sqlite
+*.db
+*.xlsx
+*.xls
+*.pkl
+*.pickle
+*.joblib
+claims.private.json
+.env
+.env.*
+
+# ------------------------------------------------------------------ local workspace
+.kashf/
+mlruns/
+
+# ------------------------------------------------------------------ python
 __pycache__/
 *.py[cod]
 .venv/
 venv/
 env/
-
-# Bank extracts are confidential and never committed.
-data/
-*.csv
-
+build/
+dist/
+*.egg-info/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
 .ipynb_checkpoints/
+
+# ------------------------------------------------------------------ dbt
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+logs/
+
+# ------------------------------------------------------------------ node
+node_modules/
+apps/dashboard/dist/
+apps/dashboard/storybook-static/
+apps/dashboard/playwright-report/
+apps/dashboard/test-results/
+
+# ------------------------------------------------------------------ editors and OS
 .vscode/
 .idea/
 .DS_Store
+Thumbs.db

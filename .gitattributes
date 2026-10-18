@@ -1,0 +1,11 @@
+# Text is stored and checked out with LF on every platform (the machine default here is CRLF).
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.pdf binary
