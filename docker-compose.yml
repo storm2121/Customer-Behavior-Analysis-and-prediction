@@ -1,6 +1,7 @@
 # Strata on synthetic data: the API, its PostgreSQL review store, the MLflow UI and a placeholder
-# for the dashboard (M8). Ports are Strata's defaults: API 8000, PostgreSQL 5432, dashboard 5173,
-# MLflow 5000. Nothing here reads the real extract.
+# for the dashboard (M8). Host ports are Strata's defaults (API 8000, PostgreSQL 5432, dashboard
+# 5173, MLflow 5000) and can be moved when a port is taken on the machine, for example
+# `STRATA_PG_PORT=55432 docker compose up`. Nothing here reads the real extract.
 name: strata
 
 services:
@@ -11,7 +12,7 @@ services:
       POSTGRES_PASSWORD: strata
       POSTGRES_DB: strata
     ports:
-      - "5432:5432"
+      - "${STRATA_PG_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -27,7 +28,7 @@ services:
     environment:
       STRATA_PG_URL: postgresql+psycopg://strata:strata@postgres:5432/strata
     ports:
-      - "8000:8000"
+      - "${STRATA_API_PORT:-8000}:8000"
     volumes:
       - work:/data/work
     depends_on:
@@ -39,7 +40,7 @@ services:
       context: .
       dockerfile: Dockerfile.mlflow
     ports:
-      - "5000:5000"
+      - "${STRATA_MLFLOW_PORT:-5000}:5000"
     volumes:
       - work:/data/work:ro
     depends_on:
@@ -48,7 +49,7 @@ services:
   dashboard:
     image: nginx:1.27.3-alpine
     ports:
-      - "5173:80"
+      - "${STRATA_DASHBOARD_PORT:-5173}:80"
     volumes:
       - ./apps/dashboard/placeholder:/usr/share/nginx/html:ro
 
