@@ -83,9 +83,12 @@ anomaly: dbt
 serve:
     uv run --frozen strata serve
 
-# The whole stack on synthetic data: API, PostgreSQL, MLflow UI and the dashboard placeholder.
+# The whole stack on synthetic data: API, PostgreSQL, MLflow UI and the dashboard. Port overrides
+# of this machine (STRATA_*_PORT) are read from .env.local when it exists.
+compose_env := if path_exists(".env.local") == "true" { "--env-file .env.local" } else { "" }
+
 up:
-    docker compose up --build
+    docker compose {{compose_env}} up --build
 
 # Private zone: load the real extract from STRATA_DATA_DIR; outputs go to STRATA_PRIVATE_DIR only.
 private-ingest:

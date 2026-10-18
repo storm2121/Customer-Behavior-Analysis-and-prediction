@@ -26,14 +26,15 @@ Every command runs in one of two zones, chosen explicitly:
   under `STRATA_PRIVATE_DIR`, which defaults to a `private_out` folder next to the extract. Both
   variables are refused if they resolve inside the repository.
 
-The location of the extract is known only through the environment. On the machine that holds
-the extract, `STRATA_DATA_DIR` and `STRATA_PRIVATE_DIR` live in `.env.local` at the repository
-root: gitignored, read by the settings so private runs need no manual export, and overridden by
-real environment variables. No tracked file names the private locations, and the CLI prints them
-as `<STRATA_PRIVATE_DIR>/…`. One exception is
-cosmetic: dbt's own log lines name the folders it writes to, so a private `strata dbt` run shows the
-private folder's path in the terminal (never in a file inside the repository). dbt's anonymous usage
-statistics are switched off in the project and in the environment of every run.
+The location of the extract is known only through the environment. On the machine that holds the
+extract, `STRATA_DATA_DIR` and `STRATA_PRIVATE_DIR` live in `.env.local` at the repository root
+(which may also hold the machine's Docker Compose port overrides, `STRATA_*_PORT`): gitignored, read
+by the settings so private runs need no manual export, and overridden by real environment variables.
+No tracked file names the private locations, and the CLI prints them as `<STRATA_PRIVATE_DIR>/…`.
+One exception is cosmetic: dbt's own log lines name the folders it writes to, so a private `strata
+dbt` run shows the private folder's path in the terminal (never in a file inside the repository).
+dbt's anonymous usage statistics are switched off in the project and in the environment of every
+run.
 
 ## The pre-commit guard
 
