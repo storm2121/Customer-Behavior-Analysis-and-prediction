@@ -123,17 +123,40 @@ seeds:
             expression: "cutoff_date < outcome_start and outcome_start <= outcome_end"
 
   - name: calendar_periods
-    description: Ramadan, the two Eids and the week before Eid al-Adha.
+    description: >
+      Ramadan, the two Eids and the week before Eid al-Adha, in the Moroccan calendar. The dates
+      follow the official moon sighting; they are tagged `assumed` until Mohamed confirms them.
     columns:
       - name: period_key
         data_tests: [unique, not_null]
+      - name: semantics
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [label, observed, assumed]
     data_tests:
       - expression_is_true:
           arguments:
             expression: "start_date <= end_date"
 
   - name: bank_holidays
-    description: Fixed-date national holidays inside the window.
+    description: >
+      Bank holidays inside the window other than the two Eids (which are periods): the fixed-date
+      national holidays and the floating religious ones (Islamic New Year, Mawlid). Branches close
+      on all of them. Tagged `assumed` until Mohamed confirms them.
     columns:
       - name: holiday_date
         data_tests: [unique, not_null, within_window]
+      - name: kind
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [national, religious]
+      - name: semantics
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [label, observed, assumed]

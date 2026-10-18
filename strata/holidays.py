@@ -5,10 +5,11 @@ builds the calendar columns of ``daily_counts`` from them, the synthetic generat
 intensities with them and the calendar models use them as regressors, so a period can never mean
 two different things.
 
-The Islamic dates follow ARCHITECTURE.md section 9. Moroccan dates depend on the sighting of the
-moon and can differ by a day from other countries; the models treat each period as a block, which
-makes them robust to a one-day shift. Only fixed-date national holidays are listed; the floating
-Islamic holidays other than the two Eids are left out rather than guessed.
+Moroccan Islamic dates follow the official sighting of the moon, which usually comes a day after
+Saudi Arabia's; the seeds carry the Moroccan dates given by the architect, tagged ``assumed`` until
+Mohamed confirms them. The models treat each period as a block, which keeps them robust to a
+one-day shift. Bank holidays are the fixed-date national holidays, the floating religious holidays
+(Islamic New Year, Mawlid) and the two Eids.
 """
 
 from __future__ import annotations
@@ -54,14 +55,15 @@ PRE_EID_AL_ADHA_WEEK_2024 = _PERIODS["pre_eid_al_adha_week"]
 
 SPECIAL_PERIODS: tuple[Period, ...] = tuple(_PERIODS.values())
 
-NATIONAL_HOLIDAYS: tuple[tuple[date, str], ...] = holiday_rows()
-"""Fixed-date national holidays inside the window. Branches are closed on these days."""
+BANK_HOLIDAYS: tuple[tuple[date, str], ...] = holiday_rows()
+"""Bank holidays inside the window other than the two Eids: fixed national and floating religious
+holidays. Branches are closed on these days."""
 
 
 def is_bank_holiday(day: date) -> bool:
-    """National holidays and the two Eids: days on which branches do not open."""
+    """Bank holidays and the two Eids: days on which branches do not open."""
     return (
-        any(day == holiday for holiday, _ in NATIONAL_HOLIDAYS)
+        any(day == holiday for holiday, _ in BANK_HOLIDAYS)
         or day in EID_AL_FITR_2024
         or day in EID_AL_ADHA_2024
     )

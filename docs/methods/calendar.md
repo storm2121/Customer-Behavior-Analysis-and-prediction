@@ -40,9 +40,10 @@ $$
   effect is $e^{\theta_{\text{Dec}}}$. There is no separate trend term (ADR 0009): over one year
   the month terms absorb it.
 - **Periods** $p$: Ramadan, Eid al-Fitr, Eid al-Adha, the week before Eid al-Adha (dates from
-  `dbt/seeds/calendar_periods.csv`) and the national holidays (`dbt/seeds/bank_holidays.csv`). The
-  Eids are bank holidays too, but have their own terms, so every period is read against ordinary
-  days.
+  `dbt/seeds/calendar_periods.csv`) and the other bank holidays, national and religious
+  (`dbt/seeds/bank_holidays.csv`). The Eids are bank holidays too, but have their own terms, so
+  every period is read against ordinary days. The Moroccan dates follow the official moon sighting
+  and are tagged `assumed` in the seeds until confirmed.
 
 A column that is constant on the modelled days (Saturday on an open-days series, say) is dropped.
 Every effect is reported as a rate ratio $e^{\text{coefficient}}$: the factor by which the expected

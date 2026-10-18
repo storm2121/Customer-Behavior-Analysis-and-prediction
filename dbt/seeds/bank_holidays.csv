@@ -1,11 +1,14 @@
-holiday_date,label
-2023-11-06,Green March
-2023-11-18,Independence Day
-2024-01-01,New Year
-2024-01-11,Proclamation of Independence
-2024-01-14,Amazigh New Year
-2024-05-01,Labour Day
-2024-07-30,Throne Day
-2024-08-14,Oued Ed-Dahab Day
-2024-08-20,Revolution of the King and the People
-2024-08-21,Youth Day
+holiday_date,label,kind,evidence,semantics
+2023-11-06,Green March,national,fixed-date national holiday (architect; Mohamed to confirm),assumed
+2023-11-18,Independence Day,national,fixed-date national holiday (architect; Mohamed to confirm),assumed
+2024-01-01,New Year,national,fixed-date national holiday (architect; Mohamed to confirm),assumed
+2024-01-11,Proclamation of Independence,national,fixed-date national holiday (architect; Mohamed to confirm),assumed
+2024-01-14,Amazigh New Year,national,official since 2024 by royal decision; not in the architect list; Mohamed to confirm,assumed
+2024-05-01,Labour Day,national,fixed-date national holiday (architect; Mohamed to confirm),assumed
+2024-07-08,Islamic New Year 1446,religious,Moroccan moon sighting (architect; Mohamed to confirm),assumed
+2024-07-30,Throne Day,national,fixed-date national holiday (architect; Mohamed to confirm),assumed
+2024-08-14,Oued Ed-Dahab Day,national,fixed-date national holiday (architect; Mohamed to confirm),assumed
+2024-08-20,Revolution of the King and the People,national,fixed-date national holiday (architect; Mohamed to confirm),assumed
+2024-08-21,Youth Day,national,fixed-date national holiday (architect; Mohamed to confirm),assumed
+2024-09-15,Mawlid,religious,Moroccan moon sighting (architect; Mohamed to confirm),assumed
+2024-09-16,Mawlid (second day),religious,Moroccan moon sighting (architect; Mohamed to confirm),assumed

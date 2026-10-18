@@ -1,5 +1,5 @@
-period_key,label,start_date,end_date
-ramadan,Ramadan 1445,2024-03-11,2024-04-09
-eid_al_fitr,Eid al-Fitr,2024-04-10,2024-04-11
-eid_al_adha,Eid al-Adha,2024-06-16,2024-06-17
-pre_eid_al_adha_week,Week before Eid al-Adha,2024-06-09,2024-06-15
+period_key,label,start_date,end_date,evidence,semantics
+ramadan,Ramadan 1445,2024-03-12,2024-04-09,Moroccan moon sighting (architect; Mohamed to confirm),assumed
+eid_al_fitr,Eid al-Fitr,2024-04-10,2024-04-11,Moroccan moon sighting (architect; Mohamed to confirm),assumed
+eid_al_adha,Eid al-Adha,2024-06-17,2024-06-18,Moroccan moon sighting (architect; Mohamed to confirm),assumed
+pre_eid_al_adha_week,Week before Eid al-Adha,2024-06-10,2024-06-16,the seven days before Eid al-Adha,assumed

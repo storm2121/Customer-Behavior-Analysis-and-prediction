@@ -9,8 +9,8 @@ with the Bayesian model:
 - calendar month in sum-to-zero (deviation) coding, so a month's effect is against the average
   month. With a single year, month of year and a linear trend cannot be separated; the monthly
   effects absorb the trend, and the docs say so;
-- indicators for Ramadan, Eid al-Fitr, Eid al-Adha, the week before Eid al-Adha and the national
-  bank holidays (the Eids are bank holidays too, but have their own terms).
+- indicators for Ramadan, Eid al-Fitr, Eid al-Adha, the week before Eid al-Adha and the other
+  bank holidays (national and religious; the Eids are bank holidays too, but have their own terms).
 
 The dispersion is estimated once by maximum likelihood (NB2); intervals come from a client
 bootstrap that rebuilds every daily series from resampled clients and refits the regression at the
@@ -115,8 +115,8 @@ def design_matrix(frame: pd.DataFrame) -> pd.DataFrame:
     for name, column in PERIOD_COLUMNS.items():
         columns[name] = _indicator(frame[column].astype(bool))
     # The mart's bank holidays include the two Eids (branches close on both); the Eids have their
-    # own terms, so the bank-holiday term covers the national holidays only and every effect is
-    # read against ordinary days.
+    # own terms, so the bank-holiday term covers the other bank holidays and every effect is read
+    # against ordinary days.
     eid = frame["is_eid_al_fitr"].astype(bool) | frame["is_eid_al_adha"].astype(bool)
     columns["bank_holiday"] = _indicator(frame["is_bank_holiday"].astype(bool) & ~eid)
     design = pd.DataFrame(columns)

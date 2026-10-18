@@ -53,9 +53,9 @@ seeds:
     silence_cutoffs:
       +column_types: {cutoff_date: date, outcome_start: date, outcome_end: date, role: varchar}
     calendar_periods:
-      +column_types: {period_key: varchar, label: varchar, start_date: date, end_date: date}
+      +column_types: {period_key: varchar, label: varchar, start_date: date, end_date: date, evidence: varchar, semantics: varchar}
     bank_holidays:
-      +column_types: {holiday_date: date, label: varchar}
+      +column_types: {holiday_date: date, label: varchar, kind: varchar, evidence: varchar, semantics: varchar}
 
 models:
   strata:

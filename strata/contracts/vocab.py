@@ -22,10 +22,14 @@ def seeds_dir() -> Path:
     return find_repo_root() / "dbt" / "seeds"
 
 
-def _rows(name: str) -> list[dict[str, str]]:
+def seed_rows(name: str) -> list[dict[str, str]]:
+    """The rows of ``dbt/seeds/<name>.csv`` as dictionaries."""
     path = seeds_dir() / f"{name}.csv"
     with path.open(encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
+
+
+_rows = seed_rows
 
 
 def _flag(value: str) -> bool:
@@ -212,7 +216,7 @@ def calendar_rows() -> tuple[tuple[str, str, date, date], ...]:
 
 @cache
 def holiday_rows() -> tuple[tuple[date, str], ...]:
-    """``(date, label)`` of the fixed national holidays."""
+    """``(date, label)`` of the bank holidays other than the Eids (national and religious)."""
     return tuple(
         (date.fromisoformat(row["holiday_date"]), row["label"]) for row in _rows("bank_holidays")
     )

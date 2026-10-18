@@ -8,8 +8,8 @@ import pytest
 
 from strata.contracts import vocab
 from strata.holidays import (
+    BANK_HOLIDAYS,
     EID_AL_ADHA_2024,
-    NATIONAL_HOLIDAYS,
     PRE_EID_AL_ADHA_WEEK_2024,
     RAMADAN_2024,
     SPECIAL_PERIODS,
@@ -69,10 +69,18 @@ def test_a_period_cannot_end_before_it_starts() -> None:
         Period("x", "x", date(2024, 1, 2), date(2024, 1, 1))
 
 
-def test_bank_holidays_include_fixed_holidays_and_eids() -> None:
-    assert all(is_bank_holiday(day) for day, _ in NATIONAL_HOLIDAYS)
+def test_bank_holidays_include_fixed_and_religious_holidays_and_eids() -> None:
+    assert all(is_bank_holiday(day) for day, _ in BANK_HOLIDAYS)
     assert is_bank_holiday(EID_AL_ADHA_2024.start)
+    assert is_bank_holiday(date(2024, 7, 8))  # Islamic New Year
+    assert is_bank_holiday(date(2024, 9, 16))  # Mawlid
     assert not is_bank_holiday(date(2024, 3, 13))
+
+
+def test_the_week_before_eid_al_adha_ends_the_day_before_it() -> None:
+    week = PRE_EID_AL_ADHA_WEEK_2024
+    assert len(week.days()) == 7
+    assert (EID_AL_ADHA_2024.start - week.end).days == 1
 
 
 def test_bands_are_contiguous_and_cover_the_extract_ranges() -> None:

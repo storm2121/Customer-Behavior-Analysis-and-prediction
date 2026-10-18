@@ -20,6 +20,7 @@ from strata.cli import app
 from strata.config import SYNTHETIC_MARKER, Settings, Zone, is_within
 from strata.contracts.vocab import silence_cutoffs
 from strata.dbt_runner import dbt_arguments, run_dbt
+from strata.holidays import RAMADAN_2024
 from strata.ingest.load import load_manifest
 from strata.warehouse import connect
 from tests.conftest import build_warehouse, public_settings
@@ -101,7 +102,8 @@ def test_daily_counts_are_dense(con: duckdb.DuckDBPyConnection) -> None:
     days = scalar(con, "select count(distinct day) from marts.daily_counts")
     series = scalar(con, "select count(distinct channel || '/' || kind) from marts.daily_counts")
     assert scalar(con, "select count(*) from marts.daily_counts") == days * series
-    assert scalar(con, "select count(distinct day) from marts.daily_counts where is_ramadan") == 30
+    ramadan = scalar(con, "select count(distinct day) from marts.daily_counts where is_ramadan")
+    assert ramadan == len(RAMADAN_2024.days())
 
 
 def test_repeat_flags_agree_with_the_quality_report(con: duckdb.DuckDBPyConnection) -> None:

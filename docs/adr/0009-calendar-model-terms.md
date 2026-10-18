@@ -23,10 +23,11 @@ Eid effect an effect on top of an ordinary holiday.
   month's rate ratio is against the average month of the window, and the trend over the year is
   part of the month effects. Every calendar claim carries the caveat that month effects absorb any
   trend.
-- **Holidays.** The bank-holiday term covers the national fixed-date holidays only; the Eids have
-  their own terms, so every holiday effect is read against ordinary days. The mart's
-  `is_bank_holiday` (national holidays and the Eids, the definition of `strata.holidays`) still
-  decides which days branches are open.
+- **Holidays.** The bank-holiday term covers the bank holidays other than the Eids (the
+  fixed-date national holidays and, since the architect supplied their Moroccan dates, the
+  floating religious ones: Islamic New Year and Mawlid); the Eids have their own terms, so every
+  holiday effect is read against ordinary days. The mart's `is_bank_holiday` (all bank holidays
+  and the Eids, the definition of `strata.holidays`) still decides which days branches are open.
 - **Branch series on open days.** Branch series are modelled on Monday to Friday outside bank
   holidays; weekend and holiday terms are not estimable there and are dropped.
 - **References.** Monday for the day of week and days eleven to fifteen for the day of the month,
