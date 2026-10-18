@@ -121,6 +121,14 @@ class Settings(BaseSettings):
     work_dir: Path = Field(default=Path(".strata"), description="Public scratch space, gitignored.")
     zone: Zone = Field(default=Zone.PUBLIC, description="Default zone (STRATA_ZONE).")
     seed: int = Field(default=42, description="Master seed for every random draw.")
+    pg_url: str | None = Field(
+        default=None,
+        description=(
+            "Review database of the public zone (STRATA_PG_URL, a SQLAlchemy URL such as "
+            "postgresql+psycopg://...); default: a SQLite file in the workspace. The private zone "
+            "always uses a SQLite file under STRATA_PRIVATE_DIR."
+        ),
+    )
     log_level: str = Field(default="INFO")
     log_json: bool = Field(default=False)
     repo_root: Path = Field(default_factory=find_repo_root)

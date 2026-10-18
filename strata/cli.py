@@ -432,6 +432,111 @@ def promote(ctx: typer.Context) -> None:
         console.print(f"published {_describe(path, AppState(state.settings, Zone.PUBLIC))}")
 
 
+anomaly_app = typer.Typer(
+    name="anomaly",
+    help="The monitoring layer: a ranked triage queue for people to review, never an accusation.",
+    no_args_is_help=True,
+)
+app.add_typer(anomaly_app)
+
+
+def _client(state: AppState, client_id: str) -> str:
+    """Client ids are shown for synthetic data only; a private queue is read by alert number."""
+    return client_id if state.zone is Zone.PUBLIC else "(private)"
+
+
+@anomaly_app.command("run")
+def anomaly_run(
+    ctx: typer.Context,
+    budget: Annotated[
+        int, typer.Option("--budget", min=1, help="Alerts the reviewers can handle.")
+    ] = 50,
+) -> None:
+    """Score every client, rank the queue, store the budgeted part for review."""
+    from strata.models.anomaly.run import run
+
+    state = _state(ctx)
+    result = run(state.settings, state.zone, budget=budget)
+    evaluation = result.evaluation
+    console.print(
+        f"run {result.run_id}: {len(result.top)} alerts of {result.n_clients} clients stored; "
+        f"pseudo-labels: {evaluation['pseudo_labels']}"
+    )
+    table = Table(title="precision at k against pseudo-labels (two rule families or more)")
+    for column in ("k", "combined score", "detectors only"):
+        table.add_column(column)
+    for k, values in evaluation["precision_at_k"].items():
+        table.add_row(k, f"{values['combined']:.2f}", f"{values['statistical_only']:.2f}")
+    console.print(table)
+    queue = Table(title="top of the queue")
+    for column in ("rank", "client", "score", "rules"):
+        queue.add_column(column, overflow="fold")
+    for row in result.top.head(10).itertuples(index=False):
+        queue.add_row(
+            str(row.rank),
+            _client(state, str(row.client_id)),
+            f"{row.score:.3f}",
+            ", ".join(str(rule) for rule in row.rules),  # type: ignore[union-attr]
+        )
+    console.print(queue)
+    console.print(f"queue: {_describe(result.queue_file, state)}")
+
+
+@anomaly_app.command("feedback")
+def anomaly_feedback(
+    ctx: typer.Context,
+    alert_id: Annotated[int, typer.Argument(help="The alert's number in the review store.")],
+    label: Annotated[str, typer.Argument(help="confirmed, dismissed or needs_information.")],
+    analyst: Annotated[str, typer.Option("--analyst", help="Who reviewed the alert.")] = "analyst",
+    note: Annotated[str, typer.Option("--note", help="Why.")] = "",
+) -> None:
+    """Record an analyst's label for an alert (it feeds precision against feedback)."""
+    from strata.review import db
+
+    state = _state(ctx)
+    store = db.engine(db.database_url(state.settings, state.zone))
+    feedback_id = db.add_feedback(store, alert_id, label, analyst, note)
+    store.dispose()
+    console.print(f"feedback {feedback_id} recorded for alert {alert_id}: {label}")
+
+
+@anomaly_app.command("queue")
+def anomaly_queue(
+    ctx: typer.Context,
+    limit: Annotated[int, typer.Option("--limit", min=1)] = 20,
+) -> None:
+    """Show the latest run's queue with each alert's latest label."""
+    from strata.review import db
+
+    state = _state(ctx)
+    store = db.engine(db.database_url(state.settings, state.zone))
+    run_id = db.latest_run(store)
+    if run_id is None:
+        store.dispose()
+        err_console.print("no run yet: `strata anomaly run` first")
+        raise typer.Exit(code=1)
+    rows = db.alerts_of(store, run_id, limit=limit)
+    precision = db.precision_from_feedback(store, run_id, limit)
+    store.dispose()
+    table = Table(title=f"run {run_id}")
+    for column in ("alert", "rank", "client", "score", "rules", "label"):
+        table.add_column(column, overflow="fold")
+    for row in rows:
+        table.add_row(
+            str(row["id"]),
+            str(row["rank"]),
+            _client(state, row["client_id"]),
+            f"{row['score']:.3f}",
+            ", ".join(row["rules"]),
+            row["label"] or "",
+        )
+    console.print(table)
+    console.print(
+        f"precision at {precision['k']} against feedback: "
+        f"{precision['confirmed']} confirmed of {precision['labelled']} labelled"
+    )
+
+
 SIMULATION_MONTHS = (0, 1, 3, 6, 12)
 
 

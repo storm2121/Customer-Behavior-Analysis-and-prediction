@@ -1,0 +1,72 @@
+# Triage rules of the monitoring layer (ARCHITECTURE section 10). A hit is a reason to look at a
+# client, never a finding about them. Thresholds that dbt also uses are kept equal to the project
+# variables in dbt/dbt_project.yml (a test checks it). Amounts are in the account currency.
+#
+# `family` groups rules that look at the same thing; a client is a pseudo-label when rules of at
+# least two different families fire (ARCHITECTURE: "flagged by at least two independent rules").
+
+rules:
+  - id: large_cash_deposit
+    kind: large_deposit
+    family: amount
+    weight: 1.0
+    description: a branch deposit at or above the reporting threshold
+    params:
+      threshold: 100000            # dbt var large_deposit_threshold
+
+  - id: structuring
+    kind: structuring
+    family: splitting
+    weight: 2.0
+    description: several deposits each below the threshold, together above it, within a window
+    params:
+      threshold: 100000            # dbt var large_deposit_threshold
+      min_deposits: 3
+      window_days: 30              # dbt var velocity_days
+
+  - id: deposit_velocity
+    kind: velocity
+    family: frequency
+    weight: 1.0
+    description: many branch deposits within a window
+    params:
+      min_deposits: 8
+      window_days: 30              # dbt var velocity_days
+
+  - id: pass_through
+    kind: pass_through
+    family: flow
+    weight: 2.0
+    description: a large deposit followed by a branch withdrawal of most of it within days
+    params:
+      min_deposit: 20000           # dbt var pass_through_min_deposit
+      window_days: 7               # dbt var pass_through_days
+      min_share: 0.5
+
+  - id: dormant_then_burst
+    kind: dormant_then_burst
+    family: activity
+    weight: 1.0
+    description: months without any event followed by a busy month
+    params:
+      min_gap_months: 3            # dbt var burst_min_gap_months
+      min_events: 5                # dbt var burst_min_events
+
+  - id: cash_intensive
+    kind: cash_intensive
+    family: mix
+    weight: 1.0
+    description: branch deposits far above the client's card spend
+    params:
+      ratio: 5.0
+      min_deposit_amount: 50000
+
+combine:
+  # Weights of the score components; each component is scaled to [0, 1] before weighting.
+  rules: 0.5
+  isolation_forest: 0.2
+  amounts: 0.2
+  benford: 0.1
+
+benford:
+  min_amounts: 50                  # fewest positive amounts for a per-client digit test
