@@ -12,7 +12,8 @@ channel never used) are set to the window length plus a flag, and everything is 
 - Profiles: per-segment medians and shares, Kruskal-Wallis tests for features and chi-square tests
   for the channel profile and the age band; each segment is named after its two most distinctive
   features (largest absolute standardised median against the whole population).
-- UMAP gives a two-dimensional embedding for display only; it plays no part in the segmentation.
+- UMAP gives a two-dimensional embedding for display only (the first two principal components at
+  quick effort); it plays no part in the segmentation.
 """
 
 from __future__ import annotations
@@ -165,6 +166,13 @@ def profiles(
     return segments, tests
 
 
+def principal_plane(x: np.ndarray) -> np.ndarray:
+    """The first two principal components (the quick stand-in for UMAP, also display only)."""
+    centred = x - x.mean(axis=0)
+    _, _, vectors = np.linalg.svd(centred, full_matrices=False)
+    return np.asarray(centred @ vectors[:2].T, dtype=np.float64)
+
+
 def embedding(x: np.ndarray, seed: int) -> np.ndarray:
     """UMAP coordinates for display (two dimensions)."""
     import umap  # noqa: PLC0415 - heavy import, display only
@@ -185,11 +193,11 @@ def run(features: pd.DataFrame, *, effort: Effort = FULL, seed: int = 42) -> dic
     labels = model.predict(values)
     segments, tests = profiles(rows, x, labels)
     assignments = pd.DataFrame({"client_id": rows["client_id"], "segment": labels})
-    if effort.umap:
-        coordinates = embedding(values, seed)
-        assignments["umap_x"], assignments["umap_y"] = coordinates[:, 0], coordinates[:, 1]
+    coordinates = embedding(values, seed) if effort.umap else principal_plane(values)
+    assignments["embed_x"], assignments["embed_y"] = coordinates[:, 0], coordinates[:, 1]
     return {
         "k": k,
+        "embedding": "umap" if effort.umap else "pca",
         "bic": chosen["bic"],
         "silhouette": chosen["silhouette"],
         "stability": stability(values, labels, k, effort, seed),

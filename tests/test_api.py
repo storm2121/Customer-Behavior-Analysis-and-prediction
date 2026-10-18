@@ -148,3 +148,24 @@ def test_missing_artefacts_answer_service_unavailable(built_warehouse: Settings,
     assert bare.post("/markov/simulate", json={}).status_code == 503
     assert bare.get("/calendar/effects").status_code == 503
     assert bare.get("/alerts").json() == {"alerts": []}
+
+
+def test_overview_points_and_risk_evaluation_feed_the_dashboard(client: TestClient) -> None:
+    overview = client.get("/overview").json()
+    assert overview["source_kind"] == "synthetic"
+    assert sum(row["clients"] for row in overview["channel_mix"]) == overview["clients"]
+    assert {row["channel"] for row in overview["daily"]} == {"card", "online", "branch"}
+    points = client.get("/segments/points", params={"limit": 50}).json()["points"]
+    assert len(points) == 50
+    assert {"client_id", "segment", "x", "y"} <= set(points[0])
+    evaluation = client.get("/risk/silence/evaluation").json()
+    assert "lightgbm_platt" in evaluation["metrics"]
+    assert evaluation["reliability"]["lightgbm_platt"]
+
+
+def test_cors_allows_the_dashboard_origin(client: TestClient) -> None:
+    answer = client.options(
+        "/health",
+        headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "GET"},
+    )
+    assert answer.headers.get("access-control-allow-origin") == "http://localhost:5173"

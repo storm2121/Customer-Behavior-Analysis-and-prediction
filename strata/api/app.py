@@ -24,6 +24,7 @@ import duckdb
 import numpy as np
 import pandas as pd
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from prometheus_client import (
     CONTENT_TYPE_LATEST,
@@ -174,10 +175,71 @@ def client_360(client_id: str, state: StateDep, con: ConnectionDep) -> dict[str,
     }
 
 
+@router.get("/overview")
+def overview(state: StateDep, con: ConnectionDep) -> dict[str, Any]:
+    """Headline counts, the channel mix of clients and daily events per channel (heatmap)."""
+    profiles = con.execute(
+        "select channel_profile, count(*) as clients from marts.client_360 group by 1 order by 1"
+    ).df()
+    totals = con.execute(
+        "select count(*) as clients, coalesce(sum(n_events), 0) as events from marts.client_360"
+    ).df()
+    daily = con.execute(
+        "select day, channel, sum(n_events) as events from marts.daily_counts "
+        "group by 1, 2 order by 1, 2"
+    ).df()
+    manifest = load_manifest(state.workspace)
+    return {
+        "source_kind": manifest.source_kind,
+        "clients": int(totals["clients"].iloc[0]),
+        "events": int(totals["events"].iloc[0]),
+        "channel_mix": _records(profiles),
+        "daily": _records(daily),
+    }
+
+
 @router.get("/segments")
 def segment_list(state: StateDep) -> dict[str, Any]:
     results = state.json("models", "segments", "results.json")
     return {key: results[key] for key in ("k", "stability", "segments", "tests")}
+
+
+@router.get("/segments/points")
+def segment_points(
+    state: StateDep, limit: Annotated[int, Query(ge=1, le=50_000)] = 5000
+) -> dict[str, Any]:
+    """The two-dimensional embedding of the clients, coloured by segment (display only)."""
+    rows = state.optional("models", "segments", "assignments.json")
+    points = [
+        {
+            "client_id": row["client_id"],
+            "segment": row["segment"],
+            "x": row["embed_x"],
+            "y": row["embed_y"],
+        }
+        for row in rows[:limit]
+        if "embed_x" in row
+    ]
+    return {"points": points}
+
+
+@router.get("/risk/silence/evaluation")
+def silence_evaluation(state: StateDep) -> dict[str, Any]:
+    """The primary backtest: metrics of every model with intervals, and reliability bins."""
+    results = state.json("models", "silence", "results.json")
+    primary = results["backtests"][-1]
+    return {
+        key: primary[key]
+        for key in (
+            "train_cutoff",
+            "test_cutoff",
+            "n_train",
+            "n_test",
+            "silence_rate_test",
+            "metrics",
+            "reliability",
+        )
+    }
 
 
 @router.get("/risk/silence")
@@ -286,6 +348,15 @@ def create_app(settings: Settings | None = None, zone: Zone | None = None) -> Fa
         description="Risk scores, segments, alerts, the policy simulator and the public claims.",
     )
     app.state.strata = State(settings, zone or settings.zone)
+    origins = os.environ.get(
+        "STRATA_CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(",")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[origin.strip() for origin in origins if origin.strip()],
+        allow_methods=["GET", "POST"],
+        allow_headers=["content-type", "x-api-key"],
+    )
     metrics = CollectorRegistry()
     requests = Counter(
         "strata_requests", "Requests by route and status", ["route", "status"], registry=metrics
