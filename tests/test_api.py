@@ -112,6 +112,9 @@ def test_the_public_claims_are_served(client: TestClient) -> None:
     body = client.get("/ledger/claims").json()
     ids = {claim["id"] for claim in body["claims"]}
     assert "channel_mix" in ids
+    for claim in body["claims"]:
+        assert claim["question"]
+        assert set(claim["units"]) <= set(claim["values"])
     assert {verdict["id"] for verdict in body["verdicts"]} == {"silence_by_channel"}
     assert all("values" not in verdict for verdict in body["verdicts"])
 
