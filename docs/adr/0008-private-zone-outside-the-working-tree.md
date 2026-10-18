@@ -1,7 +1,7 @@
 # ADR 0008: private runs write nothing inside the working tree
 
 Status: accepted (executing agent, M0, 2026-10-18). Deviates from ARCHITECTURE.md sections 5.2 and 7.
-ADR 0007 is reserved for the Bayesian backend choice (ARCHITECTURE.md section 9).
+ADR 0007, numbered before this one, records the Bayesian backend choice (ARCHITECTURE.md section 9).
 
 ## Context
 
