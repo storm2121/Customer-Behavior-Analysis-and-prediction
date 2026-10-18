@@ -83,6 +83,13 @@ instance and the synthetic generator a first-class source.
   withheld.
 - `docs/data_card.md` (draft) with a generated table of every assumed or undocumented meaning.
 - Markov simulator inputs carry state counts by age band.
+- Source mappings (`mappings/*.yaml`, `strata.contracts.mapping`): `strata ingest --mapping` loads
+  any extract of clients and dated channel events into the canonical tables `raw.clients`,
+  `raw.events` and `raw.client_aggregates`; dbt staging reads only those. Files read through the
+  reference contracts are kept in `landing.*` for the source-specific data-quality checks; other
+  sources get source-agnostic checks. The manifest and the ledger record the mapping's digest.
+  A snapshot test proves the reference behaviour unchanged, and a property-based test maps a
+  generated alien schema onto identical marts.
 
 ### Changed
 

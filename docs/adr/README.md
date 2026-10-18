@@ -14,3 +14,4 @@ Each record states its status, context, decision and consequences. A deviation f
 | [0007](0007-bayesian-backend.md) | PyMC for the Bayesian calendar model | accepted |
 | [0008](0008-private-zone-outside-the-working-tree.md) | Private runs write nothing inside the working tree | accepted |
 | [0009](0009-calendar-model-terms.md) | Calendar model terms for a single year of data | accepted |
+| [0010](0010-canonical-layer.md) | The canonical raw layer, its landing tables and its provenance | accepted |

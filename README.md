@@ -42,12 +42,17 @@ Strata replaces a hackathon script from 2024 whose bugs are documented openly in
 
 ## How a source plugs in
 
-Today the pipeline reads two sources: the reference extract, through typed contracts, and the
-synthetic generator, which writes files in exactly the same format. The next step (milestone M4.5)
-makes the pipeline source-agnostic: a mapping file per source (`mappings/<source>.yaml`) loads any
-extract with clients and dated channel events into canonical raw tables, dbt staging reads only
-those tables, and a property-based test maps a generated, deliberately different schema onto the
-same marts.
+Any extract with clients and dated channel events plugs in through a mapping file
+(`mappings/<source>.yaml`, described in [`mappings/README.md`](mappings/README.md)): which file plays
+which role, its encoding, delimiter, decimal mark and date format, which source column feeds which
+canonical column, and how its codes translate into the vocabulary of the seeds. `strata ingest
+--mapping <file>` loads it into three canonical tables, `raw.clients`, `raw.events` and
+`raw.client_aggregates`, and dbt staging reads only those, so every mart, claim and model works
+unchanged on a new source. Two mappings ship: the reference instance (read through its typed
+contracts) and the synthetic generator. Two tests hold the layer to its promise: the reference
+mapping reproduces the manifest, the data-quality report and every model's row count of the pipeline
+as it was before mappings existed, and a property-based test maps a generated, deliberately
+different schema onto the same marts ([ADR 0010](docs/adr/0010-canonical-layer.md)).
 
 <!-- ledger:start -->
 ## What the reference instance shows
