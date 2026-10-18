@@ -53,10 +53,19 @@ ingest: synth
 dq: ingest
     uv run --frozen kashf dq
 
+# Build the public warehouse with dbt (seeds, models and every dbt test) and its documentation.
+dbt: dq
+    uv run --frozen kashf dbt build
+    uv run --frozen kashf dbt docs generate
+
 # Private zone: load the real extract from KASHF_DATA_DIR; outputs go to KASHF_PRIVATE_DIR only.
 private-ingest:
     uv run --frozen kashf --private ingest
     uv run --frozen kashf --private dq
+
+# Private zone: the warehouse on the real extract (dbt target and logs stay private too).
+private-dbt: private-ingest
+    uv run --frozen kashf --private dbt build
 
 # Run every pre-commit hook over the whole tree.
 hooks:
