@@ -77,6 +77,12 @@ instance and the synthetic generator a first-class source.
   interval), used wherever an interval is rendered.
 - `docs/methods/` pages with the equations of every module: calendar, seasonality, concentration,
   Benford and Markov.
+- Publication modes: `spend_concentration` is published in full and `silence_by_channel` as a
+  verdict only (verdict, stratifiers and an explanation in words, never a number), enforced by the
+  build, the renderer, the ledger check and the commit guard; public values on too few clients are
+  withheld.
+- `docs/data_card.md` (draft) with a generated table of every assumed or undocumented meaning.
+- Markov simulator inputs carry state counts by age band.
 
 ### Changed
 
@@ -86,6 +92,11 @@ instance and the synthetic generator a first-class source.
   the pipeline as the product and the findings as an illustration on the reference instance.
 
 ### Fixed
+
+- Calendar dates follow the Moroccan moon sighting (Ramadan from the twelfth of March, Eid
+  al-Adha from the seventeenth of June), Islamic New Year and Mawlid are bank holidays, and every
+  date is tagged `assumed` until confirmed. Rebuild an existing warehouse with
+  `strata dbt build --full-refresh` once, because the seed tables gained columns.
 
 - Bootstrap intervals depended on the order in which DuckDB returned rows, which can change after
   a rebuild; warehouse reads are now in a canonical order, so the same data always gives the same
