@@ -10,8 +10,12 @@ dependencies = [
     "dbt-duckdb>=1.8",
     "duckdb>=1.1",
     "jinja2>=3.1",
+    "lifelines>=0.29",
+    "lightgbm>=4.5",
+    "mlflow-skinny>=2.17",
     "numpy>=1.26",
-    "pandas>=2.2",
+    "optuna>=4.0",
+    "pandas>=3.0",
     "pandera>=0.20",
     "plotly>=5.22",
     "pydantic>=2.8",
@@ -19,10 +23,13 @@ dependencies = [
     "pymc>=5.16",
     "pyyaml>=6.0",
     "rich>=13.7",
+    "scikit-learn>=1.5",
     "scipy>=1.13",
+    "shap>=0.46",
     "statsmodels>=0.14",
     "structlog>=24.4",
     "typer>=0.12.5",
+    "umap-learn>=0.5.6",
 ]
 
 [project.scripts]
@@ -92,7 +99,26 @@ warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 
 [[tool.mypy.overrides]]
-module = ["plotly", "plotly.*", "statsmodels", "statsmodels.*", "pymc", "pymc.*", "arviz", "arviz.*"]
+module = [
+    "plotly",
+    "plotly.*",
+    "statsmodels",
+    "statsmodels.*",
+    "pymc",
+    "pymc.*",
+    "arviz",
+    "arviz.*",
+    "sklearn",
+    "sklearn.*",
+    "shap",
+    "shap.*",
+    "lifelines",
+    "lifelines.*",
+    "umap",
+    "umap.*",
+    "mlflow",
+    "mlflow.*",
+]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]
