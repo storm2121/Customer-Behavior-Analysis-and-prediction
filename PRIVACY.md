@@ -70,6 +70,12 @@ once in that module and enforced both by the build and by the commit guard:
 the synthetic demo can never overwrite it. Every other finding stays in the private report
 (`strata --private report --variant private`, written under `STRATA_PRIVATE_DIR`).
 
+The analysis modules follow the same zones. `strata --private analyse` writes its figures, its
+claims and the simulator's inputs (transition counts between channel states, state counts and
+branch-operation rates, all aggregates) under `STRATA_PRIVATE_DIR` and refuses any other location;
+the figures are drawn from real data and are not published. Its terminal table of the sample
+policy's bands is for the person running it, not a publication channel.
+
 ## Logs and errors
 
 Log records go to standard error through `structlog`; fields named like identifiers are replaced

@@ -26,8 +26,9 @@ Strata replaces a hackathon script from 2024 whose bugs are documented openly in
 | Warehouse | dbt on DuckDB: staging over code-map seeds, one event table for every channel, a dense client-month panel, monthly channel states, and marts for clients, silence features with time cuts, segments, monitoring and daily calendar series. | `dbt/` |
 | Evidence ledger | Registered claims with client-bootstrap intervals, sample sizes, caveats and a data fingerprint. Documents are templates over the ledger, and CI fails on drift or on a number typed by hand. | `strata/ledger/` |
 | Robustness checker | Each headline is recomputed inside strata of activity, age and tenure and labelled *holds*, *weakens* or *reverses*. | [method](docs/methods/robustness.md) |
+| Analysis modules | Calendar effects from a negative-binomial regression with client-bootstrap intervals and a PyMC twin with posterior predictive checks; STL seasonality and the December wave split into breadth and depth; Lorenz, Gini and RFM scores per channel; Benford tests per category; a Dirichlet-posterior Markov chain of channel states with a what-if simulator. Each module writes ledger claims and figures. | `strata analyse`, [methods](docs/methods/) |
 | Reports | A private report of every claim, kept outside the repository, and a public demo on synthetic data. | `strata report` |
-| Next | Calendar models (frequentist and Bayesian), a channel Markov chain with a migration simulator, time-validated risk models, an anomaly triage layer, an API, an orchestrated DAG and a dashboard. | [milestones](MILESTONES.md) |
+| Next | Source mappings (any extract with clients and dated channel events), time-validated risk models, an anomaly triage layer, an API, an orchestrated DAG and a dashboard. | [milestones](MILESTONES.md) |
 
 ## How it is checked
 
@@ -88,6 +89,7 @@ uv sync                 # Python 3.12 environment from uv.lock
 uv run pre-commit install
 just check              # lint, types, tests with coverage, privacy scan, ledger check
 just ledger             # synthetic extract -> warehouse -> claims -> demo report
+just analyse            # analysis modules: claims, figures and the simulator's bands
 uv run strata --help
 ```
 

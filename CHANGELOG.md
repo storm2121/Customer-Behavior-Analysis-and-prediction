@@ -52,6 +52,31 @@ instance and the synthetic generator a first-class source.
 - `.env.local` (gitignored) holds the machine's private locations; the settings read it, and the
   privacy guard learns the private locations from it and refuses to commit any `.env` file.
 - An MIT licence.
+- `strata analyse [all|calendar|seasonality|concentration|benford|markov]`: each analysis module
+  recomputes its claims (merged into the zone's ledger), writes its figures to the zone's figures
+  folder and, for the Markov chain, the simulator's inputs and the sample policy's bands.
+- Calendar models: a negative-binomial regression per daily series with client-bootstrap
+  intervals (`calendar_effects`) and the same model in PyMC with posterior predictive checks,
+  convergence diagnostics and P(December > 2x) (`calendar_bayes`); ADR 0007 records the backend
+  and ADR 0009 the terms.
+- Seasonality: STL strength of the weekly cycle and of the trend per channel
+  (`weekly_seasonality`); the December wave, pre-Eid week and Ramadan claims use shared, tested
+  decompositions.
+- Concentration: RFM quintile scores per channel with the value share of the best clients
+  (`rfm_by_channel`).
+- Benford: first-digit and first-two-digit tests per category (`benford_by_category`) and the
+  most over-represented leading pairs of purchases (`benford_two_digits`).
+- A Markov chain of monthly channel states with a Dirichlet posterior, its stationary distribution
+  and mean first-passage times (`channel_markov`), and a what-if simulator with paired posterior
+  paths (`markov_policy_simulation`).
+- `strata ledger build --quick` and `--only` merging: model-based claims at lower effort for tests
+  and demos, marked in each claim and refused by `--public`; partial builds keep the other claims
+  of the same data in registry order, and a claim that is attempted and skipped loses its old
+  record.
+- Claim records carry an interval label (a 95% CI, a 95% credible interval, a 90% posterior
+  interval), used wherever an interval is rendered.
+- `docs/methods/` pages with the equations of every module: calendar, seasonality, concentration,
+  Benford and Markov.
 
 ### Changed
 
@@ -65,6 +90,9 @@ instance and the synthetic generator a first-class source.
 - Bootstrap intervals depended on the order in which DuckDB returned rows, which can change after
   a rebuild; warehouse reads are now in a canonical order, so the same data always gives the same
   intervals.
+- `daily_counts.is_bank_holiday` missed the two Eids, on which branches close; it now has the
+  definition of `strata.holidays.is_bank_holiday` (a test keeps the two in agreement), so branch
+  series no longer count Eid days as open days.
 
 ### Known defects of the legacy code
 
