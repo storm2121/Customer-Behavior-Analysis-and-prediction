@@ -118,3 +118,15 @@ def first_two_digit_test(amounts: npt.ArrayLike) -> BenfordTest:
     return test_digits(
         digit_counts(digits, FIRST_TWO_DIGITS), EXPECTED_FIRST_TWO, FIRST_TWO_DIGIT_BANDS
     )
+
+
+def digit_matrix(
+    codes: npt.ArrayLike, digits: npt.ArrayLike, n_clients: int, support: npt.ArrayLike
+) -> FloatArray:
+    """``(clients, digits)`` counts of leading digits, for client-bootstrap intervals."""
+    labels = np.asarray(support, dtype=np.int64)
+    column = {int(label): i for i, label in enumerate(labels)}
+    matrix = np.zeros((n_clients, len(labels)))
+    columns = np.array([column[int(d)] for d in np.asarray(digits)], dtype=np.int64)
+    np.add.at(matrix, (np.asarray(codes, dtype=np.int64), columns), 1.0)
+    return matrix

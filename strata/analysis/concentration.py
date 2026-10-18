@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import numpy as np
 import numpy.typing as npt
+from scipy import stats
 
 FloatArray = npt.NDArray[np.float64]
 
@@ -58,3 +59,31 @@ def top_share(
     # Whole clients up to the cutoff, and the fraction of the client who crosses it.
     taken = np.minimum(w, np.maximum(cutoff - (cumulative - w), 0.0))
     return float(np.sum(taken * x) / np.sum(w * x))
+
+
+def quintile_scores(
+    values: npt.ArrayLike, *, higher_is_better: bool = True
+) -> npt.NDArray[np.int64]:
+    """Scores from one to five by quintile of rank; tied values share their average rank.
+
+    Ties get one score (two clients with the same frequency are equally frequent), so with many
+    ties the five groups are not of equal size.
+    """
+    x = np.asarray(values, dtype=np.float64)
+    if x.size == 0:
+        return np.empty(0, dtype=np.int64)
+    ranks = stats.rankdata(x if higher_is_better else -x, method="average") - 1.0
+    return (1 + np.floor(5 * ranks / x.size)).astype(np.int64)
+
+
+def rfm_scores(
+    recency_days: npt.ArrayLike, frequency: npt.ArrayLike, monetary: npt.ArrayLike
+) -> npt.NDArray[np.int64]:
+    """``(clients, 3)`` recency, frequency and monetary scores; a recent client scores high."""
+    return np.column_stack(
+        [
+            quintile_scores(recency_days, higher_is_better=False),
+            quintile_scores(frequency),
+            quintile_scores(monetary),
+        ]
+    )
