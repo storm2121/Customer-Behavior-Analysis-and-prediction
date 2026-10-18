@@ -173,6 +173,100 @@ def privacy_check(
     console.print(f"privacy-check: clean (identifier rule: {scanner.matcher.source})")
 
 
+@app.command()
+def synth(
+    ctx: typer.Context,
+    out: Annotated[Path, typer.Option("--out", help="Destination folder.")] = Path(".kashf/synth"),
+    clients: Annotated[int, typer.Option("--clients", min=1, help="Clients per sample.")] = 1000,
+    seed: Annotated[int | None, typer.Option("--seed", help="Defaults to KASHF_SEED.")] = None,
+) -> None:
+    """Write the public synthetic extract: five files shaped exactly like the real ones."""
+    from kashf.contracts.specs import EXTRACTS
+    from kashf.synthetic.parametric import ParametricConfig, generate
+    from kashf.synthetic.writer import write_extract
+
+    settings = _state(ctx).settings
+    config = ParametricConfig(n_clients=clients, seed=settings.seed if seed is None else seed)
+    extract = generate(config)
+    marker = write_extract(extract, out.resolve(), real_data_dir=settings.data_dir)
+    table = Table(title=f"synthetic extract (seed {config.seed}, {clients} clients)")
+    for column in ("file", "rows", "sha256"):
+        table.add_column(column)
+    for spec in EXTRACTS:
+        rows = len(extract.frames[spec.name])
+        table.add_row(spec.filename, str(rows), marker.files[spec.filename][:12])
+    console.print(table)
+
+
+@app.command()
+def ingest(
+    ctx: typer.Context,
+    data_dir: Annotated[
+        Path | None,
+        typer.Option("--data-dir", help="Synthetic folder (public) or the extract (private)."),
+    ] = None,
+) -> None:
+    """Validate the five files against their contracts and load the raw layer of the warehouse."""
+    from kashf.ingest.load import ingest as run_ingest
+
+    state = _state(ctx)
+    report = run_ingest(state.settings, state.zone, data_dir)
+    table = Table(title=f"ingest ({state.zone.value}, {report.manifest.source_kind} data)")
+    for column in ("extract", "rows", "columns", "first date", "last date", "line ends"):
+        table.add_column(column)
+    for item in report.manifest.files:
+        table.add_row(
+            item.extract,
+            str(item.rows),
+            str(item.columns),
+            str(item.date_min or ""),
+            str(item.date_max or ""),
+            item.line_terminator,
+        )
+    console.print(table)
+    console.print(f"warehouse: {_describe(report.workspace.warehouse, state)}")
+    console.print(f"fingerprint: {report.manifest.fingerprint[:16]}")
+    failed = [check for check in report.reconciliations if not check.ok]
+    for check in failed:
+        err_console.print(f"[red]reconciliation failed[/red] {check.extract} {check.measure}")
+    if failed:
+        raise typer.Exit(code=1)
+    console.print(f"reconciliation: {len(report.reconciliations)} checks passed")
+
+
+@app.command()
+def dq(ctx: typer.Context) -> None:
+    """Measure data quality on the raw layer; counts only, never values. Exit 1 on errors."""
+    from kashf.ingest import dq as quality
+    from kashf.warehouse import connect
+
+    state = _state(ctx)
+    warehouse = state.workspace.warehouse
+    if not warehouse.is_file():
+        err_console.print("no warehouse yet: run `kashf ingest` first")
+        raise typer.Exit(code=2)
+    con = connect(warehouse)
+    try:
+        results = quality.run(con)
+    finally:
+        con.close()
+    table = Table(title=f"data quality ({state.zone.value})")
+    for column in ("check", "extract", "status", "count", "of"):
+        table.add_column(column, overflow="fold")
+    colours = {"ok": "green", "info": "cyan", "warning": "yellow", "error": "red"}
+    for result in results:
+        table.add_row(
+            result.check_id,
+            result.extract,
+            f"[{colours[result.status]}]{result.status}[/]",
+            str(result.count),
+            "" if result.denominator is None else str(result.denominator),
+        )
+    console.print(table)
+    if quality.has_errors(results):
+        raise typer.Exit(code=1)
+
+
 def _report_failure(error: BaseException) -> None:
     """Print a sanitised error; keep the full traceback in the private log on private runs."""
     message = mask_identifiers(str(error))[:500]
