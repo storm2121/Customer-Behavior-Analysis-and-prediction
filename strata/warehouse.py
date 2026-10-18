@@ -44,9 +44,14 @@ def replace_table(
 
 
 def read_table(con: duckdb.DuckDBPyConnection, schema: str, table: str) -> pd.DataFrame:
-    """A whole table or view as a frame (the warehouse is small enough for this simple path)."""
+    """A whole table or view as a frame, in a canonical row order.
+
+    DuckDB scans in parallel, so without an order the same table can come back in a different
+    order after a rebuild. Order decides which bootstrap weight lands on which client, so every
+    read sorts on all columns: the same data always gives the same frame and the same intervals.
+    """
     relation = f"{_identifier(schema)}.{_identifier(table)}"
-    return con.sql(f"select * from {relation}").df()  # noqa: S608 - validated identifiers
+    return con.sql(f"select * from {relation} order by all").df()  # noqa: S608 - validated
 
 
 def read_relation(con: duckdb.DuckDBPyConnection, name: str) -> pd.DataFrame:

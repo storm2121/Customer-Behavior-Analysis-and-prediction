@@ -132,3 +132,20 @@ def test_warehouse_helpers_refuse_unsafe_identifiers(tmp_path: Path) -> None:
         assert not table_exists(con, "raw", "absent")
     finally:
         con.close()
+
+
+def test_tables_are_read_in_a_canonical_order(tmp_path: Path) -> None:
+    """The same rows stored in a different order must come back identically (stable intervals)."""
+    frames = []
+    for order in ([3, 1, 2], [2, 3, 1]):
+        con = connect(tmp_path / f"order_{order[0]}.duckdb")
+        try:
+            rows = duckdb.sql(
+                "select * from (values (1, 'a'), (2, 'b'), (3, 'c')) as t(id, label)"
+            ).df()
+            replace_table(con, "raw", "rows", rows.set_index("id").loc[order].reset_index())
+            frames.append(read_table(con, "raw", "rows"))
+        finally:
+            con.close()
+    assert frames[0].equals(frames[1])
+    assert list(frames[0]["id"]) == [1, 2, 3]
