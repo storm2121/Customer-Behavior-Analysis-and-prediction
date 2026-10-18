@@ -3,6 +3,9 @@
 
 set windows-shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
 
+# Tools print non-ASCII notes; a legacy Windows console code page must not crash them.
+export PYTHONUTF8 := "1"
+
 seed := "42"
 clients := "1000"
 synth_dir := ".kashf/synth"
@@ -37,6 +40,23 @@ privacy:
 
 # Everything CI runs. A milestone is done only when this is green.
 check: lint test privacy
+
+# Write the public synthetic extract.
+synth:
+    uv run --frozen kashf synth --out {{synth_dir}} --clients {{clients}} --seed {{seed}}
+
+# Load the synthetic extract into the public warehouse (contracts and reconciliation).
+ingest: synth
+    uv run --frozen kashf ingest --data-dir {{synth_dir}}
+
+# Data-quality report on the public warehouse.
+dq: ingest
+    uv run --frozen kashf dq
+
+# Private zone: load the real extract from KASHF_DATA_DIR; outputs go to KASHF_PRIVATE_DIR only.
+private-ingest:
+    uv run --frozen kashf --private ingest
+    uv run --frozen kashf --private dq
 
 # Run every pre-commit hook over the whole tree.
 hooks:
