@@ -1,6 +1,7 @@
 # The Strata API on synthetic data. The image builds the public workspace once (synthetic extract,
 # warehouse, claims, simulator inputs and models) so that `docker compose up` serves at once; the
-# alert queue is stored in PostgreSQL at start-up by docker/api-entrypoint.sh.
+# alert queue is stored in PostgreSQL at start-up by docker/api-entrypoint.sh. The empty model
+# registry folder lets the MLflow UI open the shared, read-only run store.
 FROM python:3.12.10-slim-bookworm
 
 ENV PYTHONUNBUFFERED=1 \
@@ -43,7 +44,8 @@ RUN strata synth --out /data/work/synth \
     && strata dbt build \
     && strata ledger build --quick \
     && strata analyse markov --quick \
-    && strata train all --quick
+    && strata train all --quick \
+    && mkdir -p /data/work/mlruns/models
 
 COPY --chown=strata docker/api-entrypoint.sh /app/docker/api-entrypoint.sh
 

@@ -118,8 +118,11 @@ docker compose up --build
 ```
 
 The API answers on `http://localhost:8000` (documentation at `/docs`, metrics at `/metrics`),
-PostgreSQL on 5432, the MLflow UI on 5000 and the dashboard placeholder on 5173. The image builds
-the synthetic workspace once; nothing in the stack reads the real extract ([ADR 0012](docs/adr/0012-api-and-compose.md)).
+PostgreSQL on 5432, the MLflow UI on 5000 and the dashboard placeholder on 5173. A host port that is
+already taken can be moved (`STRATA_PG_PORT`, `STRATA_DASHBOARD_PORT`, `STRATA_API_PORT`,
+`STRATA_MLFLOW_PORT`), and `python docker/smoke.py` checks that every endpoint answers. The image
+builds the synthetic workspace once; nothing in the stack reads the real extract
+([ADR 0012](docs/adr/0012-api-and-compose.md)).
 
 ## Repository layout
 
