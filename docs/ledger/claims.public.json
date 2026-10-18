@@ -1,0 +1,611 @@
+{
+  "claims": [
+    {
+      "caveats": [
+        "With thousands of amounts the chi-square test rejects for tiny deviations; the MAD band is the recommended reading.",
+        "Prices are set, not drawn: amounts just under a round number produce an excess of leading nines (psychological pricing), which is not a sign of manipulation."
+      ],
+      "ci": {
+        "digit_9_excess": [
+          0.0255165,
+          0.0522765
+        ],
+        "mad": [
+          0.00822762,
+          0.0133069
+        ],
+        "share_digit_1": [
+          0.284937,
+          0.310282
+        ],
+        "share_digit_2": [
+          0.166736,
+          0.19014
+        ],
+        "share_digit_3": [
+          0.104581,
+          0.11948
+        ],
+        "share_digit_4": [
+          0.0929691,
+          0.108424
+        ],
+        "share_digit_5": [
+          0.066638,
+          0.0777258
+        ],
+        "share_digit_6": [
+          0.0518833,
+          0.060501
+        ],
+        "share_digit_7": [
+          0.052347,
+          0.0616152
+        ],
+        "share_digit_8": [
+          0.0391926,
+          0.0467574
+        ],
+        "share_digit_9": [
+          0.0712739,
+          0.098034
+        ]
+      },
+      "computed_at": "2026-10-18T12:29:59Z",
+      "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
+      "headline": false,
+      "id": "benford_purchases",
+      "kashf_version": "0.1.0",
+      "meta": {
+        "conformity": "acceptable conformity",
+        "rows_digits": "1:1|2:2|3:3|4:4|5:5|6:6|7:7|8:8|9:9"
+      },
+      "method": "First significant digit of every positive card purchase amount (int_events, physical merchants, exact repeats excluded) against Benford's law: mean absolute deviation with Nigrini's conformity bands, chi-square test, and the excess of leading nines; client bootstrap intervals.",
+      "n": 515,
+      "n_events": 14496,
+      "public": true,
+      "question": "Do card purchase amounts follow Benford's law, and where do they depart from it?",
+      "robustness": null,
+      "source_kind": "real",
+      "title": "Leading digits of card purchases",
+      "units": {
+        "chi2": "number",
+        "digit_9_excess": "difference",
+        "expected_digit_1": "share",
+        "expected_digit_2": "share",
+        "expected_digit_3": "share",
+        "expected_digit_4": "share",
+        "expected_digit_5": "share",
+        "expected_digit_6": "share",
+        "expected_digit_7": "share",
+        "expected_digit_8": "share",
+        "expected_digit_9": "share",
+        "mad": "number",
+        "p_value": "p_value",
+        "share_digit_1": "share",
+        "share_digit_2": "share",
+        "share_digit_3": "share",
+        "share_digit_4": "share",
+        "share_digit_5": "share",
+        "share_digit_6": "share",
+        "share_digit_7": "share",
+        "share_digit_8": "share",
+        "share_digit_9": "share"
+      },
+      "value_n": {
+        "chi2": 515,
+        "digit_9_excess": 515,
+        "expected_digit_1": 515,
+        "expected_digit_2": 515,
+        "expected_digit_3": 515,
+        "expected_digit_4": 515,
+        "expected_digit_5": 515,
+        "expected_digit_6": 515,
+        "expected_digit_7": 515,
+        "expected_digit_8": 515,
+        "expected_digit_9": 515,
+        "mad": 515,
+        "p_value": 515,
+        "share_digit_1": 515,
+        "share_digit_2": 515,
+        "share_digit_3": 515,
+        "share_digit_4": 515,
+        "share_digit_5": 515,
+        "share_digit_6": 515,
+        "share_digit_7": 515,
+        "share_digit_8": 515,
+        "share_digit_9": 515
+      },
+      "values": {
+        "chi2": 535.48,
+        "digit_9_excess": 0.0379898,
+        "expected_digit_1": 0.30103,
+        "expected_digit_2": 0.176091,
+        "expected_digit_3": 0.124939,
+        "expected_digit_4": 0.09691,
+        "expected_digit_5": 0.0791812,
+        "expected_digit_6": 0.0669468,
+        "expected_digit_7": 0.0579919,
+        "expected_digit_8": 0.0511525,
+        "expected_digit_9": 0.0457575,
+        "mad": 0.00966202,
+        "p_value": 1.70559e-110,
+        "share_digit_1": 0.298427,
+        "share_digit_2": 0.178256,
+        "share_digit_3": 0.112031,
+        "share_digit_4": 0.100235,
+        "share_digit_5": 0.0717439,
+        "share_digit_6": 0.0560155,
+        "share_digit_7": 0.0568433,
+        "share_digit_8": 0.0427014,
+        "share_digit_9": 0.0837472
+      }
+    },
+    {
+      "caveats": [
+        "Dates may be posting dates rather than transaction dates, so weekend activity can surface on the next working day.",
+        "Branches are closed at weekends; branch shares on those days show where postings land."
+      ],
+      "ci": {
+        "branch_fri": [
+          0.179728,
+          0.207383
+        ],
+        "branch_mon": [
+          0.210279,
+          0.23925
+        ],
+        "branch_sat": [
+          0.0,
+          0.0
+        ],
+        "branch_sun": [
+          0.0,
+          0.00181239
+        ],
+        "branch_thu": [
+          0.1753,
+          0.19865
+        ],
+        "branch_tue": [
+          0.195858,
+          0.223878
+        ],
+        "branch_wed": [
+          0.173001,
+          0.196457
+        ],
+        "card_fri": [
+          0.143518,
+          0.152511
+        ],
+        "card_mon": [
+          0.131944,
+          0.14117
+        ],
+        "card_sat": [
+          0.145794,
+          0.155769
+        ],
+        "card_sun": [
+          0.136369,
+          0.147927
+        ],
+        "card_thu": [
+          0.139879,
+          0.148934
+        ],
+        "card_tue": [
+          0.134042,
+          0.142291
+        ],
+        "card_wed": [
+          0.13512,
+          0.144627
+        ],
+        "online_fri": [
+          0.137464,
+          0.149266
+        ],
+        "online_mon": [
+          0.142889,
+          0.154124
+        ],
+        "online_sat": [
+          0.130853,
+          0.144833
+        ],
+        "online_sun": [
+          0.116934,
+          0.12921
+        ],
+        "online_thu": [
+          0.141964,
+          0.153664
+        ],
+        "online_tue": [
+          0.145322,
+          0.157431
+        ],
+        "online_wed": [
+          0.142118,
+          0.154377
+        ]
+      },
+      "computed_at": "2026-10-18T12:29:59Z",
+      "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
+      "headline": false,
+      "id": "weekday_pattern",
+      "kashf_version": "0.1.0",
+      "meta": {
+        "rows_weekdays": "Monday:mon|Tuesday:tue|Wednesday:wed|Thursday:thu|Friday:fri|Saturday:sat|Sunday:sun"
+      },
+      "method": "Share of each channel's events falling on each ISO weekday (int_events, exact repeats excluded); client bootstrap intervals.",
+      "n": 947,
+      "n_events": 54852,
+      "public": true,
+      "question": "How are card, online and branch events spread over the days of the week?",
+      "robustness": null,
+      "source_kind": "real",
+      "title": "The week of a retail bank",
+      "units": {
+        "branch_fri": "share",
+        "branch_mon": "share",
+        "branch_sat": "share",
+        "branch_sun": "share",
+        "branch_thu": "share",
+        "branch_tue": "share",
+        "branch_wed": "share",
+        "card_fri": "share",
+        "card_mon": "share",
+        "card_peak_to_trough": "ratio",
+        "card_sat": "share",
+        "card_sun": "share",
+        "card_thu": "share",
+        "card_tue": "share",
+        "card_wed": "share",
+        "online_fri": "share",
+        "online_mon": "share",
+        "online_sat": "share",
+        "online_sun": "share",
+        "online_thu": "share",
+        "online_tue": "share",
+        "online_wed": "share"
+      },
+      "value_n": {
+        "branch_fri": 655,
+        "branch_mon": 655,
+        "branch_sat": 655,
+        "branch_sun": 655,
+        "branch_thu": 655,
+        "branch_tue": 655,
+        "branch_wed": 655,
+        "card_fri": 733,
+        "card_mon": 733,
+        "card_peak_to_trough": 733,
+        "card_sat": 733,
+        "card_sun": 733,
+        "card_thu": 733,
+        "card_tue": 733,
+        "card_wed": 733,
+        "online_fri": 575,
+        "online_mon": 575,
+        "online_sat": 575,
+        "online_sun": 575,
+        "online_thu": 575,
+        "online_tue": 575,
+        "online_wed": 575
+      },
+      "values": {
+        "branch_fri": 0.193571,
+        "branch_mon": 0.224297,
+        "branch_sat": 0.0,
+        "branch_sun": 0.000709052,
+        "branch_thu": 0.186953,
+        "branch_tue": 0.209879,
+        "branch_wed": 0.18459,
+        "card_fri": 0.147879,
+        "card_mon": 0.136514,
+        "card_peak_to_trough": 1.1047,
+        "card_sat": 0.150807,
+        "card_sun": 0.142056,
+        "card_thu": 0.144392,
+        "card_tue": 0.138226,
+        "card_wed": 0.140126,
+        "online_fri": 0.143351,
+        "online_mon": 0.148322,
+        "online_sat": 0.137786,
+        "online_sun": 0.123197,
+        "online_thu": 0.147728,
+        "online_tue": 0.15151,
+        "online_wed": 0.148106
+      }
+    },
+    {
+      "caveats": [
+        "A profile summarises the whole year: one branch visit makes a client mixed.",
+        "Channels are the three files: ATM withdrawals and card payments count as card."
+      ],
+      "ci": {
+        "share_branch_only": [
+          0.127,
+          0.168025
+        ],
+        "share_digital_only": [
+          0.265,
+          0.32
+        ],
+        "share_mixed": [
+          0.478,
+          0.541
+        ],
+        "share_none": [
+          0.041,
+          0.068
+        ]
+      },
+      "computed_at": "2026-10-18T12:29:59Z",
+      "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
+      "headline": false,
+      "id": "channel_mix",
+      "kashf_version": "0.1.0",
+      "meta": {
+        "profile_definition": "Channel profile over the rolling year: none (no event), branch_only (branch operations only), digital_only (card or online, never the branch), mixed (branch and at least one digital channel)."
+      },
+      "method": "Whole-year channel profile of every client of the sample (client_360); shares with percentile intervals from a client bootstrap.",
+      "n": 1000,
+      "n_events": null,
+      "public": true,
+      "question": "Which share of clients uses only the branch, only digital channels, both, or none?",
+      "robustness": null,
+      "source_kind": "real",
+      "title": "How clients split across channels",
+      "units": {
+        "share_branch_only": "share",
+        "share_digital_only": "share",
+        "share_mixed": "share",
+        "share_none": "share"
+      },
+      "value_n": {
+        "share_branch_only": 1000,
+        "share_digital_only": 1000,
+        "share_mixed": 1000,
+        "share_none": 1000
+      },
+      "values": {
+        "share_branch_only": 0.147,
+        "share_digital_only": 0.292,
+        "share_mixed": 0.508,
+        "share_none": 0.053
+      }
+    },
+    {
+      "caveats": [
+        "Age is measured at extraction, not when the channel habits formed.",
+        "Shares use every client of the band as denominator, including clients with no event.",
+        "Gender codes are kept as codes; their meaning is assumed, not documented.",
+        "The robustness check leaves activity level out: activity is partly a consequence of channel choice, so holding it fixed would bias the comparison."
+      ],
+      "ci": {
+        "branch_only_25_34": [
+          0.0403634,
+          0.0942249
+        ],
+        "branch_only_35_44": [
+          0.0908933,
+          0.204089
+        ],
+        "branch_only_45_54": [
+          0.211352,
+          0.365521
+        ],
+        "branch_only_55_64": [
+          0.18102,
+          0.333333
+        ],
+        "branch_only_65_plus": [
+          0.214286,
+          0.454545
+        ],
+        "branch_only_gender_gap": [
+          -0.059797,
+          0.0314554
+        ],
+        "branch_only_under_25": [
+          0.0378378,
+          0.105263
+        ],
+        "digital_only_25_34": [
+          0.300556,
+          0.403339
+        ],
+        "digital_only_35_44": [
+          0.173153,
+          0.310641
+        ],
+        "digital_only_45_54": [
+          0.182604,
+          0.333394
+        ],
+        "digital_only_55_64": [
+          0.193798,
+          0.351178
+        ],
+        "digital_only_65_plus": [
+          0.0508058,
+          0.22227
+        ],
+        "digital_only_under_25": [
+          0.251113,
+          0.375601
+        ]
+      },
+      "computed_at": "2026-10-18T12:29:59Z",
+      "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
+      "headline": true,
+      "id": "age_digital_divide",
+      "kashf_version": "0.1.0",
+      "meta": {
+        "band_25_34": "25-34",
+        "band_35_44": "35-44",
+        "band_45_54": "45-54",
+        "band_55_64": "55-64",
+        "band_65_plus": "65+",
+        "band_under_25": "<25",
+        "contrast": "clients aged 55 and over against clients under 35",
+        "profile_definition": "Channel profile over the rolling year: none (no event), branch_only (branch operations only), digital_only (card or online, never the branch), mixed (branch and at least one digital channel).",
+        "rows_bands": "<25:under_25|25-34:25_34|35-44:35_44|45-54:45_54|55-64:55_64|65+:65_plus"
+      },
+      "method": "Share of branch-only and digital-only clients in each age band (client_360, all clients of the band as denominator); gender gap as the difference of branch-only shares between the two gender codes; client bootstrap intervals. Headline robustness: branch-only share of clients aged 55 and over against clients under 35, within gender and tenure strata.",
+      "n": 1000,
+      "n_events": null,
+      "public": true,
+      "question": "How do branch-only and digital-only shares change with age, and is there a gender gap?",
+      "robustness": {
+        "group_col": "age_contrast",
+        "mechanism": "Crude difference in the branch-only share (clients aged 55 and over minus clients under 35): +21.3 points. Holding gender code fixed, the adjusted difference is +21.3 points. Holding tenure band fixed, the adjusted difference is +18.2 points. Strata of tenure band without enough clients of one group to compare: 11+ years. Verdict: holds.",
+        "metric": "is_branch_only",
+        "n_reference": 539,
+        "n_treatment": 186,
+        "overall_ci": [
+          0.1469398881261769,
+          0.27879615318432605
+        ],
+        "overall_effect": 0.21277953996848004,
+        "reference": "under 35",
+        "shrinkage": 0.29721855367759054,
+        "sign_flips": 0,
+        "stratifiers": [
+          {
+            "adjusted_ci": [
+              0.147870843213667,
+              0.28064598899491155
+            ],
+            "adjusted_effect": 0.21325675333045813,
+            "reverses": false,
+            "sign_flips": 0,
+            "strata": [
+              {
+                "ci": [
+                  0.14336607222795877,
+                  0.32945013084794655
+                ],
+                "effect": 0.23178599527930766,
+                "n_reference": 205,
+                "n_treatment": 93,
+                "stratum": "1",
+                "sufficient": true,
+                "suppressed": false
+              },
+              {
+                "ci": [
+                  0.10634717134717134,
+                  0.2884340907270162
+                ],
+                "effect": 0.19696091687592554,
+                "n_reference": 334,
+                "n_treatment": 93,
+                "stratum": "2",
+                "sufficient": true,
+                "suppressed": false
+              }
+            ],
+            "stratifier": "gender"
+          },
+          {
+            "adjusted_ci": [
+              0.07479081172679185,
+              0.2915486149272425
+            ],
+            "adjusted_effect": 0.18162900940952784,
+            "reverses": false,
+            "sign_flips": 0,
+            "strata": [
+              {
+                "ci": null,
+                "effect": null,
+                "n_reference": 0,
+                "n_treatment": 0,
+                "stratum": "11+ years",
+                "sufficient": false,
+                "suppressed": true
+              },
+              {
+                "ci": null,
+                "effect": null,
+                "n_reference": 0,
+                "n_treatment": 0,
+                "stratum": "2-3 years",
+                "sufficient": true,
+                "suppressed": true
+              },
+              {
+                "ci": null,
+                "effect": null,
+                "n_reference": 0,
+                "n_treatment": 0,
+                "stratum": "4-10 years",
+                "sufficient": true,
+                "suppressed": true
+              }
+            ],
+            "stratifier": "tenure_band"
+          }
+        ],
+        "treatment": "55+",
+        "verdict": "holds"
+      },
+      "source_kind": "real",
+      "title": "The digital divide by age",
+      "units": {
+        "branch_only_25_34": "share",
+        "branch_only_35_44": "share",
+        "branch_only_45_54": "share",
+        "branch_only_55_64": "share",
+        "branch_only_65_plus": "share",
+        "branch_only_gender_gap": "difference",
+        "branch_only_under_25": "share",
+        "digital_only_25_34": "share",
+        "digital_only_35_44": "share",
+        "digital_only_45_54": "share",
+        "digital_only_55_64": "share",
+        "digital_only_65_plus": "share",
+        "digital_only_under_25": "share"
+      },
+      "value_n": {
+        "branch_only_25_34": 337,
+        "branch_only_35_44": 137,
+        "branch_only_45_54": 138,
+        "branch_only_55_64": 126,
+        "branch_only_65_plus": 60,
+        "branch_only_gender_gap": 438,
+        "branch_only_under_25": 202,
+        "digital_only_25_34": 337,
+        "digital_only_35_44": 137,
+        "digital_only_45_54": 138,
+        "digital_only_55_64": 126,
+        "digital_only_65_plus": 60,
+        "digital_only_under_25": 202
+      },
+      "values": {
+        "branch_only_25_34": 0.0652819,
+        "branch_only_35_44": 0.145985,
+        "branch_only_45_54": 0.282609,
+        "branch_only_55_64": 0.253968,
+        "branch_only_65_plus": 0.333333,
+        "branch_only_gender_gap": -0.0146817,
+        "branch_only_under_25": 0.0693069,
+        "digital_only_25_34": 0.353116,
+        "digital_only_35_44": 0.240876,
+        "digital_only_45_54": 0.253623,
+        "digital_only_55_64": 0.269841,
+        "digital_only_65_plus": 0.133333,
+        "digital_only_under_25": 0.311881
+      }
+    }
+  ],
+  "computed_at": "2026-10-18T12:29:59Z",
+  "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
+  "schema_version": 1,
+  "source_kind": "real"
+}
