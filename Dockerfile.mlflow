@@ -1,0 +1,8 @@
+# The MLflow UI over the runs that the API image logged while building its models.
+FROM python:3.12.10-slim-bookworm
+ENV MLFLOW_ALLOW_FILE_STORE=true MLFLOW_DISABLE_AGENT_HINT=1
+RUN pip install --no-cache-dir "mlflow==3.17.1" \
+    && useradd --create-home --uid 10001 strata
+USER strata
+EXPOSE 5000
+CMD ["mlflow", "ui", "--backend-store-uri", "/data/work/mlruns", "--host", "0.0.0.0", "--port", "5000"]

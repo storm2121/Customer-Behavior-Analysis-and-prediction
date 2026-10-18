@@ -1,0 +1,20 @@
+# Nothing private, local or generated enters a Docker build context.
+.env
+.env.*
+.git
+.venv
+.strata
+.hypothesis
+.pytest_cache
+.mypy_cache
+.ruff_cache
+**/__pycache__
+*.duckdb
+*.sqlite
+data
+private_out
+legacy
+dbt/target
+dbt/logs
+node_modules
+mlruns
