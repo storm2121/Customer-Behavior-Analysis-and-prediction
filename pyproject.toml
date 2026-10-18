@@ -17,6 +17,7 @@ dependencies = [
     "pydantic>=2.8",
     "pydantic-settings>=2.4",
     "pymc>=5.16",
+    "pyyaml>=6.0",
     "rich>=13.7",
     "scipy>=1.13",
     "statsmodels>=0.14",
@@ -38,6 +39,7 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.6.9",
     "scipy-stubs>=1.14",
+    "types-pyyaml>=6.0",
 ]
 
 [build-system]
