@@ -87,3 +87,69 @@ the real data. Record exact commands and pass/fail counts.
   2. The repository has no licence. The README says the code is published for reading and review;
      choose a licence before publishing.
 - Next: M1.
+
+### M1: Contracts, ingest, data quality, public synthetic generator — done — 2026-10-18
+
+- Built:
+  - `dbt/seeds/codes_*.csv`: code maps for every categorical value (card categories and origins,
+    online services, the branch operation labels with an assumed direction and category, client
+    codes, aggregate-file flags), each meaning tagged `label`, `observed` or `assumed`. They are the
+    single definition of the vocabularies: `kashf.contracts.vocab` reads them (AGENT_RULES §3.6).
+  - `kashf/holidays.py`: Ramadan, the two Eids, the week before Eid al-Adha (ARCHITECTURE §9 dates)
+    and the fixed national holidays, shared by the generator and the calendar models.
+  - `kashf/contracts/extracts.py`: typed pandera contracts (strict, ordered columns; identifiers on
+    event rows; parseable dates; non-negative amounts). Violations are summarised from pandera's
+    structured errors as `(column, check, count)`; error messages are never used, because for some
+    error classes pandera writes the failing values into the message.
+  - `kashf/ingest/`: explicit text-to-type parsing with an independent line count, a manifest with a
+    timestamp-free fingerprint, the DuckDB raw layer (with `_source_row`), reconciliation of row
+    counts, distinct identifiers and amount sums between files and warehouse, and `kashf dq`, a
+    sample-free data-quality report stored in `raw.dq_report`.
+  - `kashf/synthetic/`: the public parametric generator and an exact-format writer (Latin-1, CRLF,
+    the extract's number formatting, the aggregate file's interleaved empty rows), with a
+    `SYNTHETIC.json` marker that records every file's hash. Planted structuring and pass-through
+    scenarios for M6 are labelled in a truth file next to the data.
+  - CLI: `kashf synth`, `kashf ingest`, `kashf dq`; `justfile`: `synth`, `ingest`, `dq`,
+    `private-ingest`.
+- Commands run and results:
+  - `uv run kashf synth --out .kashf/synth && uv run kashf ingest --data-dir .kashf/synth && uv run kashf dq`
+    (also `just dq`): all exit 0; contracts pass, 13 reconciliation checks pass, no `error` check;
+    the report records the exact repeats, the zero-amount online rows, the sub-1-MAD card rows and
+    the non-joining aggregate file.
+  - Locally with `KASHF_DATA_DIR` set: `uv run kashf --private ingest` exit 0 (all five real files
+    satisfy their contracts; 13 reconciliation checks pass; warehouse and manifest written under
+    `KASHF_PRIVATE_DIR`, nothing in the working tree); `uv run kashf --private dq` exit 0 with no
+    `error` check. The four checks named in the DoD are recorded (counts kept in the private
+    warehouse, not reproduced here).
+  - `uv run pytest`: 170 passed, 1 skipped (the `private` test); coverage 97.94% (gate 85%).
+  - `uv run pytest --run-private -m private` (local, real data): 1 passed (asserts exit codes only).
+  - `uv run mypy` (strict, 21 files) and `uv run ruff check .`: clean. `just check`: exit 0. Every
+    commit went through the pre-commit hooks and `kashf privacy-check --staged`.
+- Decisions:
+  - Contract and data quality are separate layers: the contract stops the ingest when the
+    pipeline's assumptions fail; data quality measures everything that may legitimately vary.
+  - Fail-closed public zone: `kashf ingest` refuses a folder without the synthetic marker, and a
+    marked folder whose files no longer match the recorded hashes.
+  - The raw layer keeps the aggregate file as loaded (including its empty rows); staging filters
+    them in M2. The exact-repeat definition lives in `kashf.ingest.dq.REPEAT_KEYS`; dbt staging
+    will flag the same rows and a dbt test will reconcile the two counts.
+  - Generator parameters are hand-set. Where ARCHITECTURE.md states a property in public (channel
+    coverage, repeat share, card-service zero rows, sub-1-MAD rows, heavy branch tail, round
+    withdrawals, December wave, salary days, international e-commerce) it is reused, rounded; every
+    other parameter is a round, plausible value, not fitted to the extract.
+  - The silence-by-channel pattern is produced by mechanisms rather than imposed: habitual branch
+    visits are regular (gamma-renewal gaps), and digital dormancy falls with digital engagement.
+    Before adopting the defaults I checked five seeds: each shows a positive crude gap between
+    branch-only and digital-only silence and a negative gap within activity terciles.
+  - Synthetic identifiers are `syn_` plus twelve hex characters, so they can never match the
+    identifier rule of the guard.
+  - `PYTHONUTF8=1` in the `justfile` and CI: mypy's notes contain non-ASCII characters and crashed
+    once on the Windows console code page (not a type error).
+- Stubbed or skipped, and why: nothing stubbed. The planted monitoring scenarios are unused until
+  M6.
+- Open questions for the architect:
+  1. The directions and categories of the rare branch labels are assumptions (`semantics=assumed`
+     in the seed); the bank's documentation would settle them.
+  2. The meaning of several aggregate-file codes (`civilite`, `flag_debit_credit`,
+     `flag_contrat_actif`) is undocumented and kept as categories.
+- Next: M2.
