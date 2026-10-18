@@ -621,3 +621,48 @@ below). Entries above this one use the old names (`kashf`, `KASHF_*`, `.kashf/`)
   the synthetic data (no card spend at all); should it require some card spend, or keep a separate
   rule for branch-only clients?
 - Next: M7.
+
+### M7: API and Compose — done — 2026-10-18
+
+- Built:
+  - `strata/api/app.py` (`create_app(settings, zone)`, `strata serve`): `/health` (versions, data
+    fingerprint and mapping, model versions), `/clients/{id}/360` (profile, monthly channel
+    timeline, segment, silence risk with its top SHAP reasons, open alerts), `/segments`,
+    `/risk/silence?top=k`, `/adoption/deciles`, `/alerts?budget=k` with
+    `POST /alerts/{id}/feedback`, `/calendar/effects` (both models, each with its interval label),
+    `POST /markov/simulate` (share, age limit, target state, horizon; computed from the age-band
+    counts of the simulator inputs) and `/ledger/claims` (public claims and verdicts). A read-only
+    DuckDB connection per request, Prometheus counters and latency histograms by route template
+    (never by raw path, so no client id reaches the metrics), OpenAPI docs, an optional API key.
+  - `Dockerfile.api` (the public workspace built into the image at quick effort; the alert queue is
+    stored in PostgreSQL at start-up), `Dockerfile.mlflow` (the MLflow UI over the image's runs,
+    read-only), `docker-compose.yml` (API, PostgreSQL, MLflow UI, dashboard placeholder; host ports
+    default to 8000, 5432, 5000 and 5173 and can be moved with `STRATA_*_PORT`), `.dockerignore`
+    (no `.env*`, workspace, data or database file can enter a build context), `docker/smoke.py`
+    (every endpoint must answer) and a CI job that builds the stack and runs the smoke test.
+  - ADR 0012 (the API lives in the package; the stack runs on synthetic data only).
+- Commands run and results:
+  - API tests: `tests/test_api.py` (TestClient over httpx) covers every endpoint, the feedback round
+    trip, validation errors, missing artefacts, the API key and the metrics' labels; they run in the
+    suite, so CI's test job runs them. 9 passed. The review-store migration is also rendered as
+    PostgreSQL DDL offline in a test.
+  - DoD: `docker compose up --build --detach` (with `STRATA_PG_PORT=15432` and
+    `STRATA_DASHBOARD_PORT=15173`, because a local PostgreSQL service and another program already
+    listen on 5432 and 5173 on this machine), then `python docker/smoke.py http://127.0.0.1:8000`:
+    every endpoint answered (twelve checks); the API and PostgreSQL containers were healthy, the
+    MLflow UI and the dashboard placeholder answered, and PostgreSQL held the run, its alerts, the
+    smoke test's feedback and the Alembic schema version. The stack was then taken down with its
+    volumes; the two built images stay for a quick restart.
+  - The Docker engine answered every request with an internal server error for about an hour of
+    the session (Docker Desktop is shared with another project); the stack was built once it
+    recovered. Nothing in Docker's configuration was changed.
+  - `just check`: exit 0 (396 passed, 1 skipped, coverage 97.37%).
+- Decisions: ADR 0012. The image bakes the synthetic workspace at build time, so start-up only
+  stores the alert queue and starts the server; the MLflow UI needs an empty `mlruns/models`
+  folder to open a read-only store, which the image creates.
+- Stubbed or skipped, and why: the claims and models inside the image are at quick effort (they say
+  so); the dashboard is a placeholder page until M8; CI has not run because nothing is pushed.
+- Open questions for the architect: Strata's default host ports 5432 and 5173 are taken on this
+  machine (a native PostgreSQL service and a node process), so the stack needs the port overrides
+  here; should the defaults move, or stay as specified?
+- Next: stop and report (end of this leg).
