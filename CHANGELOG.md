@@ -6,7 +6,9 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
-The Strata rebuild (`strata` package), developed on branch `feat/strata-rebuild`.
+The Strata rebuild (`strata` package), developed on branch `feat/strata-rebuild`. Strata is a
+pipeline for multi-channel retail-banking event data; the CIH Bank extract is its reference
+instance and the synthetic generator a first-class source.
 
 ### Added
 
@@ -47,9 +49,22 @@ The Strata rebuild (`strata` package), developed on branch `feat/strata-rebuild`
   report on synthetic data.
 - `docs/findings/` rendered from the public claims, `docs/methods/robustness.md`.
 
+- `.env.local` (gitignored) holds the machine's private locations; the settings read it, and the
+  privacy guard learns the private locations from it and refuses to commit any `.env` file.
+- An MIT licence.
+
 ### Changed
 
 - The 2024 script and the 2025 package moved, unchanged, into `legacy/`.
+- The project was renamed from Kashf to Strata: package and CLI `strata`, variables `STRATA_*`,
+  workspace `.strata/`, branch `feat/strata-rebuild`. The README and the findings pages now present
+  the pipeline as the product and the findings as an illustration on the reference instance.
+
+### Fixed
+
+- Bootstrap intervals depended on the order in which DuckDB returned rows, which can change after
+  a rebuild; warehouse reads are now in a canonical order, so the same data always gives the same
+  intervals.
 
 ### Known defects of the legacy code
 
