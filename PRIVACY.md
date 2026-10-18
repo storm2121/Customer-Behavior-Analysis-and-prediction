@@ -53,8 +53,17 @@ Bypassing the hook (`git commit --no-verify`) is forbidden by the project rules.
 ## What may be published
 
 Only claims listed in `kashf/ledger/allowlist.py` are written to `docs/ledger/claims.public.json`,
-and only if every value in them is an aggregate over at least the minimum number of clients set in
-that module. Every other finding stays in the private report.
+by `kashf --private ledger build --public`, and only if they pass the publication rules defined
+once in that module and enforced both by the build and by the commit guard:
+
+- every value is an aggregate over at least the publication floor of clients;
+- a robustness result compares two groups that each reach the floor;
+- a stratum of a robustness result keeps its numbers only when each of its two groups reaches the
+  floor; otherwise only its label and whether it was used remain.
+
+`--public` refuses to run on synthetic data, so the public file always holds real aggregates and
+the synthetic demo can never overwrite it. Every other finding stays in the private report
+(`kashf --private report --variant private`, written under `KASHF_PRIVATE_DIR`).
 
 ## Logs and errors
 

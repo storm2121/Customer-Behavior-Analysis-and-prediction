@@ -36,6 +36,16 @@ The Kashf rebuild (`kashf` package), developed on branch `feat/kashf-rebuild`.
   telemetry off.
 - Seeds for the age and tenure bands, the silence cutoffs and the calendar periods and holidays,
   read by both dbt and Python.
+- The evidence ledger: a claim registry with client-bootstrap intervals, fifteen claims (four
+  allow-listed for publication), per-value client counts, data-aware caveats and provenance;
+  `kashf ledger build` (synthetic, private, and `--public` through the publication rules),
+  `kashf ledger render` (findings documents and the README section from templates) and
+  `kashf ledger check` (drift, documents without templates, hand-typed numbers, allowlist).
+- The robustness checker: crude, per-stratum and Mantel-Haenszel adjusted effects with intervals,
+  sign flips, shrinkage and a holds / weakens / reverses / insufficient verdict on every headline.
+- `kashf report`: a private HTML report of every claim (private folder only) and a public demo
+  report on synthetic data.
+- `docs/findings/` rendered from the public claims, `docs/methods/robustness.md`.
 
 ### Changed
 
