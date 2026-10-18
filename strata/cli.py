@@ -432,6 +432,25 @@ def promote(ctx: typer.Context) -> None:
         console.print(f"published {_describe(path, AppState(state.settings, Zone.PUBLIC))}")
 
 
+@app.command("evaluate")
+def evaluate_command(ctx: typer.Context) -> None:
+    """Gate the pipeline: every model trained on the current data and better than chance."""
+    from strata.models.evaluate import evaluate_zone
+
+    state = _state(ctx)
+    checks = evaluate_zone(state.settings, state.zone)
+    table = Table(title=f"evaluation gate ({state.zone.value})")
+    for column in ("model", "check", "result"):
+        table.add_column(column)
+    for check in checks:
+        table.add_row(check.model, check.check, "pass" if check.passed else "FAIL")
+    console.print(table)
+    failed = sum(not check.passed for check in checks)
+    if failed:
+        err_console.print(f"evaluate: {failed} of {len(checks)} checks failed")
+        raise typer.Exit(code=1)
+
+
 @app.command()
 def serve(
     ctx: typer.Context,
