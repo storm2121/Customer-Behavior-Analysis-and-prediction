@@ -5,6 +5,7 @@ description = "Retail-banking behaviour analytics with an evidence ledger, a rob
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "arviz>=0.19",
     "dbt-core>=1.8",
     "dbt-duckdb>=1.8",
     "duckdb>=1.1",
@@ -15,8 +16,10 @@ dependencies = [
     "plotly>=5.22",
     "pydantic>=2.8",
     "pydantic-settings>=2.4",
+    "pymc>=5.16",
     "rich>=13.7",
     "scipy>=1.13",
+    "statsmodels>=0.14",
     "structlog>=24.4",
     "typer>=0.12.5",
 ]
@@ -87,7 +90,7 @@ warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 
 [[tool.mypy.overrides]]
-module = ["plotly", "plotly.*"]
+module = ["plotly", "plotly.*", "statsmodels", "statsmodels.*", "pymc", "pymc.*", "arviz", "arviz.*"]
 ignore_missing_imports = true
 
 [tool.pydantic-mypy]
