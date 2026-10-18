@@ -89,11 +89,12 @@ def evaluate(
         values={key: _round(value) for key, value in result.values.items()},
         units=result.units,
         ci=_rounded_pairs(result.ci),
+        interval_label=result.interval_label,
         value_n=result.value_n,
         n=result.n,
         n_events=result.n_events,
         caveats=result.caveats,
-        meta=result.meta,
+        meta={**result.meta, "effort": "quick"} if context.quick else result.meta,
         headline=spec.headline,
         public=is_public(spec.id),
         robustness=robustness,
@@ -139,6 +140,31 @@ def _dump(ledger: Ledger, path: Path) -> None:
     )
 
 
+def _selected(only: list[str] | None) -> list[ClaimSpec]:
+    specs = registered()
+    unknown = sorted(set(only or []) - set(specs))
+    if unknown:
+        msg = f"unknown claim ids: {unknown}"
+        raise ClaimError(msg)
+    return [specs[claim_id] for claim_id in only] if only else list(specs.values())
+
+
+def _merged(
+    previous: Ledger, records: list[ClaimRecord], fingerprint: str, attempted: set[str]
+) -> list[ClaimRecord]:
+    """``records`` plus the claims of ``previous`` that were not attempted, for the same data.
+
+    A claim that was attempted and skipped loses its old record: a stale number must not survive
+    the claim failing on the current code.
+    """
+    if previous.data_fingerprint != fingerprint:
+        return records
+    kept = [record for record in previous.claims if record.id not in attempted]
+    # Registry order, whatever order the modules were recomputed in.
+    order = {claim_id: rank for rank, claim_id in enumerate(registered())}
+    return sorted([*kept, *records], key=lambda record: order.get(record.id, len(order)))
+
+
 def build_ledger(
     settings: Settings,
     zone: Zone,
@@ -146,22 +172,30 @@ def build_ledger(
     public: bool = False,
     n_resamples: int = DEFAULT_RESAMPLES,
     only: list[str] | None = None,
+    quick: bool = False,
 ) -> BuildResult:
-    """Evaluate the registered claims (or ``only`` those) on the zone's warehouse."""
+    """Evaluate the registered claims (or ``only`` those) on the zone's warehouse.
+
+    With ``only``, the new records replace their namesakes in the existing ledger of the same data
+    (same fingerprint) and every other claim is kept, so modules can be recomputed one at a time.
+    ``quick`` lowers the effort of model-based claims (tests and demos); each claim says so.
+    """
     workspace = settings.workspace(zone)
     manifest = load_manifest(workspace)
     source_kind: SourceKind = manifest.source_kind
     if public and (zone is not Zone.PRIVATE or source_kind != "real"):
         msg = "--public writes real allow-listed claims: run it with --private on the real extract."
         raise PrivacyBoundaryError(msg)
+    if public and quick:
+        msg = "--public publishes claims: build them at full effort, without --quick."
+        raise ClaimError(msg)
     computed_at = datetime.now(UTC).replace(microsecond=0)
-    specs = registered()
-    selected = [specs[claim_id] for claim_id in only] if only else list(specs.values())
+    selected = _selected(only)
     records: list[ClaimRecord] = []
     skipped: dict[str, str] = {}
     con = connect(workspace.warehouse, read_only=True)
     try:
-        context = ClaimContext(con, seed=settings.seed, n_resamples=n_resamples)
+        context = ClaimContext(con, seed=settings.seed, n_resamples=n_resamples, quick=quick)
         for spec in selected:
             try:
                 records.append(
@@ -178,16 +212,19 @@ def build_ledger(
                 log.warning("claim skipped", claim=spec.id, reason=str(error))
     finally:
         con.close()
+    name = "claims.private.json" if workspace.is_private else "claims.synthetic.json"
+    path = workspace.ledger_dir / name
+    if workspace.is_private:
+        settings.assert_private_output(path)
+    if only and path.is_file():
+        attempted = {spec.id for spec in selected}
+        records = _merged(load_ledger(path), records, manifest.fingerprint, attempted)
     ledger = Ledger(
         source_kind=source_kind,
         data_fingerprint=manifest.fingerprint,
         computed_at=computed_at,
         claims=records,
     )
-    name = "claims.private.json" if workspace.is_private else "claims.synthetic.json"
-    path = workspace.ledger_dir / name
-    if workspace.is_private:
-        settings.assert_private_output(path)
     _dump(ledger, path)
     public_path = None
     if public:

@@ -94,6 +94,9 @@ class ClaimRecord(BaseModel):
     values: dict[str, float]
     units: dict[str, Unit]
     ci: dict[str, tuple[float, float]] = Field(default_factory=dict)
+    interval_label: str = "95% CI"
+    """What the intervals are: client-bootstrap confidence intervals by default, posterior
+    intervals for Bayesian claims (``95% credible interval``, ``90% posterior interval``)."""
     value_n: dict[str, int] = Field(default_factory=dict)
     n: int
     n_events: int | None = None

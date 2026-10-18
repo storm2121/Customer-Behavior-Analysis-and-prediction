@@ -49,9 +49,9 @@ def format_value(value: float, unit: Unit) -> str:
     return _FORMATTERS[unit](value)
 
 
-def format_interval(interval: tuple[float, float], unit: Unit) -> str:
-    """``95% CI 31% to 40%``; differences keep their sign."""
+def format_interval(interval: tuple[float, float], unit: Unit, label: str = "95% CI") -> str:
+    """``95% CI 31% to 40%``; differences keep their sign; ``label`` names the kind of interval."""
     low, high = interval
     if unit is Unit.DIFFERENCE:
-        return f"95% CI {100 * low:+.1f} to {100 * high:+.1f} points"
-    return f"95% CI {format_value(low, unit)} to {format_value(high, unit)}"
+        return f"{label} {100 * low:+.1f} to {100 * high:+.1f} points"
+    return f"{label} {format_value(low, unit)} to {format_value(high, unit)}"

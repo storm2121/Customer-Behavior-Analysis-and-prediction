@@ -19,6 +19,14 @@ from strata.ledger.model import Unit
 from strata.ledger.robustness import RobustnessSpec
 from strata.warehouse import read_relation
 
+MODEL_RESAMPLES = 200
+QUICK_MODEL_RESAMPLES = 30
+POSTERIOR_SAMPLES = 2000
+QUICK_POSTERIOR_SAMPLES = 500
+"""Effort settings. Full runs use them all; ``quick`` runs (tests, demos) use the smaller ones, the
+build marks every quick claim with ``meta["effort"] = "quick"`` and ``--public`` refuses quick
+builds, so a quick number is never mistaken for a full one."""
+
 
 class ClaimError(RuntimeError):
     """A claim cannot be computed on this warehouse (for example, too few clients in a group)."""
@@ -32,6 +40,7 @@ class ClaimResult:
     units: dict[str, Unit]
     n: int
     ci: dict[str, tuple[float, float]] = field(default_factory=dict)
+    interval_label: str = "95% CI"
     value_n: dict[str, int] = field(default_factory=dict)
     n_events: int | None = None
     caveats: list[str] = field(default_factory=list)
@@ -49,12 +58,24 @@ class ClaimContext:
         *,
         seed: int = 42,
         n_resamples: int = DEFAULT_RESAMPLES,
+        quick: bool = False,
     ) -> None:
         self._con = con
         self.seed = seed
         self.n_resamples = n_resamples
+        self.quick = quick
         self._cache: dict[str, pd.DataFrame] = {}
         self.claim_id = ""
+
+    @property
+    def model_resamples(self) -> int:
+        """Client-bootstrap refits for model-based claims (each refit fits a regression)."""
+        return min(self.n_resamples, QUICK_MODEL_RESAMPLES if self.quick else MODEL_RESAMPLES)
+
+    @property
+    def posterior_samples(self) -> int:
+        """Posterior draws for the Markov chain's transition matrix."""
+        return QUICK_POSTERIOR_SAMPLES if self.quick else POSTERIOR_SAMPLES
 
     def table(self, name: str) -> pd.DataFrame:
         """A whole warehouse table (``schema.table``), cached for the duration of a build."""
@@ -62,10 +83,12 @@ class ClaimContext:
             self._cache[name] = read_relation(self._con, name)
         return self._cache[name].copy()
 
-    def bootstrap(self, n_clients: int, stream: str = "") -> Bootstrap:
+    def bootstrap(
+        self, n_clients: int, stream: str = "", resamples: int | None = None
+    ) -> Bootstrap:
         """A bootstrap seeded by the master seed, the current claim's id and an optional stream."""
         seed = claim_seed(self.seed, f"{self.claim_id}/{stream}" if stream else self.claim_id)
-        return Bootstrap(n_clients, n_resamples=self.n_resamples, seed=seed)
+        return Bootstrap(n_clients, n_resamples=resamples or self.n_resamples, seed=seed)
 
 
 ClaimFunction = Callable[[ClaimContext], ClaimResult]

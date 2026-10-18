@@ -49,7 +49,9 @@ def _environment() -> jinja2.Environment:
     env.globals.update(
         value=lambda record, key: format_value(record.values[key], record.units[key]),
         interval=lambda record, key: (
-            format_interval(record.ci[key], record.units[key]) if key in record.ci else ""
+            format_interval(record.ci[key], record.units[key], record.interval_label)
+            if key in record.ci
+            else ""
         ),
         figures=figures_for,
         clients=lambda record, key: f"{record.value_n.get(key, record.n):,}",

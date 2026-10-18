@@ -75,7 +75,7 @@ class Placeholders:
         if key not in record.ci:
             msg = f"claim {claim_id!r} has no interval for {key!r}"
             raise KeyError(msg)
-        return self._out(format_interval(record.ci[key], record.units[key]))
+        return self._out(format_interval(record.ci[key], record.units[key], record.interval_label))
 
     def n(self, claim_id: str) -> str:
         return self._out(f"{self._claim(claim_id).n:,}")
