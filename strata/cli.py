@@ -379,6 +379,59 @@ def ledger_check(ctx: typer.Context) -> None:
     console.print("ledger check: documents match the ledger; no hand-typed numbers")
 
 
+@app.command()
+def train(
+    ctx: typer.Context,
+    model: Annotated[
+        str,
+        typer.Argument(help="all, or one of: silence, survival, adoption, segments."),
+    ] = "all",
+    quick: Annotated[
+        bool,
+        typer.Option("--quick", help="Lower effort (tests and demos); marked in the registry."),
+    ] = False,
+    promote_after: Annotated[
+        bool,
+        typer.Option(
+            "--promote", help="Publish the registry and model cards (public zone, synthetic only)."
+        ),
+    ] = False,
+) -> None:
+    """Fit the risk models, log them to MLflow and update the zone's registry and model cards."""
+    from strata.models.train import MODELS
+    from strata.models.train import promote as publish
+    from strata.models.train import train as run_training
+
+    state = _state(ctx)
+    names = list(MODELS) if model == "all" else [model]
+    if any(name not in MODELS for name in names):
+        err_console.print(f"train: choose all or one of {', '.join(MODELS)}")
+        raise typer.Exit(code=2)
+    result = run_training(state.settings, state.zone, names, quick=quick)
+    table = Table(title=f"models ({state.zone.value}, {result.source_kind} data)")
+    for column in ("model", "version", "effort", "mlflow run"):
+        table.add_column(column, overflow="fold")
+    for entry in result.models:
+        table.add_row(entry.name, entry.version, entry.effort, entry.mlflow_run_id or "")
+    console.print(table)
+    if promote_after:
+        if state.zone is not Zone.PUBLIC:
+            err_console.print("--promote publishes synthetic models only: run it without --private")
+            raise typer.Exit(code=2)
+        for path in publish(state.settings):
+            console.print(f"published {_describe(path, state)}")
+
+
+@app.command()
+def promote(ctx: typer.Context) -> None:
+    """Publish the public registry and its model cards into the repository (synthetic only)."""
+    from strata.models.train import promote as publish
+
+    state = _state(ctx)
+    for path in publish(state.settings):
+        console.print(f"published {_describe(path, AppState(state.settings, Zone.PUBLIC))}")
+
+
 SIMULATION_MONTHS = (0, 1, 3, 6, 12)
 
 

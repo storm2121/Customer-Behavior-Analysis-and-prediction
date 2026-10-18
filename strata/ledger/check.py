@@ -76,9 +76,27 @@ def _public_ledger(repo_root: Path) -> tuple[Ledger | None, list[Problem]]:
     return load_ledger(path), problems
 
 
+def _model_cards(repo_root: Path) -> list[Problem]:
+    """Public model cards are exactly what ``models/registry.json`` renders (if it exists)."""
+    from strata.models.cards import card_problems  # noqa: PLC0415 - avoids a cycle at import
+    from strata.models.registry import PUBLIC_REGISTRY, load  # noqa: PLC0415
+
+    path = repo_root / PUBLIC_REGISTRY
+    if not path.is_file():
+        return []
+    registry = load(path)
+    problems = [Problem(shown, 0, problem) for shown, problem in card_problems(repo_root, registry)]
+    if any(entry.source_kind != "synthetic" for entry in registry.models):
+        problems.append(
+            Problem(PUBLIC_REGISTRY.as_posix(), 0, "holds a model not trained on synthetic data")
+        )
+    return problems
+
+
 def check_repository(repo_root: Path) -> list[Problem]:
     """Every rule above, against the files of ``repo_root``."""
     ledger, problems = _public_ledger(repo_root)
+    problems.extend(_model_cards(repo_root))
     if ledger is None:
         return problems
     folder = repo_root / FINDINGS_DIR
