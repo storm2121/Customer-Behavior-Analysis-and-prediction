@@ -255,3 +255,17 @@ def test_cli_anomaly_commands(built_warehouse: Settings, monkeypatch: pytest.Mon
     assert "confirmed" in feedback.output
     bad = runner.invoke(app, ["anomaly", "feedback", str(alert_id), "guilty"])
     assert bad.exit_code != 0
+
+
+def test_the_migration_renders_for_postgresql(capsys: pytest.CaptureFixture[str]) -> None:
+    from alembic import command
+    from alembic.config import Config
+
+    config = Config()
+    config.set_main_option("script_location", db.MIGRATIONS.as_posix())
+    config.set_main_option("sqlalchemy.url", "postgresql+psycopg://user@localhost:5432/strata")
+    command.upgrade(config, "head", sql=True)
+    sql = capsys.readouterr().out
+    for table in ("runs", "alerts", "feedback", "annotations"):
+        assert f"CREATE TABLE {table}" in sql
+    assert "TIMESTAMP WITH TIME ZONE" in sql
