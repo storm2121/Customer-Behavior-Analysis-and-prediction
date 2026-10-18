@@ -67,6 +67,10 @@ ledger: dbt
     uv run --frozen strata ledger build
     uv run --frozen strata report --variant public
 
+# Analysis modules on the synthetic warehouse: claims, figures and the simulator (quick effort).
+analyse: dbt
+    uv run --frozen strata analyse all --quick
+
 # Private zone: load the real extract from STRATA_DATA_DIR; outputs go to STRATA_PRIVATE_DIR only.
 private-ingest:
     uv run --frozen strata --private ingest
@@ -80,6 +84,10 @@ private-dbt: private-ingest
 private-report: private-dbt
     uv run --frozen strata --private ledger build
     uv run --frozen strata --private report --variant private
+
+# Private zone: analysis modules at full effort on the real extract (private folder only).
+private-analyse: private-dbt
+    uv run --frozen strata --private analyse all
 
 # Refresh the allow-listed public claims from the real extract and re-render the documents.
 publish-claims: private-dbt

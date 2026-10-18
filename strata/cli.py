@@ -15,7 +15,7 @@ import traceback
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 import typer
 from rich.console import Console
@@ -25,6 +25,9 @@ from rich.table import Table
 from strata import __version__
 from strata.config import PrivacyBoundaryError, Settings, Workspace, Zone
 from strata.log import configure_logging, mask_identifiers
+
+if TYPE_CHECKING:
+    from strata.ledger.claims.markov import PolicyRun
 
 app = typer.Typer(
     name="strata",
@@ -307,13 +310,17 @@ def ledger_build(
     only: Annotated[
         list[str] | None, typer.Option("--only", help="Compute only these claim ids.")
     ] = None,
+    quick: Annotated[
+        bool,
+        typer.Option("--quick", help="Lower effort for model-based claims; marked in each claim."),
+    ] = False,
 ) -> None:
     """Evaluate every registered claim on the zone's warehouse and write the ledger."""
     from strata.ledger.build import build_ledger
 
     state = _state(ctx)
     result = build_ledger(
-        state.settings, state.zone, public=public, n_resamples=resamples, only=only
+        state.settings, state.zone, public=public, n_resamples=resamples, only=only, quick=quick
     )
     table = Table(title=f"ledger ({state.zone.value}, {result.ledger.source_kind} data)")
     for column in ("claim", "clients", "headline", "verdict", "public"):
@@ -361,6 +368,89 @@ def ledger_check(ctx: typer.Context) -> None:
         err_console.print(f"ledger check: {len(problems)} problem(s)")
         raise typer.Exit(code=1)
     console.print("ledger check: documents match the ledger; no hand-typed numbers")
+
+
+SIMULATION_MONTHS = (0, 1, 3, 6, 12)
+
+
+def _band(bands: dict[str, list[float]], month: int, share: bool) -> str:
+    low, middle, high = (bands[level][month] for level in ("p05", "p50", "p95"))
+    if share:
+        return f"{middle:.1%} [{low:.1%}, {high:.1%}]"
+    return f"{middle:,.0f} [{low:,.0f}, {high:,.0f}]"
+
+
+def _simulation_table(run: PolicyRun) -> Table:
+    """The sample policy against the baseline: medians with 90% posterior bands."""
+    from strata.analysis.markov import bands
+
+    policy = bands(run.policy_paths).quantiles
+    baseline = bands(run.baseline_paths).quantiles
+    table = Table(title=f"what if {run.policy.description} (median [90% band])")
+    for column in (
+        "month",
+        "digital share, baseline",
+        "digital share, policy",
+        "branch ops, baseline",
+        "branch ops, policy",
+    ):
+        table.add_column(column)
+    horizon = len(policy["digital_share"]["p50"]) - 1
+    for month in (month for month in SIMULATION_MONTHS if month <= horizon):
+        table.add_row(
+            str(month),
+            _band(baseline["digital_share"], month, share=True),
+            _band(policy["digital_share"], month, share=True),
+            _band(baseline["branch_load"], month, share=False),
+            _band(policy["branch_load"], month, share=False),
+        )
+    return table
+
+
+@app.command()
+def analyse(
+    ctx: typer.Context,
+    module: Annotated[
+        str,
+        typer.Argument(
+            help="all, or one of: calendar, seasonality, concentration, benford, markov."
+        ),
+    ] = "all",
+    quick: Annotated[
+        bool,
+        typer.Option("--quick", help="Lower effort for model-based claims; marked in each claim."),
+    ] = False,
+) -> None:
+    """Run analysis modules: recompute their claims, draw their figures, run the simulator."""
+    from strata.analysis.run import MODULES, run_module
+
+    state = _state(ctx)
+    names = list(MODULES) if module == "all" else [module]
+    if any(name not in MODULES for name in names):
+        err_console.print(f"analyse: choose all or one of {', '.join(MODULES)}")
+        raise typer.Exit(code=2)
+    table = Table(title=f"analyse ({state.zone.value}{', quick' if quick else ''})")
+    for column in ("module", "claims", "skipped", "outputs"):
+        table.add_column(column, overflow="fold")
+    empty: list[str] = []
+    for name in names:
+        result = run_module(state.settings, state.zone, name, quick=quick)
+        table.add_row(
+            name,
+            ", ".join(result.claims),
+            ", ".join(sorted(result.skipped)),
+            "\n".join(_describe(path, state) for path in result.outputs),
+        )
+        for claim_id, reason in result.skipped.items():
+            err_console.print(f"[yellow]skipped[/yellow] {claim_id}: {escape(reason)}")
+        if not result.claims:
+            empty.append(name)
+        if result.policy is not None:
+            console.print(_simulation_table(result.policy))
+    console.print(table)
+    if empty:
+        err_console.print(f"analyse: no claim could be computed for {', '.join(empty)}")
+        raise typer.Exit(code=1)
 
 
 @app.command()

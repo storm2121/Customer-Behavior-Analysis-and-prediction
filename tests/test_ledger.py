@@ -10,10 +10,11 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
+from strata.analysis.run import run_module
 from strata.cli import app
 from strata.config import SYNTHETIC_MARKER, PrivacyBoundaryError, Settings, Zone, is_within
 from strata.ledger.allowlist import MIN_PUBLIC_CELL_N, PUBLIC_CLAIM_IDS, public_violations
-from strata.ledger.build import build_ledger, evaluate, load_ledger, public_view
+from strata.ledger.build import _merged, build_ledger, evaluate, load_ledger, public_view
 from strata.ledger.model import ClaimRecord, Ledger, Unit
 from strata.ledger.registry import (
     REGISTRY,
@@ -73,10 +74,45 @@ def test_shares_are_proportions(synthetic_ledger: Ledger) -> None:
 def test_builds_are_deterministic(built_warehouse: Settings) -> None:
     first = build_ledger(built_warehouse, Zone.PUBLIC, n_resamples=60, only=["channel_mix"])
     second = build_ledger(built_warehouse, Zone.PUBLIC, n_resamples=60, only=["channel_mix"])
-    assert first.ledger.claims[0].values == second.ledger.claims[0].values
-    assert first.ledger.claims[0].ci == second.ledger.claims[0].ci
+    assert first.ledger.get("channel_mix").values == second.ledger.get("channel_mix").values
+    assert first.ledger.get("channel_mix").ci == second.ledger.get("channel_mix").ci
     assert first.path.name == "claims.synthetic.json"
-    assert load_ledger(first.path).ids == ["channel_mix"]
+    assert "channel_mix" in load_ledger(first.path).ids
+
+
+def test_partial_builds_merge_into_the_ledger_in_registry_order(built_warehouse: Settings) -> None:
+    build_ledger(built_warehouse, Zone.PUBLIC, n_resamples=50, only=["weekday_pattern"])
+    result = build_ledger(built_warehouse, Zone.PUBLIC, n_resamples=50, only=["channel_mix"])
+    ids = load_ledger(result.path).ids
+    assert {"weekday_pattern", "channel_mix"} <= set(ids)
+    order = list(registered())
+    assert ids == sorted(ids, key=order.index)
+
+
+def test_a_ledger_of_other_data_is_replaced_not_merged() -> None:
+    record = record_with_strata(500, 500)
+    previous = Ledger(
+        source_kind="real",
+        data_fingerprint="1" * 64,
+        computed_at=record.computed_at,
+        claims=[record],
+    )
+    other = record.model_copy(update={"id": "weekday_pattern"})
+    attempted = {"weekday_pattern"}
+    assert _merged(previous, [other], "2" * 64, attempted) == [other]
+    merged = _merged(previous, [other], "1" * 64, attempted)
+    assert [r.id for r in merged] == ["weekday_pattern", "channel_mix"]
+    # A claim attempted again and skipped loses its old record.
+    assert _merged(previous, [], "1" * 64, {"channel_mix"}) == []
+
+
+def test_unknown_claim_ids_are_refused(built_warehouse: Settings) -> None:
+    with pytest.raises(ClaimError, match="unknown claim ids"):
+        build_ledger(built_warehouse, Zone.PUBLIC, only=["no_such_claim"])
+
+
+def test_quick_builds_are_marked_in_every_claim(synthetic_ledger: Ledger) -> None:
+    assert all(record.meta.get("effort") == "quick" for record in synthetic_ledger.claims)
 
 
 def test_public_claims_cannot_be_built_from_synthetic_data(built_warehouse: Settings) -> None:
@@ -101,7 +137,10 @@ def test_a_private_build_writes_private_claims_and_the_public_subset(
     (extract / SYNTHETIC_MARKER).unlink()
     settings = Settings(_env_file=None, repo_root=repo, data_dir=extract)  # type: ignore[call-arg]
     build_warehouse(settings, Zone.PRIVATE, None)
-    result = build_ledger(settings, Zone.PRIVATE, public=True, n_resamples=60)
+    with pytest.raises(ClaimError, match="--quick"):
+        build_ledger(settings, Zone.PRIVATE, public=True, quick=True, only=["channel_mix"])
+    only = [*PUBLIC_CLAIM_IDS, "silence_by_channel"]
+    result = build_ledger(settings, Zone.PRIVATE, public=True, n_resamples=60, only=only)
     assert is_within(result.path, extract / "private_out")
     assert result.path.name == "claims.private.json"
     assert result.public_path == repo / "docs" / "ledger" / "claims.public.json"
@@ -111,6 +150,13 @@ def test_a_private_build_writes_private_claims_and_the_public_subset(
     private = load_ledger(result.path)
     assert "silence_by_channel" in private.ids
     assert private.source_kind == "real"  # the folder had no synthetic marker
+    # Analysis outputs of a private run stay in the private folder, never in the repository.
+    analysed = run_module(settings, Zone.PRIVATE, "markov", quick=True)
+    assert analysed.claims == ["channel_markov", "markov_policy_simulation"]
+    assert analysed.outputs
+    assert all(is_within(path, extract / "private_out") for path in analysed.outputs)
+    assert not any(path.suffix == ".html" for path in repo.rglob("*"))
+    assert {"channel_markov", *PUBLIC_CLAIM_IDS} <= set(load_ledger(result.path).ids)
 
 
 def record_with_strata(n_treatment: int, n_reference: int) -> ClaimRecord:
@@ -232,7 +278,7 @@ def test_failing_claims_are_skipped_not_hidden(
     monkeypatch.setitem(REGISTRY, "always_fails", spec)
     result = build_ledger(built_warehouse, Zone.PUBLIC, n_resamples=50, only=["always_fails"])
     assert result.skipped == {"always_fails": "not enough clients"}
-    assert result.ledger.claims == []
+    assert "always_fails" not in result.ledger.ids
 
 
 def test_records_reject_non_finite_values() -> None:
