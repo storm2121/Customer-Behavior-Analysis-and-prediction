@@ -56,9 +56,8 @@ def repeat_rows(context: ClaimContext) -> ClaimResult:
         caveats=[
             (
                 "Without a transaction id or a time of day a repeat is either a double posting or "
-                "a real "
-                "second purchase of the same amount on the same day; rows are flagged, never "
-                "dropped."
+                "a real second purchase of the same amount on the same day; rows are flagged, "
+                "never dropped."
             ),
         ],
     )
@@ -84,8 +83,7 @@ def aggregate_join_coverage(context: ClaimContext) -> ClaimResult:
         caveats=[
             (
                 "The two files are different samples; the warehouse never joins them, and the "
-                "adoption "
-                "models use the aggregate sample on its own."
+                "adoption models use the aggregate sample on its own."
             ),
         ],
     )

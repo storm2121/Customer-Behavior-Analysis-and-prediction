@@ -77,8 +77,7 @@ def benford_purchases(context: ClaimContext) -> ClaimResult:
         caveats=[
             (
                 "With thousands of amounts the chi-square test rejects for tiny deviations; the "
-                "MAD band "
-                "is the recommended reading."
+                "MAD band is the recommended reading."
             ),
             "Prices are set, not drawn: amounts just under a round number produce an excess of "
             "leading nines (psychological pricing), which is not a sign of manipulation."

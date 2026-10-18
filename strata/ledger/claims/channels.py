@@ -71,10 +71,9 @@ def _age_contrast(age: pd.Series) -> pd.Series:
     ),
     method=(
         "Share of branch-only and digital-only clients in each age band (client_360, all clients "
-        "of "
-        "the band as denominator); gender gap as the difference of branch-only shares between the "
-        "two gender codes; client bootstrap intervals. Headline robustness: branch-only share of "
-        "clients aged 55 and over against clients under 35, within gender and tenure strata."
+        "of the band as denominator); gender gap as the difference of branch-only shares between "
+        "the two gender codes; client bootstrap intervals. Headline robustness: branch-only share "
+        "of clients aged 55 and over against clients under 35, within gender and tenure strata."
     ),
     headline=True,
     robustness=RobustnessSpec(
@@ -151,8 +150,7 @@ def age_digital_divide(context: ClaimContext) -> ClaimResult:
             "Gender codes are kept as codes; their meaning is assumed, not documented.",
             (
                 "The robustness check leaves activity level out: activity is partly a consequence "
-                "of "
-                "channel choice, so holding it fixed would bias the comparison."
+                "of channel choice, so holding it fixed would bias the comparison."
             ),
         ],
         robustness_frame=frame,
@@ -214,8 +212,7 @@ def online_service_mix(context: ClaimContext) -> ClaimResult:
     method=(
         "Share of branch operations in the deposit category and share of credits among branch "
         "operations; share of withdrawal value made by card rather than at the branch "
-        "(int_events); "
-        "client bootstrap intervals."
+        "(int_events); client bootstrap intervals."
     ),
 )
 def branch_deposit_share(context: ClaimContext) -> ClaimResult:
@@ -271,8 +268,7 @@ def branch_deposit_share(context: ClaimContext) -> ClaimResult:
         caveats=[
             (
                 "Deposit and withdrawal categories come from the operation labels (seed); rare "
-                "labels "
-                "have assumed meanings."
+                "labels have assumed meanings."
             ),
         ],
     )
@@ -355,8 +351,7 @@ def silence_by_channel(context: ClaimContext) -> ClaimResult:
         f"{values['median_events_branch_only']:.0f} events in the observation window against "
         f"{values['median_events_digital_only']:.0f} for "
         "digital-only clients. With so few events a quarter without any is likely by chance, so "
-        "the "
-        "crude gap mostly measures activity, not channel."
+        "the crude gap mostly measures activity, not channel."
     )
     return ClaimResult(
         values=values,
@@ -373,9 +368,8 @@ def silence_by_channel(context: ClaimContext) -> ClaimResult:
             "Silence is the absence of events in three months, not a closed account.",
             "Profiles are measured over the observation window only (no look-ahead).",
             (
-                "Activity terciles where one group is absent cannot be compared (positivity); "
-                "they are "
-                "listed in the robustness result and excluded from the adjusted difference."
+                "Activity terciles where one group is absent cannot be compared (positivity); they "
+                "are listed in the robustness result and excluded from the adjusted difference."
             ),
         ],
         robustness_frame=frame,
