@@ -109,6 +109,11 @@ compose_env := if path_exists(".env.local") == "true" { "--env-file .env.local" 
 up:
     docker compose {{compose_env}} up --build
 
+# The daily DAG end to end in its Compose image on synthetic data (`airflow dags test`).
+dag-test:
+    docker compose {{compose_env}} --profile orchestration build airflow
+    docker compose {{compose_env}} --profile orchestration run --rm airflow dags test strata_daily
+
 # Private zone: load the real extract from STRATA_DATA_DIR; outputs go to STRATA_PRIVATE_DIR only.
 private-ingest:
     uv run --frozen strata --private ingest

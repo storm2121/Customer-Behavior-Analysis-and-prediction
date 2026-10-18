@@ -1,0 +1,59 @@
+# Airflow 3 with the strata_daily DAG, on synthetic data. Airflow and Strata live in separate
+# environments (their pins differ); the DAG calls the strata command line by its path. The UI is
+# open without a login (a local demo on synthetic data only): `docker compose --profile
+# orchestration up airflow`, then http://localhost:8080. `just dag-test` runs `airflow dags test`.
+FROM python:3.12.10-slim-bookworm
+
+ARG AIRFLOW_VERSION=3.1.0
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONUTF8=1 \
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1 \
+    UV_PYTHON_DOWNLOADS=never \
+    PYTENSOR_FLAGS=cxx= \
+    MLFLOW_ALLOW_FILE_STORE=true \
+    MLFLOW_DISABLE_AGENT_HINT=1 \
+    AIRFLOW_HOME=/opt/airflow \
+    AIRFLOW__CORE__DAGS_FOLDER=/app/orchestration/airflow/dags \
+    AIRFLOW__CORE__LOAD_EXAMPLES=False \
+    AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS=True \
+    STRATA_WORK_DIR=/data/work \
+    STRATA_DB=/data/work/strata.duckdb \
+    STRATA_BIN=/app/.venv/bin/strata \
+    STRATA_DAG_ZONE=public \
+    STRATA_DAG_EFFORT=quick \
+    PATH="/opt/airflow-venv/bin:${PATH}"
+
+# LightGBM needs the OpenMP runtime.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 10001 strata \
+    && mkdir -p /app /data/work /opt/airflow /opt/airflow-venv \
+    && chown -R strata /app /data /opt/airflow /opt/airflow-venv
+
+COPY --from=ghcr.io/astral-sh/uv:0.13.1 /uv /usr/local/bin/uv
+
+USER strata
+
+# Airflow, pinned by its own constraints file for this Python version.
+RUN python -c "import urllib.request; urllib.request.urlretrieve('https://raw.githubusercontent.com/apache/airflow/constraints-${AIRFLOW_VERSION}/constraints-3.12.txt', '/tmp/constraints.txt')" \
+    && uv venv /opt/airflow-venv --python /usr/local/bin/python3.12 \
+    && uv pip install --python /opt/airflow-venv/bin/python --constraint /tmp/constraints.txt \
+        "apache-airflow==${AIRFLOW_VERSION}" apache-airflow-providers-standard
+
+# Strata, from the same lock file as the API image.
+WORKDIR /app
+COPY --chown=strata pyproject.toml uv.lock README.md ./
+RUN uv sync --frozen --no-dev --no-install-project
+COPY --chown=strata strata ./strata
+COPY --chown=strata dbt ./dbt
+COPY --chown=strata mappings ./mappings
+COPY --chown=strata docs/ledger ./docs/ledger
+RUN uv sync --frozen --no-dev
+COPY --chown=strata orchestration ./orchestration
+
+EXPOSE 8080
+ENTRYPOINT ["sh", "-c", "airflow db migrate > /opt/airflow/migrate.log 2>&1 && exec airflow \"$@\"", "airflow"]
+CMD ["standalone"]

@@ -1,6 +1,7 @@
 # Strata on synthetic data: the API, its PostgreSQL review store, the MLflow UI and the dashboard
-# (nginx serving the built app and proxying /api/ to the API). Host ports are Strata's defaults
-# (API 8000, PostgreSQL 5432, dashboard 5173, MLflow 5000); when one is taken on a machine, set
+# (nginx serving the built app and proxying /api/ to the API); Airflow with the daily DAG under
+# the `orchestration` profile. Host ports are Strata's defaults
+# (API 8000, PostgreSQL 5432, dashboard 5173, MLflow 5000, Airflow 8080); when one is taken, set
 # STRATA_*_PORT in the gitignored .env.local, which `just up` passes to Compose. Nothing here reads
 # the real extract.
 name: strata
@@ -56,6 +57,19 @@ services:
     depends_on:
       - api
 
+  # The daily DAG on synthetic data, in its own workspace; started only with the profile:
+  # `docker compose --profile orchestration up airflow` (UI) or `just dag-test`.
+  airflow:
+    profiles: ["orchestration"]
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    ports:
+      - "${STRATA_AIRFLOW_PORT:-8080}:8080"
+    volumes:
+      - airflow_work:/data/work
+
 volumes:
   pgdata: {}
   work: {}
+  airflow_work: {}

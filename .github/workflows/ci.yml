@@ -100,6 +100,14 @@ jobs:
       - run: pnpm build
       - run: pnpm storybook:build
 
+  dag:
+    name: Airflow DAG on synthetic data (airflow dags test strata_daily)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose --profile orchestration build airflow
+      - run: docker compose --profile orchestration run --rm airflow dags test strata_daily
+
   compose:
     name: Docker Compose stack on synthetic data (every endpoint answers; dashboard smoke and axe)
     runs-on: ubuntu-latest
