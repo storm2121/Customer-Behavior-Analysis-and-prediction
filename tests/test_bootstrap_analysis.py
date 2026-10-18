@@ -7,9 +7,9 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from kashf.analysis import benford
-from kashf.analysis.concentration import gini, lorenz, top_share
-from kashf.ledger.bootstrap import (
+from strata.analysis import benford
+from strata.analysis.concentration import gini, lorenz, top_share
+from strata.ledger.bootstrap import (
     Bootstrap,
     claim_seed,
     percentile_interval,

@@ -9,8 +9,8 @@ import pytest
 import typer
 from typer.testing import CliRunner
 
-from kashf import __version__, cli
-from kashf.config import PrivacyBoundaryError
+from strata import __version__, cli
+from strata.config import PrivacyBoundaryError
 
 FAKE_ID = "0f" * 20
 runner = CliRunner()
@@ -30,12 +30,12 @@ def test_version_flag() -> None:
 
 
 def test_info_in_the_public_zone_shows_repository_paths(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.delenv("KASHF_DB")  # `info` writes nothing, so the defaults are safe here
-    monkeypatch.delenv("KASHF_WORK_DIR")
+    monkeypatch.delenv("STRATA_DB")  # `info` writes nothing, so the defaults are safe here
+    monkeypatch.delenv("STRATA_WORK_DIR")
     result = runner.invoke(cli.app, ["info"])
     assert result.exit_code == 0
     assert "public" in result.output
-    assert ".kashf/kashf.duckdb" in result.output
+    assert ".strata/strata.duckdb" in result.output
 
 
 def test_info_in_the_private_zone_never_spells_out_private_paths(
@@ -43,11 +43,11 @@ def test_info_in_the_private_zone_never_spells_out_private_paths(
 ) -> None:
     extract = tmp_path / "VerySecretFolder"
     extract.mkdir()
-    monkeypatch.setenv("KASHF_DATA_DIR", str(extract))
+    monkeypatch.setenv("STRATA_DATA_DIR", str(extract))
     result = runner.invoke(cli.app, ["--private", "info"])
     assert result.exit_code == 0
     assert "VerySecretFolder" not in result.output
-    assert "<KASHF_PRIVATE_DIR>/warehouse/kashf.duckdb" in result.output
+    assert "<STRATA_PRIVATE_DIR>/warehouse/strata.duckdb" in result.output
 
 
 def test_info_without_a_private_folder_says_so(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -59,9 +59,9 @@ def test_info_without_a_private_folder_says_so(monkeypatch: pytest.MonkeyPatch) 
 def test_describe_marks_paths_outside_the_private_folder(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("KASHF_DATA_DIR", str(tmp_path / "extract"))
+    monkeypatch.setenv("STRATA_DATA_DIR", str(tmp_path / "extract"))
     state = cli.AppState(settings=cli.Settings(), zone=cli.Zone.PRIVATE)
-    assert cli._describe(tmp_path / "elsewhere", state) == "<outside KASHF_PRIVATE_DIR>"
+    assert cli._describe(tmp_path / "elsewhere", state) == "<outside STRATA_PRIVATE_DIR>"
     public = cli.AppState(settings=cli.Settings(), zone=cli.Zone.PUBLIC)
     assert cli._describe(tmp_path / "x", public) == (tmp_path / "x").as_posix()
 
@@ -70,8 +70,8 @@ def test_a_data_dir_inside_the_repository_stops_the_cli_with_code_three(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     repo = cli.Settings().repo_root
-    monkeypatch.setenv("KASHF_DATA_DIR", str(repo / "data"))
-    monkeypatch.setattr(sys, "argv", ["kashf", "info"])
+    monkeypatch.setenv("STRATA_DATA_DIR", str(repo / "data"))
+    monkeypatch.setattr(sys, "argv", ["strata", "info"])
     with pytest.raises(SystemExit) as exit_info:
         cli.main()
     assert exit_info.value.code == 3
@@ -96,8 +96,8 @@ def test_unexpected_errors_are_reported_without_identifiers(
 def test_private_failures_keep_the_traceback_in_the_private_log(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    monkeypatch.setenv("KASHF_DATA_DIR", str(tmp_path / "extract"))
-    monkeypatch.setattr(sys, "argv", ["kashf", "--private", "info"])
+    monkeypatch.setenv("STRATA_DATA_DIR", str(tmp_path / "extract"))
+    monkeypatch.setattr(sys, "argv", ["strata", "--private", "info"])
 
     def explode() -> None:
         raise RuntimeError("boom")
@@ -105,15 +105,15 @@ def test_private_failures_keep_the_traceback_in_the_private_log(
     monkeypatch.setattr(cli, "app", explode)
     with pytest.raises(SystemExit):
         cli.main()
-    logs = list((tmp_path / "extract" / "private_out" / "logs").glob("kashf-error-*.log"))
+    logs = list((tmp_path / "extract" / "private_out" / "logs").glob("strata-error-*.log"))
     assert len(logs) == 1
     assert "RuntimeError" in logs[0].read_text(encoding="utf-8")
-    assert "<KASHF_PRIVATE_DIR>/logs/" in capsys.readouterr().err
+    assert "<STRATA_PRIVATE_DIR>/logs/" in capsys.readouterr().err
 
 
 def test_public_failures_write_no_log(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("KASHF_DATA_DIR", str(tmp_path / "extract"))
-    monkeypatch.setattr(sys, "argv", ["kashf", "info"])
+    monkeypatch.setenv("STRATA_DATA_DIR", str(tmp_path / "extract"))
+    monkeypatch.setattr(sys, "argv", ["strata", "info"])
 
     def explode() -> None:
         raise RuntimeError("boom")

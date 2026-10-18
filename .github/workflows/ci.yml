@@ -49,7 +49,7 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync
-      - run: uv run kashf privacy-check --all-files
+      - run: uv run strata privacy-check --all-files
 
   warehouse:
     name: warehouse and ledger on synthetic data (ingest, quality, dbt, claims, demo report)
@@ -60,13 +60,13 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync
-      - run: uv run kashf synth --out .kashf/synth
-      - run: uv run kashf ingest --data-dir .kashf/synth
-      - run: uv run kashf dq
-      - run: uv run kashf dbt build
-      - run: uv run kashf dbt docs generate
-      - run: uv run kashf ledger build
-      - run: uv run kashf report --variant public
+      - run: uv run strata synth --out .strata/synth
+      - run: uv run strata ingest --data-dir .strata/synth
+      - run: uv run strata dq
+      - run: uv run strata dbt build
+      - run: uv run strata dbt docs generate
+      - run: uv run strata ledger build
+      - run: uv run strata report --variant public
 
   ledger:
     name: ledger check (documents match the public claims)
@@ -77,4 +77,4 @@ jobs:
         with:
           enable-cache: true
       - run: uv sync
-      - run: uv run kashf ledger check
+      - run: uv run strata ledger check

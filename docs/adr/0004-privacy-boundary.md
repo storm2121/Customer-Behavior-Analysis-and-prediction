@@ -15,7 +15,7 @@ hold even when someone is careless.
 
 ## Decision
 
-Real data is reachable only through `KASHF_DATA_DIR`; private outputs go to `KASHF_PRIVATE_DIR`; a
+Real data is reachable only through `STRATA_DATA_DIR`; private outputs go to `STRATA_PRIVATE_DIR`; a
 pre-commit guard blocks extract signatures, large CSVs and identifier-like tokens; an allowlist
 decides which claims may be rendered publicly. The public demo uses a hand-specified parametric
 generator that reproduces the schema and quirks without touching real rows. A separate private
@@ -24,10 +24,10 @@ membership-inference risk; its output never enters the repository and is used on
 
 The boundary is enforced in layers, each of which would stop a leak on its own:
 
-1. **Paths.** `kashf.config.Settings` refuses a data or private folder that resolves inside the
+1. **Paths.** `strata.config.Settings` refuses a data or private folder that resolves inside the
    repository, and private writers check that their destination is under the private folder.
 2. **Zones.** Commands run in an explicit public or private zone (ADR 0008).
-3. **Commits.** `kashf privacy-check` blocks extract file names and headers, CSVs outside the two
+3. **Commits.** `strata privacy-check` blocks extract file names and headers, CSVs outside the two
    allowed folders or above the row limit, binary data formats, identifier-shaped tokens (shape
    learnt from the extract when it is available, a conservative pattern otherwise), ledger files with
    non-allow-listed claims or small cells, literal private locations and notebook outputs. It never

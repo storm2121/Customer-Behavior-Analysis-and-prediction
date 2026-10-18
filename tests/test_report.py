@@ -7,12 +7,12 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from kashf.cli import app
-from kashf.config import PrivacyBoundaryError, Settings, Zone, is_within
-from kashf.ledger.build import _dump
-from kashf.ledger.model import Ledger
-from kashf.report.build import build_report, report_path
-from kashf.report.figures import figures_for, robustness_figure, share_figure
+from strata.cli import app
+from strata.config import PrivacyBoundaryError, Settings, Zone, is_within
+from strata.ledger.build import _dump
+from strata.ledger.model import Ledger
+from strata.report.build import build_report, report_path
+from strata.report.figures import figures_for, robustness_figure, share_figure
 
 
 def public_settings_with_ledger(tmp_path: Path, ledger: Ledger) -> Settings:
@@ -92,8 +92,8 @@ def test_cli_report_variants(
     tmp_path: Path, synthetic_ledger: Ledger, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     settings = public_settings_with_ledger(tmp_path, synthetic_ledger)
-    monkeypatch.setenv("KASHF_WORK_DIR", str(settings.work_dir))
-    monkeypatch.setenv("KASHF_REPO_ROOT", str(settings.repo_root))
+    monkeypatch.setenv("STRATA_WORK_DIR", str(settings.work_dir))
+    monkeypatch.setenv("STRATA_REPO_ROOT", str(settings.repo_root))
     runner = CliRunner()
     result = runner.invoke(app, ["report", "--variant", "public"])
     assert result.exit_code == 0, result.output

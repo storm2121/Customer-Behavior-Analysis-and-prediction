@@ -1,7 +1,7 @@
 # Seeds
 
 Code maps for every categorical value in the extracts. They are the single source of truth for
-vocabularies: dbt staging joins them, and the Python package (`kashf.contracts.vocab`) reads them
+vocabularies: dbt staging joins them, and the Python package (`strata.contracts.vocab`) reads them
 for the contracts, the data-quality checks and the synthetic generator.
 
 The `evidence` and `semantics` columns say why a meaning is believed: `label` (evident from the

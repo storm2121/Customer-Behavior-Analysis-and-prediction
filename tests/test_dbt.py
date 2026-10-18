@@ -16,12 +16,12 @@ import duckdb
 import pytest
 from typer.testing import CliRunner
 
-from kashf.cli import app
-from kashf.config import SYNTHETIC_MARKER, Settings, Zone, is_within
-from kashf.contracts.vocab import silence_cutoffs
-from kashf.dbt_runner import dbt_arguments, run_dbt
-from kashf.ingest.load import load_manifest
-from kashf.warehouse import connect
+from strata.cli import app
+from strata.config import SYNTHETIC_MARKER, Settings, Zone, is_within
+from strata.contracts.vocab import silence_cutoffs
+from strata.dbt_runner import dbt_arguments, run_dbt
+from strata.ingest.load import load_manifest
+from strata.warehouse import connect
 from tests.conftest import build_warehouse, public_settings
 
 MARTS = (
@@ -133,7 +133,7 @@ def test_run_dbt_needs_a_command_and_a_warehouse(tmp_path: Path) -> None:
     settings = public_settings(tmp_path)
     with pytest.raises(ValueError, match="dbt command"):
         run_dbt(settings, Zone.PUBLIC, [])
-    with pytest.raises(FileNotFoundError, match="kashf ingest"):
+    with pytest.raises(FileNotFoundError, match="strata ingest"):
         run_dbt(settings, Zone.PUBLIC, ["run"])
 
 

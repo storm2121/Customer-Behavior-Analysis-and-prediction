@@ -8,7 +8,7 @@ and labels the headline **holds**, **weakens**, **reverses** or **insufficient**
 stored in the claim record, shown as a badge in the documents and the dashboard, and listed for
 every headline in the private report.
 
-The rule was fixed before it was run on any data; it lives in `kashf/ledger/robustness.py`.
+The rule was fixed before it was run on any data; it lives in `strata/ledger/robustness.py`.
 
 ## Definitions
 
@@ -58,5 +58,5 @@ channel choice, and holding a consequence fixed biases the comparison.
 
 Robustness results of allow-listed claims are published with their verdict, crude and adjusted
 effects and explanation. A stratum keeps its numbers only when each of its two groups holds at
-least the publication floor of clients (`kashf/ledger/allowlist.py`); otherwise only its label and
+least the publication floor of clients (`strata/ledger/allowlist.py`); otherwise only its label and
 whether it was sufficient remain.

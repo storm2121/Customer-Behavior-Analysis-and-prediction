@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from kashf.config import (
+from strata.config import (
     PRIVATE_SUBDIR,
     PrivacyBoundaryError,
     Settings,
@@ -26,21 +26,21 @@ def make(tmp_path: Path, **overrides: object) -> Settings:
 def test_relative_paths_resolve_against_the_repository(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.delenv("KASHF_DB")
-    monkeypatch.delenv("KASHF_WORK_DIR")
+    monkeypatch.delenv("STRATA_DB")
+    monkeypatch.delenv("STRATA_WORK_DIR")
     settings = make(tmp_path)
-    assert settings.db == settings.repo_root / ".kashf" / "kashf.duckdb"
-    assert settings.work_dir == settings.repo_root / ".kashf"
+    assert settings.db == settings.repo_root / ".strata" / "strata.duckdb"
+    assert settings.work_dir == settings.repo_root / ".strata"
 
 
-def test_environment_variables_are_read_with_the_kashf_prefix(
+def test_environment_variables_are_read_with_the_strata_prefix(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     data = tmp_path / "extract"
     data.mkdir()
-    monkeypatch.setenv("KASHF_DATA_DIR", str(data))
-    monkeypatch.setenv("KASHF_ZONE", "private")
-    monkeypatch.setenv("KASHF_SEED", "7")
+    monkeypatch.setenv("STRATA_DATA_DIR", str(data))
+    monkeypatch.setenv("STRATA_ZONE", "private")
+    monkeypatch.setenv("STRATA_SEED", "7")
     settings = make(tmp_path)
     assert settings.data_dir == data.resolve()
     assert settings.zone is Zone.PRIVATE
@@ -62,9 +62,9 @@ def test_explicit_private_dir_wins(tmp_path: Path) -> None:
 
 def test_private_dir_is_required_for_private_runs(tmp_path: Path) -> None:
     settings = make(tmp_path)
-    with pytest.raises(PrivacyBoundaryError, match="KASHF_PRIVATE_DIR"):
+    with pytest.raises(PrivacyBoundaryError, match="STRATA_PRIVATE_DIR"):
         _ = settings.resolved_private_dir
-    with pytest.raises(PrivacyBoundaryError, match="KASHF_DATA_DIR"):
+    with pytest.raises(PrivacyBoundaryError, match="STRATA_DATA_DIR"):
         settings.require_data_dir()
 
 
@@ -126,14 +126,14 @@ def test_private_outputs_must_stay_under_the_private_dir(tmp_path: Path) -> None
     assert settings.assert_private_output(inside) == inside.resolve()
     with pytest.raises(PrivacyBoundaryError, match="inside the repository"):
         settings.assert_private_output(settings.repo_root / "report.html")
-    with pytest.raises(PrivacyBoundaryError, match="under KASHF_PRIVATE_DIR"):
+    with pytest.raises(PrivacyBoundaryError, match="under STRATA_PRIVATE_DIR"):
         settings.assert_private_output(tmp_path / "loose.html")
 
 
 def test_repo_root_is_found_from_the_package() -> None:
     root = find_repo_root()
     assert (root / "pyproject.toml").is_file()
-    assert (root / "kashf" / "config.py").is_file()
+    assert (root / "strata" / "config.py").is_file()
 
 
 def test_repo_root_falls_back_to_the_current_directory(tmp_path: Path) -> None:

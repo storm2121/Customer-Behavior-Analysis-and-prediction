@@ -19,7 +19,7 @@ returning value, n, bootstrap CI, method, caveats and a data fingerprint. Docume
 rendered from the claims JSON. CI fails on drift or on an unregistered number inside governed sections.
 Public documents may render only allow-listed claims.
 
-The allowlist (`kashf/ledger/allowlist.py`) exists from M0 because the privacy guard enforces it on
+The allowlist (`strata/ledger/allowlist.py`) exists from M0 because the privacy guard enforces it on
 every commit, before the ledger itself is built.
 
 ## Implementation (M3)
@@ -35,15 +35,15 @@ every commit, before the ledger itself is built.
   leading nines is only written when there is one), metadata for tables, the fingerprint of the
   manifest and the software version. Values are rounded to six significant digits so files are
   stable across platforms.
-- **Files.** Synthetic runs write `.kashf/ledger/claims.synthetic.json`; private runs write
-  `<KASHF_PRIVATE_DIR>/ledger/claims.private.json` (ADR 0008) and, with `--public`, the allow-listed
+- **Files.** Synthetic runs write `.strata/ledger/claims.synthetic.json`; private runs write
+  `<STRATA_PRIVATE_DIR>/ledger/claims.private.json` (ADR 0008) and, with `--public`, the allow-listed
   subset to `docs/ledger/claims.public.json` after the publication rules pass. `--public` refuses to
   run on synthetic data, so the public file always holds real aggregates.
 - **Templates.** `docs/findings/*.md.j2` and the README's governed section read numbers only through
   placeholders (`ledger`, `ci`, `n`, `verdict`, `mechanism`, `meta`, `rows`, `text`, `context`).
   Table row labels (age bands, digits, weekdays) come from claim metadata, never from the template.
   `raw()` exposes a value for conditions only, so interpretive sentences follow the data.
-- **Check.** `kashf ledger check` fails when a rendered document differs from its template's
+- **Check.** `strata ledger check` fails when a rendered document differs from its template's
   rendering, when a findings document has no template, when the README section drifts, when the
   public file breaks the publication rules, and when a template rendered with every placeholder
   masked still contains a digit in its prose (comments and link targets excepted).

@@ -1,6 +1,6 @@
-# Kashf
+# Strata
 
-**Kashf** (كشف: an account statement, and the act of uncovering) is a retail-banking behaviour
+**Strata** (كشف: an account statement, and the act of uncovering) is a retail-banking behaviour
 analytics system built on a rolling-year, anonymised extract of card transactions, online
 operations and branch operations of a sample of clients, provided by CIH Bank for an academic
 challenge. It replaces a hackathon script from 2024 whose bugs are documented openly in
@@ -17,7 +17,7 @@ challenge. It replaces a hackathon script from 2024 whose bugs are documented op
 - **Findings are stress-tested.** A robustness checker re-computes each headline finding within
   strata of activity, age and tenure and labels it *holds*, *weakens* or *reverses*.
 - **The privacy boundary is structural.** The real extract is reachable only through
-  `KASHF_DATA_DIR`, private outputs only go to `KASHF_PRIVATE_DIR`, and a pre-commit guard blocks
+  `STRATA_DATA_DIR`, private outputs only go to `STRATA_PRIVATE_DIR`, and a pre-commit guard blocks
   anything shaped like the extract. The public repository runs end to end on synthetic data from a
   hand-specified generator. See [`PRIVACY.md`](PRIVACY.md).
 - **Time is respected.** Client-level outcomes are validated forward in time, never with random
@@ -54,7 +54,7 @@ methods and caveats behind each sentence.
 uv sync                 # Python 3.12 environment from uv.lock
 uv run pre-commit install
 just check              # format, lint, types, tests with coverage, privacy scan
-uv run kashf --help
+uv run strata --help
 ```
 
 [`uv`](https://docs.astral.sh/uv/) and [`just`](https://just.systems/) are the only tools to install
@@ -64,7 +64,7 @@ by hand (`uv tool install rust-just` provides `just`).
 
 | Path | Contents |
 |---|---|
-| `kashf/` | The Python package: configuration, CLI, contracts, ingest, synthetic data, ledger, analysis, models, reports, privacy guard. |
+| `strata/` | The Python package: configuration, CLI, contracts, ingest, synthetic data, ledger, analysis, models, reports, privacy guard. |
 | `tests/` | `pytest` and `hypothesis` suites; every test runs on synthetic data. |
 | `docs/adr/` | Architecture decision records. |
 | `legacy/` | The 2024 script and the 2025 package, frozen, with a list of their bugs. |

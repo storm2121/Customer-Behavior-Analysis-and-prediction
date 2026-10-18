@@ -1,7 +1,7 @@
 -- Card transactions: typed, with category and origin keys and the exact-repeat flag.
 -- A repeat matches an earlier row on client, date, amount, label and origin. With no transaction id
 -- and no time of day it cannot be told from a double posting, so it is flagged, never dropped. The
--- same definition is used by `kashf dq`; a singular test reconciles the two counts.
+-- same definition is used by `strata dq`; a singular test reconciles the two counts.
 with source as (
     select * from {{ source('raw', 'card_transactions') }}
 ),

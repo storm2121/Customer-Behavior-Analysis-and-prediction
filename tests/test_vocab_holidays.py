@@ -6,8 +6,8 @@ from datetime import date
 
 import pytest
 
-from kashf.contracts import vocab
-from kashf.holidays import (
+from strata.contracts import vocab
+from strata.holidays import (
     EID_AL_ADHA_2024,
     NATIONAL_HOLIDAYS,
     PRE_EID_AL_ADHA_WEEK_2024,

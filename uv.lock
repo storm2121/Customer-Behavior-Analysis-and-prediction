@@ -559,71 +559,6 @@ wheels = [
 ]
 
 [[package]]
-name = "kashf"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "dbt-core" },
-    { name = "dbt-duckdb" },
-    { name = "duckdb" },
-    { name = "jinja2" },
-    { name = "numpy" },
-    { name = "pandas" },
-    { name = "pandera" },
-    { name = "plotly" },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "rich" },
-    { name = "scipy" },
-    { name = "structlog" },
-    { name = "typer" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "hypothesis" },
-    { name = "mypy" },
-    { name = "nbstripout" },
-    { name = "pandas-stubs" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-    { name = "scipy-stubs" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "dbt-core", specifier = ">=1.8" },
-    { name = "dbt-duckdb", specifier = ">=1.8" },
-    { name = "duckdb", specifier = ">=1.1" },
-    { name = "jinja2", specifier = ">=3.1" },
-    { name = "numpy", specifier = ">=1.26" },
-    { name = "pandas", specifier = ">=2.2" },
-    { name = "pandera", specifier = ">=0.20" },
-    { name = "plotly", specifier = ">=5.22" },
-    { name = "pydantic", specifier = ">=2.8" },
-    { name = "pydantic-settings", specifier = ">=2.4" },
-    { name = "rich", specifier = ">=13.7" },
-    { name = "scipy", specifier = ">=1.13" },
-    { name = "structlog", specifier = ">=24.4" },
-    { name = "typer", specifier = ">=0.12.5" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "hypothesis", specifier = ">=6.112" },
-    { name = "mypy", specifier = ">=1.11" },
-    { name = "nbstripout", specifier = ">=0.7.1" },
-    { name = "pandas-stubs", specifier = ">=2.2" },
-    { name = "pre-commit", specifier = ">=3.8" },
-    { name = "pytest", specifier = ">=8.3" },
-    { name = "pytest-cov", specifier = ">=5.0" },
-    { name = "ruff", specifier = ">=0.6.9" },
-    { name = "scipy-stubs", specifier = ">=1.14" },
-]
-
-[[package]]
 name = "leather"
 version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1455,6 +1390,71 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5f/d3/3f06a1006f2261d1342aefb3c71eed02f5d4ca5bdbecd86ebc12ad38306e/sqlparse-0.6.0.tar.gz", hash = "sha256:113c35c75365ab9cc9c7231d68c6428fb11c085fc8e9eb1ad659b7ddbf6cd2b9", size = 178477, upload-time = "2026-08-13T19:16:06.396Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d9/50/f00935da0ec7cbf325f8dc4f772ae46fbc7b672dd62876e73f0a94adda57/sqlparse-0.6.0-py3-none-any.whl", hash = "sha256:b861c0288ce2fa56209a9a6412d2e066ac664b3873b89c26c9d8415e8e32996f", size = 50070, upload-time = "2026-08-13T19:16:04.062Z" },
+]
+
+[[package]]
+name = "strata"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "dbt-core" },
+    { name = "dbt-duckdb" },
+    { name = "duckdb" },
+    { name = "jinja2" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "pandera" },
+    { name = "plotly" },
+    { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "rich" },
+    { name = "scipy" },
+    { name = "structlog" },
+    { name = "typer" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "hypothesis" },
+    { name = "mypy" },
+    { name = "nbstripout" },
+    { name = "pandas-stubs" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+    { name = "scipy-stubs" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dbt-core", specifier = ">=1.8" },
+    { name = "dbt-duckdb", specifier = ">=1.8" },
+    { name = "duckdb", specifier = ">=1.1" },
+    { name = "jinja2", specifier = ">=3.1" },
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "pandas", specifier = ">=2.2" },
+    { name = "pandera", specifier = ">=0.20" },
+    { name = "plotly", specifier = ">=5.22" },
+    { name = "pydantic", specifier = ">=2.8" },
+    { name = "pydantic-settings", specifier = ">=2.4" },
+    { name = "rich", specifier = ">=13.7" },
+    { name = "scipy", specifier = ">=1.13" },
+    { name = "structlog", specifier = ">=24.4" },
+    { name = "typer", specifier = ">=0.12.5" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "hypothesis", specifier = ">=6.112" },
+    { name = "mypy", specifier = ">=1.11" },
+    { name = "nbstripout", specifier = ">=0.7.1" },
+    { name = "pandas-stubs", specifier = ">=2.2" },
+    { name = "pre-commit", specifier = ">=3.8" },
+    { name = "pytest", specifier = ">=8.3" },
+    { name = "pytest-cov", specifier = ">=5.0" },
+    { name = "ruff", specifier = ">=0.6.9" },
+    { name = "scipy-stubs", specifier = ">=1.14" },
 ]
 
 [[package]]

@@ -1,8 +1,8 @@
-# The warehouse path comes from the environment, set by `kashf dbt` for the active zone.
-kashf:
+# The warehouse path comes from the environment, set by `strata dbt` for the active zone.
+strata:
   target: local
   outputs:
     local:
       type: duckdb
-      path: "{{ env_var('KASHF_DBT_DB') }}"
+      path: "{{ env_var('STRATA_DBT_DB') }}"
       threads: 4

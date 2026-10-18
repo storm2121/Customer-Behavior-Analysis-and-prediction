@@ -7,55 +7,54 @@
       ],
       "ci": {
         "digit_9_excess": [
-          0.0255165,
-          0.0522765
+          0.0254788,
+          0.0523155
         ],
         "mad": [
-          0.00822762,
-          0.0133069
+          0.00819363,
+          0.013237
         ],
         "share_digit_1": [
-          0.284937,
-          0.310282
+          0.286956,
+          0.310869
         ],
         "share_digit_2": [
-          0.166736,
-          0.19014
+          0.167136,
+          0.190028
         ],
         "share_digit_3": [
-          0.104581,
-          0.11948
+          0.104514,
+          0.119575
         ],
         "share_digit_4": [
-          0.0929691,
-          0.108424
+          0.092838,
+          0.107666
         ],
         "share_digit_5": [
-          0.066638,
-          0.0777258
+          0.0664625,
+          0.0769399
         ],
         "share_digit_6": [
-          0.0518833,
-          0.060501
+          0.052141,
+          0.0603036
         ],
         "share_digit_7": [
-          0.052347,
-          0.0616152
+          0.0522889,
+          0.0614299
         ],
         "share_digit_8": [
-          0.0391926,
-          0.0467574
+          0.0390383,
+          0.0463184
         ],
         "share_digit_9": [
-          0.0712739,
-          0.098034
+          0.0712363,
+          0.098073
         ]
       },
-      "computed_at": "2026-10-18T12:29:59Z",
+      "computed_at": "2026-10-18T13:05:31Z",
       "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
       "headline": false,
       "id": "benford_purchases",
-      "kashf_version": "0.1.0",
       "meta": {
         "conformity": "acceptable conformity",
         "rows_digits": "1:1|2:2|3:3|4:4|5:5|6:6|7:7|8:8|9:9"
@@ -67,6 +66,7 @@
       "question": "Do card purchase amounts follow Benford's law, and where do they depart from it?",
       "robustness": null,
       "source_kind": "real",
+      "strata_version": "0.1.0",
       "title": "Leading digits of card purchases",
       "units": {
         "chi2": "number",
@@ -148,12 +148,12 @@
       ],
       "ci": {
         "branch_fri": [
-          0.179728,
-          0.207383
+          0.178817,
+          0.208345
         ],
         "branch_mon": [
-          0.210279,
-          0.23925
+          0.210138,
+          0.238702
         ],
         "branch_sat": [
           0.0,
@@ -161,82 +161,81 @@
         ],
         "branch_sun": [
           0.0,
-          0.00181239
+          0.0017691
         ],
         "branch_thu": [
-          0.1753,
-          0.19865
+          0.175685,
+          0.198989
         ],
         "branch_tue": [
-          0.195858,
-          0.223878
+          0.194667,
+          0.224482
         ],
         "branch_wed": [
-          0.173001,
-          0.196457
+          0.172452,
+          0.196037
         ],
         "card_fri": [
-          0.143518,
-          0.152511
+          0.143107,
+          0.152479
         ],
         "card_mon": [
-          0.131944,
-          0.14117
+          0.131882,
+          0.141027
         ],
         "card_sat": [
-          0.145794,
-          0.155769
+          0.145485,
+          0.156041
         ],
         "card_sun": [
-          0.136369,
-          0.147927
+          0.136533,
+          0.148157
         ],
         "card_thu": [
-          0.139879,
-          0.148934
+          0.13978,
+          0.148904
         ],
         "card_tue": [
-          0.134042,
-          0.142291
+          0.133777,
+          0.142725
         ],
         "card_wed": [
-          0.13512,
-          0.144627
+          0.135406,
+          0.144899
         ],
         "online_fri": [
-          0.137464,
-          0.149266
+          0.137348,
+          0.148768
         ],
         "online_mon": [
-          0.142889,
-          0.154124
+          0.142529,
+          0.153769
         ],
         "online_sat": [
-          0.130853,
-          0.144833
+          0.131032,
+          0.144673
         ],
         "online_sun": [
-          0.116934,
-          0.12921
+          0.116992,
+          0.129075
         ],
         "online_thu": [
-          0.141964,
-          0.153664
+          0.142084,
+          0.153157
         ],
         "online_tue": [
-          0.145322,
-          0.157431
+          0.145194,
+          0.157412
         ],
         "online_wed": [
-          0.142118,
-          0.154377
+          0.141987,
+          0.154713
         ]
       },
-      "computed_at": "2026-10-18T12:29:59Z",
+      "computed_at": "2026-10-18T13:05:31Z",
       "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
       "headline": false,
       "id": "weekday_pattern",
-      "kashf_version": "0.1.0",
       "meta": {
         "rows_weekdays": "Monday:mon|Tuesday:tue|Wednesday:wed|Thursday:thu|Friday:fri|Saturday:sat|Sunday:sun"
       },
@@ -247,6 +246,7 @@
       "question": "How are card, online and branch events spread over the days of the week?",
       "robustness": null,
       "source_kind": "real",
+      "strata_version": "0.1.0",
       "title": "The week of a retail bank",
       "units": {
         "branch_fri": "share",
@@ -328,27 +328,26 @@
       ],
       "ci": {
         "share_branch_only": [
-          0.127,
-          0.168025
+          0.123,
+          0.16705
         ],
         "share_digital_only": [
           0.265,
           0.32
         ],
         "share_mixed": [
-          0.478,
-          0.541
+          0.479,
+          0.539025
         ],
         "share_none": [
-          0.041,
+          0.039,
           0.068
         ]
       },
-      "computed_at": "2026-10-18T12:29:59Z",
+      "computed_at": "2026-10-18T13:05:31Z",
       "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
       "headline": false,
       "id": "channel_mix",
-      "kashf_version": "0.1.0",
       "meta": {
         "profile_definition": "Channel profile over the rolling year: none (no event), branch_only (branch operations only), digital_only (card or online, never the branch), mixed (branch and at least one digital channel)."
       },
@@ -359,6 +358,7 @@
       "question": "Which share of clients uses only the branch, only digital channels, both, or none?",
       "robustness": null,
       "source_kind": "real",
+      "strata_version": "0.1.0",
       "title": "How clients split across channels",
       "units": {
         "share_branch_only": "share",
@@ -388,63 +388,62 @@
       ],
       "ci": {
         "branch_only_25_34": [
-          0.0403634,
-          0.0942249
+          0.0392749,
+          0.0931072
         ],
         "branch_only_35_44": [
-          0.0908933,
-          0.204089
+          0.087293,
+          0.207149
         ],
         "branch_only_45_54": [
-          0.211352,
-          0.365521
+          0.205452,
+          0.360907
         ],
         "branch_only_55_64": [
-          0.18102,
+          0.184205,
           0.333333
         ],
         "branch_only_65_plus": [
-          0.214286,
-          0.454545
+          0.204082,
+          0.462693
         ],
         "branch_only_gender_gap": [
-          -0.059797,
-          0.0314554
+          -0.0601252,
+          0.0312005
         ],
         "branch_only_under_25": [
-          0.0378378,
-          0.105263
+          0.0344743,
+          0.108401
         ],
         "digital_only_25_34": [
-          0.300556,
-          0.403339
+          0.307479,
+          0.401265
         ],
         "digital_only_35_44": [
-          0.173153,
-          0.310641
+          0.168066,
+          0.313436
         ],
         "digital_only_45_54": [
-          0.182604,
-          0.333394
+          0.185701,
+          0.328125
         ],
         "digital_only_55_64": [
-          0.193798,
-          0.351178
+          0.195117,
+          0.346673
         ],
         "digital_only_65_plus": [
-          0.0508058,
-          0.22227
+          0.0533158,
+          0.22418
         ],
         "digital_only_under_25": [
-          0.251113,
-          0.375601
+          0.253968,
+          0.37569
         ]
       },
-      "computed_at": "2026-10-18T12:29:59Z",
+      "computed_at": "2026-10-18T13:05:31Z",
       "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
       "headline": true,
       "id": "age_digital_divide",
-      "kashf_version": "0.1.0",
       "meta": {
         "band_25_34": "25-34",
         "band_35_44": "35-44",
@@ -468,8 +467,8 @@
         "n_reference": 539,
         "n_treatment": 186,
         "overall_ci": [
-          0.1469398881261769,
-          0.27879615318432605
+          0.14717409948542026,
+          0.278257689278548
         ],
         "overall_effect": 0.21277953996848004,
         "reference": "under 35",
@@ -478,8 +477,8 @@
         "stratifiers": [
           {
             "adjusted_ci": [
-              0.147870843213667,
-              0.28064598899491155
+              0.14761898167202053,
+              0.27844286944390056
             ],
             "adjusted_effect": 0.21325675333045813,
             "reverses": false,
@@ -487,8 +486,8 @@
             "strata": [
               {
                 "ci": [
-                  0.14336607222795877,
-                  0.32945013084794655
+                  0.13884780193055274,
+                  0.32378586786182934
                 ],
                 "effect": 0.23178599527930766,
                 "n_reference": 205,
@@ -499,8 +498,8 @@
               },
               {
                 "ci": [
-                  0.10634717134717134,
-                  0.2884340907270162
+                  0.0976342249633098,
+                  0.29408680555203537
                 ],
                 "effect": 0.19696091687592554,
                 "n_reference": 334,
@@ -514,8 +513,8 @@
           },
           {
             "adjusted_ci": [
-              0.07479081172679185,
-              0.2915486149272425
+              0.07664103767977812,
+              0.294125055494336
             ],
             "adjusted_effect": 0.18162900940952784,
             "reverses": false,
@@ -556,6 +555,7 @@
         "verdict": "holds"
       },
       "source_kind": "real",
+      "strata_version": "0.1.0",
       "title": "The digital divide by age",
       "units": {
         "branch_only_25_34": "share",
@@ -604,7 +604,7 @@
       }
     }
   ],
-  "computed_at": "2026-10-18T12:29:59Z",
+  "computed_at": "2026-10-18T13:05:31Z",
   "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
   "schema_version": 1,
   "source_kind": "real"

@@ -10,12 +10,12 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from kashf.cli import app
-from kashf.config import SYNTHETIC_MARKER, PrivacyBoundaryError, Settings, Zone, is_within
-from kashf.ledger.allowlist import MIN_PUBLIC_CELL_N, PUBLIC_CLAIM_IDS, public_violations
-from kashf.ledger.build import build_ledger, evaluate, load_ledger, public_view
-from kashf.ledger.model import ClaimRecord, Ledger, Unit
-from kashf.ledger.registry import (
+from strata.cli import app
+from strata.config import SYNTHETIC_MARKER, PrivacyBoundaryError, Settings, Zone, is_within
+from strata.ledger.allowlist import MIN_PUBLIC_CELL_N, PUBLIC_CLAIM_IDS, public_violations
+from strata.ledger.build import build_ledger, evaluate, load_ledger, public_view
+from strata.ledger.model import ClaimRecord, Ledger, Unit
+from strata.ledger.registry import (
     REGISTRY,
     ClaimContext,
     ClaimError,
@@ -24,8 +24,8 @@ from kashf.ledger.registry import (
     claim,
     registered,
 )
-from kashf.ledger.robustness import RobustnessSpec
-from kashf.warehouse import connect
+from strata.ledger.robustness import RobustnessSpec
+from strata.warehouse import connect
 from tests.conftest import build_warehouse
 
 
@@ -114,7 +114,7 @@ def test_a_private_build_writes_private_claims_and_the_public_subset(
 
 
 def record_with_strata(n_treatment: int, n_reference: int) -> ClaimRecord:
-    from kashf.ledger.model import Robustness, StratifierResult, Stratum
+    from strata.ledger.model import Robustness, StratifierResult, Stratum
 
     stratum = Stratum(
         stratum="x",
@@ -157,7 +157,7 @@ def record_with_strata(n_treatment: int, n_reference: int) -> ClaimRecord:
         data_fingerprint="0" * 64,
         source_kind="real",
         computed_at=datetime(2026, 1, 1, tzinfo=UTC),
-        kashf_version="test",
+        strata_version="test",
     )
 
 
@@ -248,7 +248,7 @@ def test_records_reject_non_finite_values() -> None:
             data_fingerprint="f",
             source_kind="synthetic",
             computed_at=datetime.now(UTC),
-            kashf_version="test",
+            strata_version="test",
         )
 
 
@@ -262,8 +262,8 @@ def test_ledger_lookup_errors_are_explicit(synthetic_ledger: Ledger) -> None:
 def test_cli_ledger_build_lists_claims_and_verdicts(
     built_warehouse: Settings, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("KASHF_DB", str(built_warehouse.db))
-    monkeypatch.setenv("KASHF_WORK_DIR", str(built_warehouse.work_dir))
+    monkeypatch.setenv("STRATA_DB", str(built_warehouse.db))
+    monkeypatch.setenv("STRATA_WORK_DIR", str(built_warehouse.work_dir))
     result = CliRunner().invoke(
         app, ["ledger", "build", "--resamples", "60", "--only", "silence_by_channel"]
     )

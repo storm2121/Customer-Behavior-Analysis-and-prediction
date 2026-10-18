@@ -1,4 +1,4 @@
-# Kashf task runner. Every recipe line is a single command that works the same in PowerShell and
+# Strata task runner. Every recipe line is a single command that works the same in PowerShell and
 # in POSIX shells, so `just` behaves identically on Windows and in CI.
 
 set windows-shell := ["powershell.exe", "-NoLogo", "-NoProfile", "-Command"]
@@ -8,7 +8,7 @@ export PYTHONUTF8 := "1"
 
 seed := "42"
 clients := "1000"
-synth_dir := ".kashf/synth"
+synth_dir := ".strata/synth"
 
 # List the recipes.
 default:
@@ -36,55 +36,55 @@ test:
 
 # Scan every tracked file with the privacy guard.
 privacy:
-    uv run --frozen kashf privacy-check --all-files
+    uv run --frozen strata privacy-check --all-files
 
 # The documents say exactly what the public ledger says (drift, hand-typed numbers, allowlist).
 ledger-check:
-    uv run --frozen kashf ledger check
+    uv run --frozen strata ledger check
 
 # Everything CI runs. A milestone is done only when this is green.
 check: lint test privacy ledger-check
 
 # Write the public synthetic extract.
 synth:
-    uv run --frozen kashf synth --out {{synth_dir}} --clients {{clients}} --seed {{seed}}
+    uv run --frozen strata synth --out {{synth_dir}} --clients {{clients}} --seed {{seed}}
 
 # Load the synthetic extract into the public warehouse (contracts and reconciliation).
 ingest: synth
-    uv run --frozen kashf ingest --data-dir {{synth_dir}}
+    uv run --frozen strata ingest --data-dir {{synth_dir}}
 
 # Data-quality report on the public warehouse.
 dq: ingest
-    uv run --frozen kashf dq
+    uv run --frozen strata dq
 
 # Build the public warehouse with dbt (seeds, models and every dbt test) and its documentation.
 dbt: dq
-    uv run --frozen kashf dbt build
-    uv run --frozen kashf dbt docs generate
+    uv run --frozen strata dbt build
+    uv run --frozen strata dbt docs generate
 
 # Every claim on the synthetic warehouse, and the public demo report.
 ledger: dbt
-    uv run --frozen kashf ledger build
-    uv run --frozen kashf report --variant public
+    uv run --frozen strata ledger build
+    uv run --frozen strata report --variant public
 
-# Private zone: load the real extract from KASHF_DATA_DIR; outputs go to KASHF_PRIVATE_DIR only.
+# Private zone: load the real extract from STRATA_DATA_DIR; outputs go to STRATA_PRIVATE_DIR only.
 private-ingest:
-    uv run --frozen kashf --private ingest
-    uv run --frozen kashf --private dq
+    uv run --frozen strata --private ingest
+    uv run --frozen strata --private dq
 
 # Private zone: the warehouse on the real extract (dbt target and logs stay private too).
 private-dbt: private-ingest
-    uv run --frozen kashf --private dbt build
+    uv run --frozen strata --private dbt build
 
 # Private zone: every claim on the real extract and the private report (private folder only).
 private-report: private-dbt
-    uv run --frozen kashf --private ledger build
-    uv run --frozen kashf --private report --variant private
+    uv run --frozen strata --private ledger build
+    uv run --frozen strata --private report --variant private
 
 # Refresh the allow-listed public claims from the real extract and re-render the documents.
 publish-claims: private-dbt
-    uv run --frozen kashf --private ledger build --public
-    uv run --frozen kashf ledger render
+    uv run --frozen strata --private ledger build --public
+    uv run --frozen strata ledger render
 
 # Run every pre-commit hook over the whole tree.
 hooks:

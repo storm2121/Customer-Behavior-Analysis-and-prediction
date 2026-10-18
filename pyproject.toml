@@ -1,5 +1,5 @@
 [project]
-name = "kashf"
+name = "strata"
 version = "0.1.0"
 description = "Retail-banking behaviour analytics with an evidence ledger, a robustness checker and a structural privacy boundary."
 readme = "README.md"
@@ -22,7 +22,7 @@ dependencies = [
 ]
 
 [project.scripts]
-kashf = "kashf.cli:main"
+strata = "strata.cli:main"
 
 [dependency-groups]
 dev = [
@@ -42,10 +42,10 @@ requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["kashf"]
+packages = ["strata"]
 
 [tool.hatch.build.targets.sdist]
-include = ["kashf", "README.md", "pyproject.toml"]
+include = ["strata", "README.md", "pyproject.toml"]
 
 # ---------------------------------------------------------------- ruff
 [tool.ruff]
@@ -69,7 +69,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "PLR0915", "PLC0415", "S311"]
-"kashf/cli.py" = ["PLC0415", "B008", "PLR0917"]  # lazy imports, typer defaults and options
+"strata/cli.py" = ["PLC0415", "B008", "PLR0917"]  # lazy imports, typer defaults and options
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
@@ -81,7 +81,7 @@ docstring-code-format = true
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["kashf"]
+files = ["strata"]
 plugins = ["pydantic.mypy"]
 warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
@@ -102,18 +102,18 @@ addopts = [
     "-ra",
     "--strict-markers",
     "--strict-config",
-    "--cov=kashf",
+    "--cov=strata",
     "--cov-report=term-missing:skip-covered",
     "--cov-fail-under=85",
 ]
 markers = [
-    "private: runs against the real extract in KASHF_DATA_DIR; skipped unless --run-private is given; never asserts on values",
+    "private: runs against the real extract in STRATA_DATA_DIR; skipped unless --run-private is given; never asserts on values",
     "slow: end-to-end tests that build the warehouse",
 ]
 xfail_strict = true
 
 [tool.coverage.run]
-source = ["kashf"]
+source = ["strata"]
 branch = true
 
 [tool.coverage.report]

@@ -8,12 +8,12 @@ import pandas as pd
 import pytest
 from typer.testing import CliRunner
 
-from kashf.cli import app
-from kashf.config import Settings, Zone
-from kashf.contracts.specs import EXTRACTS, Extract
-from kashf.ingest import dq
-from kashf.synthetic.parametric import SyntheticExtract
-from kashf.warehouse import connect
+from strata.cli import app
+from strata.config import Settings, Zone
+from strata.contracts.specs import EXTRACTS, Extract
+from strata.ingest import dq
+from strata.synthetic.parametric import SyntheticExtract
+from strata.warehouse import connect
 
 
 def by_id(results: list[dq.DQResult]) -> dict[tuple[str, str], dq.DQResult]:

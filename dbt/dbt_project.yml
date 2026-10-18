@@ -1,9 +1,9 @@
-# dbt project for the Kashf warehouse (DuckDB). Run it through `kashf dbt ...`, which points the
+# dbt project for the Strata warehouse (DuckDB). Run it through `strata dbt ...`, which points the
 # profile at the right zone's warehouse and keeps target/ and logs/ inside that zone (ADR 0008).
-name: kashf
+name: strata
 version: "0.1.0"
 config-version: 2
-profile: kashf
+profile: strata
 
 model-paths: ["models"]
 seed-paths: ["seeds"]
@@ -29,7 +29,7 @@ vars:
   active_online_min_operations: 12
 
 seeds:
-  kashf:
+  strata:
     +schema: ref
     +quote_columns: false
     codes_card_category:
@@ -58,7 +58,7 @@ seeds:
       +column_types: {holiday_date: date, label: varchar}
 
 models:
-  kashf:
+  strata:
     staging:
       +schema: staging
       +materialized: view

@@ -1,6 +1,6 @@
 # ------------------------------------------------------------------ privacy (see PRIVACY.md)
 # The bank extract and everything derived from it stay outside the repository. These patterns are
-# a second line of defence; the first is that private outputs are written to KASHF_PRIVATE_DIR.
+# a second line of defence; the first is that private outputs are written to STRATA_PRIVATE_DIR.
 data/
 private_out/
 *.csv
@@ -24,6 +24,8 @@ claims.private.json
 .env.*
 
 # ------------------------------------------------------------------ local workspace
+.strata/
+# Workspace of the project before its rename (Kashf); ignored so old local copies stay out.
 .kashf/
 mlruns/
 

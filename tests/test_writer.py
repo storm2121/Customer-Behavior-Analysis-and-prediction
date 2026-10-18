@@ -8,11 +8,11 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from kashf.config import SYNTHETIC_MARKER, PrivacyBoundaryError
-from kashf.contracts.specs import AGGREGATE, CARD, ENCODING, EXTRACTS, Extract
-from kashf.ingest.readers import read_extract
-from kashf.synthetic.parametric import ParametricConfig, SyntheticExtract, generate
-from kashf.synthetic.writer import (
+from strata.config import SYNTHETIC_MARKER, PrivacyBoundaryError
+from strata.contracts.specs import AGGREGATE, CARD, ENCODING, EXTRACTS, Extract
+from strata.ingest.readers import read_extract
+from strata.synthetic.parametric import ParametricConfig, SyntheticExtract, generate
+from strata.synthetic.writer import (
     TRUTH_FILE,
     format_float,
     marker_matches,
@@ -119,7 +119,7 @@ def test_writer_refuses_the_real_data_folder(tmp_path: Path) -> None:
     extract = generate(ParametricConfig(n_clients=20, seed=1))
     real = tmp_path / "extract"
     real.mkdir()
-    with pytest.raises(PrivacyBoundaryError, match="KASHF_DATA_DIR"):
+    with pytest.raises(PrivacyBoundaryError, match="STRATA_DATA_DIR"):
         write_extract(extract, real / "sub", real_data_dir=real)
 
 

@@ -8,10 +8,10 @@ from pathlib import Path
 import duckdb
 import pytest
 
-from kashf.config import SYNTHETIC_MARKER, PrivacyBoundaryError, Settings, Zone, is_within
-from kashf.contracts.specs import CARD, EXTRACTS
-from kashf.ingest.load import Reconciliation, ingest, load_manifest, resolve_source
-from kashf.warehouse import connect, read_table, replace_table, row_count, table_exists
+from strata.config import SYNTHETIC_MARKER, PrivacyBoundaryError, Settings, Zone, is_within
+from strata.contracts.specs import CARD, EXTRACTS
+from strata.ingest.load import Reconciliation, ingest, load_manifest, resolve_source
+from strata.warehouse import connect, read_table, replace_table, row_count, table_exists
 from tests.conftest import public_settings
 
 
@@ -43,7 +43,7 @@ def test_public_runs_refuse_tampered_synthetic_folders(tmp_path: Path, synthetic
 
 
 def test_private_runs_need_the_extract_location(tmp_path: Path) -> None:
-    with pytest.raises(PrivacyBoundaryError, match="KASHF_DATA_DIR"):
+    with pytest.raises(PrivacyBoundaryError, match="STRATA_DATA_DIR"):
         resolve_source(public_settings(tmp_path), Zone.PRIVATE, None)
 
 
@@ -92,7 +92,7 @@ def test_private_ingest_writes_only_under_the_private_folder(
     repo.mkdir()
     extract = copy_without_marker(synthetic_dir, tmp_path / "extract")
     settings = Settings(  # type: ignore[call-arg]
-        _env_file=None, repo_root=repo, data_dir=extract, db=repo / ".kashf" / "kashf.duckdb"
+        _env_file=None, repo_root=repo, data_dir=extract, db=repo / ".strata" / "strata.duckdb"
     )
     report = ingest(settings, Zone.PRIVATE)
     assert report.ok
@@ -113,7 +113,7 @@ def test_a_private_run_may_read_a_marked_synthetic_folder(
 
 
 def test_load_manifest_explains_a_missing_ingest(tmp_path: Path) -> None:
-    with pytest.raises(FileNotFoundError, match="kashf ingest"):
+    with pytest.raises(FileNotFoundError, match="strata ingest"):
         load_manifest(public_settings(tmp_path).workspace(Zone.PUBLIC))
 
 

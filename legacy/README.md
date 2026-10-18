@@ -1,6 +1,6 @@
 # Legacy code (frozen)
 
-This directory keeps the code that Kashf replaces, unchanged, so that every criticism below can be
+This directory keeps the code that Strata replaces, unchanged, so that every criticism below can be
 checked against the source. Nothing here is imported, tested, linted or type-checked by the new
 build, and nothing here should be refactored: it is evidence, not a dependency.
 

@@ -1,4 +1,4 @@
--- One definition of an exact repeat, two implementations: staging flags the rows, `kashf dq`
+-- One definition of an exact repeat, two implementations: staging flags the rows, `strata dq`
 -- counts them before dbt runs. Any disagreement between the two fails the build.
 with flagged as (
     select 'card_transactions' as extract, count(*) filter (where is_repeat) as repeats

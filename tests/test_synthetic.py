@@ -15,11 +15,11 @@ import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-from kashf.contracts.extracts import validate
-from kashf.contracts.specs import EXTRACTS, WINDOW_END, WINDOW_START, Extract
-from kashf.contracts.vocab import online_services
-from kashf.holidays import is_bank_holiday
-from kashf.synthetic.parametric import (
+from strata.contracts.extracts import validate
+from strata.contracts.specs import EXTRACTS, WINDOW_END, WINDOW_START, Extract
+from strata.contracts.vocab import online_services
+from strata.holidays import is_bank_holiday
+from strata.synthetic.parametric import (
     CARD_END,
     ParametricConfig,
     SyntheticExtract,

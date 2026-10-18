@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from kashf.contracts.extracts import (
+from strata.contracts.extracts import (
     COLUMN_TYPES,
     SCHEMAS,
     ColumnType,
@@ -16,9 +16,9 @@ from kashf.contracts.extracts import (
     Violation,
     validate,
 )
-from kashf.contracts.specs import AGGREGATE, CARD, CLIENTS, EXTRACTS, Extract, spec_for
-from kashf.ingest.readers import parse_column, parse_frame, read_extract
-from kashf.synthetic.parametric import SyntheticExtract
+from strata.contracts.specs import AGGREGATE, CARD, CLIENTS, EXTRACTS, Extract, spec_for
+from strata.ingest.readers import parse_column, parse_frame, read_extract
+from strata.synthetic.parametric import SyntheticExtract
 
 SECRET = "syn_" + "beef" * 3
 

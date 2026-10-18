@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from kashf.log import REDACTED, configure_logging, get_logger, mask_identifiers, redact_identifiers
+from strata.log import REDACTED, configure_logging, get_logger, mask_identifiers, redact_identifiers
 
 FAKE_ID = "0f" * 20  # built at run time: no identifier-shaped literal lives in the source
 

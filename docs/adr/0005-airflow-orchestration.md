@@ -9,7 +9,7 @@ Airflow is the orchestrator most job descriptions name; it does not run natively
 
 ## Decision
 
-A single DAG `kashf_daily` whose tasks call the `kashf` CLI, executed in Compose with the official
+A single DAG `strata_daily` whose tasks call the `strata` CLI, executed in Compose with the official
 image and tested with `airflow dags test`. Local development runs the same steps through `just`
 recipes without Airflow.
 

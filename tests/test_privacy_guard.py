@@ -15,9 +15,9 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from typer.testing import CliRunner
 
-from kashf import privacy_guard as pg
-from kashf.cli import app
-from kashf.contracts.specs import AGGREGATE, BRANCH, CARD, CLIENTS, ENCODING, EXTRACTS, ExtractSpec
+from strata import privacy_guard as pg
+from strata.cli import app
+from strata.contracts.specs import AGGREGATE, BRANCH, CARD, CLIENTS, ENCODING, EXTRACTS, ExtractSpec
 from tests.conftest import GitRunner
 
 FAKE_ID = "0f" * 20
@@ -100,7 +100,7 @@ def test_matcher_falls_back_without_data(tmp_path: Path) -> None:
 
 def test_scanner_reads_the_environment(tmp_path: Path) -> None:
     write_fake_extract(tmp_path / "extract", [FAKE_ID])
-    scanner = pg.Scanner.from_environment({"KASHF_DATA_DIR": str(tmp_path / "extract")})
+    scanner = pg.Scanner.from_environment({"STRATA_DATA_DIR": str(tmp_path / "extract")})
     assert scanner.matcher.source == "derived"
     assert scanner.private_literals
 
@@ -209,9 +209,9 @@ def test_private_path_literals_are_blocked_but_architect_documents_are_exempt(
     tmp_path: Path,
 ) -> None:
     private = tmp_path / "SecretPlace"
-    scanner = pg.Scanner.from_environment({"KASHF_DATA_DIR": str(private)})
+    scanner = pg.Scanner.from_environment({"STRATA_DATA_DIR": str(private)})
     spelled = str(private).replace("\\", "/")
-    assert "private-path" in checks("kashf/x.py", f'PATH = "{spelled}"', scanner)
+    assert "private-path" in checks("strata/x.py", f'PATH = "{spelled}"', scanner)
     assert "private-path" in checks("docs/x.md", str(private).upper(), scanner)
     assert "private-path" not in checks("ARCHITECTURE.md", spelled, scanner)
 
@@ -268,7 +268,7 @@ def test_tracked_and_explicit_files_are_scanned(
 def test_cli_blocks_staged_leaks_with_exit_code_one(
     git_repo: Path, git: GitRunner, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("KASHF_REPO_ROOT", str(git_repo))
+    monkeypatch.setenv("STRATA_REPO_ROOT", str(git_repo))
     (git_repo / "dump.txt").write_text(",".join(CLIENTS.columns) + f"\n{FAKE_ID},1\n")
     git("add", "dump.txt")
     result = CliRunner().invoke(app, ["privacy-check", "--staged"])
@@ -281,7 +281,7 @@ def test_cli_blocks_staged_leaks_with_exit_code_one(
 def test_cli_reports_clean_trees_and_usage_errors(
     git_repo: Path, git: GitRunner, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    monkeypatch.setenv("KASHF_REPO_ROOT", str(git_repo))
+    monkeypatch.setenv("STRATA_REPO_ROOT", str(git_repo))
     (git_repo / "fine.md").write_text("nothing to see\n")
     git("add", "fine.md")
     runner = CliRunner()

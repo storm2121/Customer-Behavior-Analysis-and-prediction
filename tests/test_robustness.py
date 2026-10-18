@@ -8,7 +8,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from kashf.ledger.robustness import RobustnessSpec, check
+from strata.ledger.robustness import RobustnessSpec, check
 
 SPEC = RobustnessSpec(
     group_col="group",
