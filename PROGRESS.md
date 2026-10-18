@@ -209,3 +209,101 @@ the real data. Record exact commands and pass/fail counts.
   private folder's path in the terminal (documented in PRIVACY.md; nothing is written to the repo).
 - Open questions for the architect: none new.
 - Next: M3.
+
+### M3: Evidence ledger, robustness checker, findings docs — done — 2026-10-18
+
+The project was renamed from Kashf to Strata during this milestone (see "Architect changes applied"
+below). Entries above this one use the old names (`kashf`, `KASHF_*`, `.kashf/`) as they were run.
+
+- Built:
+  - `strata/ledger/`: the `@claim` registry (a headline cannot be registered without a robustness
+    specification), the client bootstrap (multinomial weights, one thousand resamples, one seed per
+    claim derived from its id), claim records (values with units, intervals, clients behind every
+    value, data-aware caveats, metadata, fingerprint, version), the build (synthetic, private, and
+    `--public` through the publication rules), rendering, and the check.
+  - Fifteen claims: the four allow-listed ones (`channel_mix`, `age_digital_divide`,
+    `weekday_pattern`, `benford_purchases`) and `online_service_mix`, `branch_deposit_share`,
+    `december_deposit_wave`, `salary_day_withdrawals`, `ecommerce_international_share`,
+    `spend_concentration`, `repeat_rows`, `aggregate_join_coverage`, `silence_by_channel`
+    (headline), `ramadan_card_effect`, `pre_eid_branch_deposits`.
+  - The robustness checker (`strata/ledger/robustness.py`, method in `docs/methods/robustness.md`):
+    crude, per-stratum and Mantel-Haenszel adjusted effects with intervals, sufficient strata (both
+    groups at least ten clients), sign flips, shrinkage, verdict holds / weakens / reverses /
+    insufficient, and a generated explanation. The rule was written and tested on constructed cases
+    before it was run on any data.
+  - `docs/findings/*.md.j2` rendered to `docs/findings/*.md`; the README's ledger-governed section;
+    `docs/ledger/claims.public.json` (allow-listed claims only, small strata suppressed).
+  - `strata report --variant private|public`: self-contained HTML (Plotly embedded). Private report
+    v1 written to `<STRATA_PRIVATE_DIR>/reports/private_report.html`; the public demo report to
+    `.strata/reports/`.
+  - `analysis/benford.py` and `analysis/concentration.py` started here because claims need them
+    (first and first-two digit tests with Nigrini bands; Lorenz, Gini, top shares, all weightable).
+- Commands run and results (final runs, after the rename):
+  - `uv run strata --private ledger build --public`: fifteen claims, none skipped;
+    `silence_by_channel` verdict **reverses** (the reversal comes from the activity-tercile
+    stratification) and `age_digital_divide` verdict holds; the public file was written after the
+    publication rules passed. The mechanism is explained in the claim's robustness explanation and
+    caveats: branch-only clients have far fewer events in the observation window, so a quarter
+    without any event is likely by chance; activity terciles that lack one group are listed as
+    positivity gaps and excluded from the adjusted difference.
+  - `uv run strata ledger render` then `uv run strata ledger check`: documents match the ledger, no
+    hand-typed numbers.
+  - The hand-typed-number DoD is proven by three tests in `tests/test_render_check.py` (a number
+    typed into a findings template, into the README template, and into the README section): each
+    makes the check fail as it should, and the tests pass.
+  - `uv run strata --private report --variant private`: written under `STRATA_PRIVATE_DIR`.
+  - Values, intervals and robustness results are identical across two complete private rebuilds
+    (ingest, data quality, dbt, ledger) after the determinism fix below.
+  - `uv run pytest`: 277 passed, 1 skipped (private); coverage 97.68%. `uv run pytest --run-private
+    -m private`: 1 passed. `uv run mypy` (42 files) and `uv run ruff check .`: clean. `just check`
+    (lint, types, tests, privacy scan with the identifier rule derived from the extract, ledger
+    check): exit 0. `uv run pre-commit run --all-files`: every hook passed.
+- Decisions:
+  - Headline robustness: `silence_by_channel` is checked within activity terciles, age bands and
+    tenure bands; `age_digital_divide` (clients aged 55 and over against under 35, branch-only
+    share) within gender codes and tenure bands only, because activity is partly a consequence of
+    channel choice and holding it fixed would bias that comparison (stated in the claim's caveats).
+  - Publication rules are defined once (`strata/ledger/allowlist.py`) and enforced by both the
+    build and the commit guard: every value on at least the floor of clients, the compared groups
+    each at the floor, and a stratum keeps its numbers only if each of its groups reaches the floor.
+  - Templates may not type a digit in prose. Row labels (bands, digits, weekdays) come from claim
+    metadata; `raw()` exists for conditions only, so interpretive sentences follow the data (a
+    sentence about an excess of leading nines is only rendered when there is one).
+  - `--public` refuses synthetic data, so the public file can only ever hold real aggregates.
+  - Determinism fix: diffing a regenerated public file against the committed one showed identical
+    values but different intervals. Claims read tables without an order, DuckDB's scan order can
+    change between builds, and the order decided which bootstrap weight went to which client.
+    Warehouse reads are now sorted on all columns, and a test proves the same rows stored in
+    different orders read back identically.
+- Architect changes applied at the end of this milestone:
+  1. Pushing. I did not run `git push` in any form during this session. The remote-tracking reflog
+     records "update by push" from this clone at 12:26:17 UTC; at that time I was writing the ledger
+     render and check modules with file tools and ran no git command, so I cannot say which process
+     pushed. I understand the rule: never push, never set an upstream, never run `git push` with any
+     option (including `--dry-run` and `--delete`). As instructed, `git branch --unset-upstream` was
+     run; the branch has no upstream.
+  2. Rename to Strata: package and CLI `strata`, variables `STRATA_*`, workspace `.strata/` (with
+     `.kashf/` still gitignored for old local copies), dbt project and profile `strata`, recipes, CI,
+     pre-commit, README, PRIVACY, CHANGELOG, ADRs, methods, tests, the private warehouse file
+     (`strata.duckdb`; the old private file was removed from `STRATA_PRIVATE_DIR`). The branch was
+     renamed locally with `git branch -m feat/strata-rebuild`. The three architect documents were
+     not edited.
+  3. Framing: README and findings pages rewritten so that the pipeline is the product and the CIH
+     findings illustrate it; ARCHITECTURE section 5.0 and milestone M4.5 read (M4.5 comes after my
+     stopping point and is not started).
+  4. `.env.local`: gitignored explicitly; `strata.config.Settings` reads `.env` and `.env.local`
+     from the repository root (real environment variables still win), so private runs and the
+     private tests need no export; the guard learns the private locations from the same settings
+     and refuses any `.env` file (`.env.example` excepted); tests switch the files off and a test
+     proves the suite cannot see this machine's configuration. Licence: MIT, with Mohamed as
+     copyright holder (`LICENSE`); this is a decision Mohamed can reverse.
+- Stubbed or skipped, and why: PDF output of the report (WeasyPrint) is not produced; the report is
+  HTML only. The calendar claims are simple day-of-week standardised ratios; the regression models
+  come in M4.
+- Open questions for the architect:
+  1. `silence_by_channel` (verdict and explanation, no numbers) is private. Should its verdict be
+     allow-listed so the public documents and the CV can cite the reversal? Today nothing about it
+     is published.
+  2. The README's governed section now shows the four allow-listed real aggregates. Please confirm
+     the allowlist is final before anything leaves the machine.
+- Next: M4.
