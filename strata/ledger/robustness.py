@@ -172,8 +172,13 @@ def check(
     n_resamples: int = DEFAULT_RESAMPLES,
     seed: int = 42,
     hint: str = "",
+    public_hint: str = "",
 ) -> Robustness:
-    """Run the Simpson guard on a client-level ``frame`` (one row per client)."""
+    """Run the Simpson guard on a client-level ``frame`` (one row per client).
+
+    ``hint`` completes the explanation and may quote numbers; ``public_hint`` completes the
+    number-free explanation that a ``verdict_only`` publication may show.
+    """
     compared = frame[frame[spec.group_col].isin([spec.treatment, spec.reference])].reset_index(
         drop=True
     )
@@ -230,7 +235,38 @@ def check(
         shrinkage=shrinkage,
         verdict=verdict,
         mechanism=_mechanism(spec, crude, stratifications, verdict, hint),
+        public_mechanism=_public_mechanism(spec, crude_sign, stratifications, verdict, public_hint),
     )
+
+
+def _public_mechanism(
+    spec: RobustnessSpec,
+    crude_sign: int,
+    stratifications: list[_Stratification],
+    verdict: Verdict,
+    hint: str,
+) -> str:
+    """The explanation in words only: directions and the verdict, never a number."""
+    direction = {1: "higher", -1: "lower", 0: "no different"}[crude_sign]
+    sentences = [
+        (
+            f"Before stratification the {spec.label('metric')} is {direction} for "
+            f"{spec.label('treatment')} than for {spec.label('reference')}."
+        )
+    ]
+    for item in stratifications:
+        result = item.result
+        label = STRATIFIER_LABELS.get(result.stratifier, result.stratifier)
+        if result.adjusted_effect is None:
+            sentences.append(f"No stratum of {label} has enough clients in both groups.")
+        elif result.reverses:
+            sentences.append(f"Holding {label} fixed, the difference reverses its sign.")
+        else:
+            sentences.append(f"Holding {label} fixed, the difference keeps its sign.")
+    sentences.append(f"Verdict: {verdict}.")
+    if hint:
+        sentences.append(hint)
+    return " ".join(sentences)
 
 
 def _mechanism(

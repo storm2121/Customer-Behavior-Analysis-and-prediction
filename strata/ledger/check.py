@@ -2,7 +2,8 @@
 
 Four rules, each a CI failure:
 
-1. ``docs/ledger/claims.public.json`` holds only allow-listed claims within the publication rules.
+1. ``docs/ledger/claims.public.json`` holds only allow-listed claims and verdicts within the
+   publication rules.
 2. Every ``docs/findings/*.md`` is the current rendering of its template (no drift, no hand edits),
    and every findings document has a template.
 3. The README's ledger-governed section is the current rendering of ``_readme.md.j2``.
@@ -17,7 +18,9 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from strata.ledger.allowlist import public_violations
+import jinja2
+
+from strata.ledger.allowlist import ledger_violations
 from strata.ledger.build import PUBLIC_LEDGER, load_ledger
 from strata.ledger.model import Ledger
 from strata.ledger.render import (
@@ -69,9 +72,7 @@ def _public_ledger(repo_root: Path) -> tuple[Ledger | None, list[Problem]]:
             Problem(shown, 0, "missing: build it with `strata --private ledger build --public`")
         ]
     payload = json.loads(path.read_text(encoding="utf-8"))
-    problems = [
-        Problem(shown, 0, problem) for problem in public_violations(payload.get("claims", []))
-    ]
+    problems = [Problem(shown, 0, problem) for problem in ledger_violations(payload)]
     return load_ledger(path), problems
 
 
@@ -85,7 +86,12 @@ def check_repository(repo_root: Path) -> list[Problem]:
     for name in names:
         shown = (FINDINGS_DIR / name).as_posix()
         target = folder / name.removesuffix(".j2")
-        expected = rendered_document(repo_root, name, ledger)
+        try:
+            expected = rendered_document(repo_root, name, ledger)
+            masked = render_template(repo_root, name, ledger, masked=True)
+        except (KeyError, jinja2.TemplateError) as error:
+            problems.append(Problem(shown, 0, f"cannot be rendered from the ledger: {error}"))
+            continue
         if not target.is_file():
             problems.append(Problem(shown, 0, "not rendered: run `strata ledger render`"))
         elif target.read_text(encoding="utf-8") != expected:
@@ -96,9 +102,7 @@ def check_repository(repo_root: Path) -> list[Problem]:
                     "drifted from its template and the ledger: run `strata ledger render`",
                 )
             )
-        problems.extend(
-            hand_typed_numbers(shown, render_template(repo_root, name, ledger, masked=True))
-        )
+        problems.extend(hand_typed_numbers(shown, masked))
     rendered = {name.removesuffix(".j2") for name in names}
     for document in sorted(folder.glob("*.md")):
         if document.name not in rendered:

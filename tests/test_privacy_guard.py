@@ -203,7 +203,8 @@ def test_ledger_json_shapes_are_checked() -> None:
     assert "ledger-allowlist" in checks(path, "{not json")
     assert "ledger-allowlist" in checks(path, json.dumps({"claims": {"id": "x"}}))
     assert "ledger-allowlist" in checks(path, json.dumps([{"id": "secret_claim", "n": 99}]))
-    assert "ledger-allowlist" not in checks(path, json.dumps("just a string"))
+    # Anything under docs/ledger that is not a ledger fails closed.
+    assert "ledger-allowlist" in checks(path, json.dumps("just a string"))
 
 
 def test_private_path_literals_are_blocked_but_architect_documents_are_exempt(

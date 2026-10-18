@@ -80,6 +80,8 @@ class Robustness(BaseModel):
     shrinkage: float | None
     verdict: Verdict
     mechanism: str
+    public_mechanism: str = ""
+    """The explanation without any number, for a claim published in ``verdict_only`` mode."""
 
 
 class ClaimRecord(BaseModel):
@@ -126,6 +128,26 @@ class ClaimRecord(BaseModel):
         return self.values[key]
 
 
+class PublishedVerdict(BaseModel):
+    """A headline published in ``verdict_only`` mode: what the robustness checker concluded, never
+    a value, an interval or a group size (ADR 0002, ``strata.ledger.allowlist``)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    title: str
+    question: str
+    publication: Literal["verdict_only"] = "verdict_only"
+    verdict: Verdict
+    stratifiers: list[str]
+    reversing_stratifiers: list[str]
+    mechanism: str
+    data_fingerprint: str
+    source_kind: SourceKind
+    computed_at: datetime
+    strata_version: str
+
+
 class Ledger(BaseModel):
     """A set of claims computed together from one warehouse."""
 
@@ -136,6 +158,15 @@ class Ledger(BaseModel):
     data_fingerprint: str
     computed_at: datetime
     claims: list[ClaimRecord]
+    verdicts: list[PublishedVerdict] = Field(default_factory=list)
+    """Only in the public ledger: headlines published in ``verdict_only`` mode."""
+
+    def verdict(self, claim_id: str) -> PublishedVerdict:
+        for record in self.verdicts:
+            if record.id == claim_id:
+                return record
+        msg = f"no published verdict {claim_id!r} in this ledger"
+        raise KeyError(msg)
 
     def get(self, claim_id: str) -> ClaimRecord:
         for record in self.claims:

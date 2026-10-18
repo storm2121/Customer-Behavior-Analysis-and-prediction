@@ -15,7 +15,8 @@ from typer.testing import CliRunner
 
 from strata.cli import app
 from strata.config import Settings
-from strata.ledger.build import PUBLIC_LEDGER, public_view
+from strata.ledger.allowlist import is_verdict_only
+from strata.ledger.build import PUBLIC_LEDGER, public_view, verdict_view
 from strata.ledger.check import check_repository, hand_typed_numbers
 from strata.ledger.formatting import TIMES, format_interval, format_value
 from strata.ledger.model import Ledger, Unit
@@ -51,6 +52,9 @@ def repo(tmp_path: Path, synthetic_ledger: Ledger) -> Path:
         data_fingerprint=synthetic_ledger.data_fingerprint,
         computed_at=synthetic_ledger.computed_at,
         claims=[public_view(record) for record in synthetic_ledger.claims if record.public],
+        verdicts=[
+            verdict_view(record) for record in synthetic_ledger.claims if is_verdict_only(record.id)
+        ],
     )
     target = root / PUBLIC_LEDGER
     target.parent.mkdir(parents=True)
@@ -123,10 +127,20 @@ def test_documents_without_templates_and_missing_renders_are_reported(repo: Path
 def test_non_allow_listed_claims_in_the_public_ledger_fail(repo: Path) -> None:
     path = repo / PUBLIC_LEDGER
     payload = json.loads(path.read_text(encoding="utf-8"))
-    secret = dict(payload["claims"][0], id="silence_by_channel")
+    secret = dict(payload["claims"][0], id="secret_claim")
     payload["claims"].append(secret)
     path.write_text(json.dumps(payload), encoding="utf-8")
     assert any("not allow-listed" in p for p in problems(repo))
+
+
+def test_a_verdict_only_claim_with_numbers_in_the_public_ledger_fails(repo: Path) -> None:
+    path = repo / PUBLIC_LEDGER
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["claims"].append(dict(payload["claims"][0], id="silence_by_channel"))
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    found = problems(repo)
+    assert any("may only be published as a verdict" in p for p in found)
+    assert any("cannot be rendered from the ledger" in p for p in found)
 
 
 def test_a_missing_public_ledger_or_markers_are_reported(repo: Path) -> None:

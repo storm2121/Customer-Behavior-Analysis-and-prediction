@@ -8,11 +8,17 @@ placeholder functions:
 ``ledger(id, key)``    a formatted value          ``ci(id, key)``      its 95% interval
 ``n(id)``              clients behind the claim    ``n_events(id)``     events behind it
 ``verdict(id)``        the robustness verdict      ``mechanism(id)``    the robustness explanation
+``stratifiers(id)``    the stratifiers checked     ``reversed_by(id)``  those that reverse it
+``verdict_context(id)`` the context line of a verdict-only publication (no client numbers)
 ``meta(id, key)``      a string fact (a definition)   ``caveats(id)``  the caveats as a list
 ``rows(id, table)``    ``(label, key)`` rows of a table the claim defines (bands, digits, weekdays)
 ``text(id, field)``    the claim's title, question or method
 ``raw(id, key)``       the unformatted value, for conditions only (never printed)
 ``context(id)``        the context line every number travels with (n, period, source, fingerprint)
+
+A claim published in ``verdict_only`` mode answers only ``verdict``, ``mechanism``, ``stratifiers``,
+``reversed_by``, ``verdict_context`` and ``text`` (title and question); any other placeholder fails,
+so a template cannot render one of its numbers even by mistake.
 
 In *masked* mode every placeholder renders as a sentinel; :mod:`strata.ledger.check` uses it to find
 numbers that were typed into a template by hand.
@@ -28,7 +34,8 @@ import jinja2
 
 from strata.contracts.specs import WINDOW_END, WINDOW_START
 from strata.ledger.formatting import format_interval, format_value
-from strata.ledger.model import ClaimRecord, Ledger
+from strata.ledger.model import ClaimRecord, Ledger, PublishedVerdict
+from strata.ledger.robustness import STRATIFIER_LABELS
 
 FINDINGS_DIR = Path("docs/findings")
 README = Path("README.md")
@@ -53,7 +60,19 @@ class Placeholders:
     masked: bool = False
 
     def _claim(self, claim_id: str) -> ClaimRecord:
+        if claim_id not in self.ledger.ids and claim_id in self._verdict_ids:
+            msg = f"claim {claim_id!r} is published as a verdict only; its numbers are not public"
+            raise KeyError(msg)
         return self.ledger.get(claim_id)
+
+    @property
+    def _verdict_ids(self) -> set[str]:
+        return {record.id for record in self.ledger.verdicts}
+
+    def _published_verdict(self, claim_id: str) -> PublishedVerdict | None:
+        if claim_id in self.ledger.ids:
+            return None
+        return self.ledger.verdict(claim_id)
 
     def _out(self, text: str) -> str:
         return SENTINEL if self.masked else text
@@ -85,6 +104,9 @@ class Placeholders:
         return self._out(f"{events:,}" if events is not None else "not applicable")
 
     def verdict(self, claim_id: str) -> str:
+        published = self._published_verdict(claim_id)
+        if published is not None:
+            return self._out(published.verdict)
         robustness = self._claim(claim_id).robustness
         if robustness is None:
             msg = f"claim {claim_id!r} has no robustness verdict"
@@ -92,8 +114,41 @@ class Placeholders:
         return self._out(robustness.verdict)
 
     def mechanism(self, claim_id: str) -> str:
+        published = self._published_verdict(claim_id)
+        if published is not None:
+            return self._out(published.mechanism)
         robustness = self._claim(claim_id).robustness
         return self._out(robustness.mechanism if robustness else "")
+
+    def _stratifier_names(self, claim_id: str, *, reversing: bool) -> list[str]:
+        published = self._published_verdict(claim_id)
+        if published is not None:
+            names = published.reversing_stratifiers if reversing else published.stratifiers
+        else:
+            robustness = self._claim(claim_id).robustness
+            results = robustness.stratifiers if robustness else []
+            names = [r.stratifier for r in results if r.reverses or not reversing]
+        return [self._out(STRATIFIER_LABELS.get(name, name)) for name in names]
+
+    def stratifiers(self, claim_id: str) -> list[str]:
+        """Readable names of the stratifiers the robustness check used."""
+        return self._stratifier_names(claim_id, reversing=False)
+
+    def reversed_by(self, claim_id: str) -> list[str]:
+        """Readable names of the stratifiers within which the effect changes sign."""
+        return self._stratifier_names(claim_id, reversing=True)
+
+    def verdict_context(self, claim_id: str) -> str:
+        """The context line of a verdict-only publication (no number about the clients)."""
+        published = self._published_verdict(claim_id)
+        record = published if published is not None else self._claim(claim_id)
+        source = "real extract" if record.source_kind == "real" else "synthetic demo data"
+        fingerprint = record.data_fingerprint[:12]
+        text = (
+            f"verdict only, no value published; {WINDOW_START.isoformat()} to "
+            f"{WINDOW_END.isoformat()}; {source}; data fingerprint {fingerprint}"
+        )
+        return self._out(text)
 
     def meta(self, claim_id: str, key: str) -> str:
         record = self._claim(claim_id)
@@ -117,12 +172,14 @@ class Placeholders:
         return [(self._out(label), key) for label, key in pairs]
 
     def text(self, claim_id: str, field: str) -> str:
-        """The claim's ``title``, ``question`` or ``method``."""
-        record = self._claim(claim_id)
+        """The claim's ``title``, ``question`` or ``method`` (a verdict has no method)."""
         if field not in {"title", "question", "method"}:
             msg = f"unknown claim field {field!r}"
             raise KeyError(msg)
-        return self._out(str(getattr(record, field)))
+        published = self._published_verdict(claim_id)
+        if published is not None and field != "method":
+            return self._out(str(getattr(published, field)))
+        return self._out(str(getattr(self._claim(claim_id), field)))
 
     def caveats(self, claim_id: str) -> list[str]:
         return [self._out(caveat) for caveat in self._claim(claim_id).caveats]
@@ -150,6 +207,9 @@ class Placeholders:
             "n_events": self.n_events,
             "verdict": self.verdict,
             "mechanism": self.mechanism,
+            "stratifiers": self.stratifiers,
+            "reversed_by": self.reversed_by,
+            "verdict_context": self.verdict_context,
             "meta": self.meta,
             "rows": self.rows,
             "text": self.text,

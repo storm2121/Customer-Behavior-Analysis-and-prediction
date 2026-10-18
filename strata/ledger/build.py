@@ -25,9 +25,21 @@ from typing import Any
 from strata import __version__
 from strata.config import PrivacyBoundaryError, Settings, Zone
 from strata.ingest.load import load_manifest
-from strata.ledger.allowlist import MIN_PUBLIC_CELL_N, is_public, public_violations
+from strata.ledger.allowlist import (
+    MIN_PUBLIC_CELL_N,
+    is_public,
+    is_verdict_only,
+    ledger_violations,
+)
 from strata.ledger.bootstrap import DEFAULT_RESAMPLES, claim_seed
-from strata.ledger.model import ClaimRecord, Ledger, Robustness, SourceKind, Stratum
+from strata.ledger.model import (
+    ClaimRecord,
+    Ledger,
+    PublishedVerdict,
+    Robustness,
+    SourceKind,
+    Stratum,
+)
 from strata.ledger.registry import ClaimContext, ClaimError, ClaimSpec, registered
 from strata.ledger.robustness import check
 from strata.log import get_logger
@@ -80,6 +92,7 @@ def evaluate(
             n_resamples=context.n_resamples,
             seed=claim_seed(context.seed, f"{spec.id}/robustness"),
             hint=result.mechanism_hint,
+            public_hint=result.public_hint,
         )
     return ClaimRecord(
         id=spec.id,
@@ -105,10 +118,36 @@ def evaluate(
     )
 
 
+def _without_small_values(record: ClaimRecord) -> ClaimRecord:
+    """Withhold every value computed on fewer clients than the floor (and its table rows)."""
+    small = {key for key, size in record.value_n.items() if size < MIN_PUBLIC_CELL_N}
+    if not small:
+        return record
+
+    def rows(spec: str) -> str:
+        return "|".join(item for item in spec.split("|") if item.split(":", 1)[-1] not in small)
+
+    meta = {
+        key: rows(value) if key.startswith("rows_") else value for key, value in record.meta.items()
+    }
+    meta["withheld_values"] = ", ".join(sorted(small))
+    return record.model_copy(
+        update={
+            "values": {key: value for key, value in record.values.items() if key not in small},
+            "units": {key: unit for key, unit in record.units.items() if key not in small},
+            "ci": {key: pair for key, pair in record.ci.items() if key not in small},
+            "value_n": {key: size for key, size in record.value_n.items() if key not in small},
+            "meta": meta,
+        }
+    )
+
+
 def public_view(record: ClaimRecord) -> ClaimRecord:
-    """The record as it may be published: a stratum keeps its numbers only if each group in it
-    reaches the cell floor; otherwise only its label and sufficiency remain. Stratifier-level
-    adjusted effects, the verdict and the explanation are aggregates over many clients and stay."""
+    """The record as it may be published. A value computed on fewer clients than the floor is
+    withheld, with its table rows; a stratum keeps its numbers only if each group in it reaches the
+    floor, otherwise only its label and sufficiency remain. Stratifier-level adjusted effects, the
+    verdict and the explanation are aggregates over many clients and stay."""
+    record = _without_small_values(record)
     if record.robustness is None:
         return record
     stratifiers = []
@@ -130,6 +169,30 @@ def public_view(record: ClaimRecord) -> ClaimRecord:
         stratifiers.append(stratifier.model_copy(update={"strata": strata}))
     robustness = record.robustness.model_copy(update={"stratifiers": stratifiers})
     return record.model_copy(update={"robustness": robustness})
+
+
+def verdict_view(record: ClaimRecord) -> PublishedVerdict:
+    """A headline as a ``verdict_only`` publication may show it: the verdict, the stratifier names,
+    the stratifiers that reverse the effect and the number-free explanation; nothing else."""
+    robustness = record.robustness
+    if robustness is None or not robustness.public_mechanism:
+        msg = f"claim {record.id!r} has no robustness result to publish as a verdict"
+        raise ClaimError(msg)
+    return PublishedVerdict(
+        id=record.id,
+        title=record.title,
+        question=record.question,
+        verdict=robustness.verdict,
+        stratifiers=[result.stratifier for result in robustness.stratifiers],
+        reversing_stratifiers=[
+            result.stratifier for result in robustness.stratifiers if result.reverses
+        ],
+        mechanism=robustness.public_mechanism,
+        data_fingerprint=record.data_fingerprint,
+        source_kind=record.source_kind,
+        computed_at=record.computed_at,
+        strata_version=record.strata_version,
+    )
 
 
 def _dump(ledger: Ledger, path: Path) -> None:
@@ -228,22 +291,32 @@ def build_ledger(
     _dump(ledger, path)
     public_path = None
     if public:
-        missing = sorted(claim_id for claim_id in skipped if is_public(claim_id))
-        if missing:
-            msg = f"allow-listed claims could not be computed: {missing}"
-            raise ClaimError(msg)
-        shared = Ledger(
-            source_kind=source_kind,
-            data_fingerprint=manifest.fingerprint,
-            computed_at=computed_at,
-            claims=[public_view(record) for record in records if record.public],
-        )
-        problems = public_violations(record.model_dump(mode="json") for record in shared.claims)
-        if problems:
-            raise PrivacyBoundaryError("; ".join(problems))
-        public_path = settings.repo_root / PUBLIC_LEDGER
-        _dump(shared, public_path)
+        public_path = _publish(settings, ledger, skipped)
     return BuildResult(ledger=ledger, path=path, public_path=public_path, skipped=skipped)
+
+
+def _publish(settings: Settings, ledger: Ledger, skipped: dict[str, str]) -> Path:
+    """Write the public ledger: full claims through :func:`public_view`, verdict-only headlines
+    through :func:`verdict_view`, after the publication rules pass."""
+    missing = sorted(
+        claim_id for claim_id in skipped if is_public(claim_id) or is_verdict_only(claim_id)
+    )
+    if missing:
+        msg = f"allow-listed claims could not be computed: {missing}"
+        raise ClaimError(msg)
+    shared = Ledger(
+        source_kind=ledger.source_kind,
+        data_fingerprint=ledger.data_fingerprint,
+        computed_at=ledger.computed_at,
+        claims=[public_view(record) for record in ledger.claims if record.public],
+        verdicts=[verdict_view(record) for record in ledger.claims if is_verdict_only(record.id)],
+    )
+    problems = ledger_violations(shared.model_dump(mode="json"))
+    if problems:
+        raise PrivacyBoundaryError("; ".join(problems))
+    public_path = settings.repo_root / PUBLIC_LEDGER
+    _dump(shared, public_path)
+    return public_path
 
 
 def load_ledger(path: Path) -> Ledger:

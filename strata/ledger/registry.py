@@ -47,6 +47,8 @@ class ClaimResult:
     meta: dict[str, str] = field(default_factory=dict)
     robustness_frame: pd.DataFrame | None = None
     mechanism_hint: str = ""
+    public_hint: str = ""
+    """A number-free completion of the explanation, for ``verdict_only`` publication."""
 
 
 class ClaimContext:

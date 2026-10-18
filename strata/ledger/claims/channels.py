@@ -353,6 +353,18 @@ def silence_by_channel(context: ClaimContext) -> ClaimResult:
         "digital-only clients. With so few events a quarter without any is likely by chance, so "
         "the crude gap mostly measures activity, not channel."
     )
+    # The same mechanism in words only, for the verdict-only publication; stated only when the
+    # data support it.
+    fewer = values["median_events_branch_only"] < values["median_events_digital_only"]
+    public_hint = (
+        (
+            "Mechanism: branch-only clients have fewer events in the observation window than "
+            "digital-only clients; with few events a quarter without any is likely by chance, so "
+            "the crude gap mostly measures activity, not channel."
+        )
+        if fewer
+        else ""
+    )
     return ClaimResult(
         values=values,
         units=units,
@@ -374,4 +386,5 @@ def silence_by_channel(context: ClaimContext) -> ClaimResult:
         ],
         robustness_frame=frame,
         mechanism_hint=hint,
+        public_hint=public_hint,
     )

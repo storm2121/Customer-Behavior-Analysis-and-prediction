@@ -144,6 +144,10 @@ def ecommerce_international_share(context: ClaimContext) -> ClaimResult:
     )
 
 
+TOPS = (1, 10, 20)
+"""Top groups of spenders, in per cent of the clients with any card spend."""
+
+
 @claim(
     "spend_concentration",
     title="How concentrated card spend is",
@@ -161,23 +165,26 @@ def spend_concentration(context: ClaimContext) -> ClaimResult:
     boot = context.bootstrap(spend.size)
 
     def statistics(weights: np.ndarray) -> dict[str, float]:
-        return {
-            "top_1_share": top_share(spend, 0.01, weights),
-            "top_10_share": top_share(spend, 0.10, weights),
-            "top_20_share": top_share(spend, 0.20, weights),
-            "gini": gini(spend, weights),
+        tops = {
+            f"top_{percent}_share": top_share(spend, percent / 100, weights) for percent in TOPS
         }
+        return {**tops, "gini": gini(spend, weights)}
 
     values = statistics(np.ones(spend.size))
     intervals = boot.intervals(boot.apply(statistics))
     units = dict.fromkeys(values, Unit.SHARE)
     units["gini"] = Unit.NUMBER
+    # A top share describes the clients in the top group, so that group's size is the number of
+    # clients behind the value (it decides whether the value may be published).
+    value_n = {f"top_{percent}_share": -(-percent * spend.size // 100) for percent in TOPS}
+    value_n["gini"] = int(spend.size)
     return ClaimResult(
         values=values,
         units=units,
         ci=intervals,
-        value_n=dict.fromkeys(values, int(spend.size)),
+        value_n=value_n,
         n=int(spend.size),
+        meta={"rows_tops": "|".join(f"top {p}%:top_{p}_share" for p in TOPS)},
         caveats=[
             (
                 "Spend outside the bank (other cards, cash) is invisible; concentration is of this "

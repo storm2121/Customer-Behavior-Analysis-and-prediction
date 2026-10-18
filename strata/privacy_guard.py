@@ -48,7 +48,7 @@ from pathlib import Path, PurePosixPath
 
 from strata.config import Settings
 from strata.contracts.specs import ENCODING, EXTRACTS
-from strata.ledger.allowlist import public_violations
+from strata.ledger.allowlist import ledger_violations, public_violations
 
 MAX_CSV_ROWS = 200
 CSV_ALLOWED_PREFIXES = ("tests/fixtures/", "dbt/seeds/")
@@ -257,25 +257,16 @@ def _private_literals(environ: dict[str, str]) -> list[str]:
     return sorted(literals, key=len, reverse=True)
 
 
-def _claim_records(payload: object) -> list[object] | None:
-    """The list of claim records in a ledger file, or ``None`` if the shape is wrong."""
-    records: object = payload.get("claims", []) if isinstance(payload, dict) else payload
-    if isinstance(records, list):
-        return records
-    if isinstance(payload, dict):
-        return None
-    return []
-
-
 def _ledger_findings(path: str, text: str) -> list[Finding]:
     try:
         payload = json.loads(text)
     except json.JSONDecodeError:
         return [Finding(path, 0, "ledger-allowlist", "ledger JSON does not parse; cannot verify")]
-    records = _claim_records(payload)
-    if records is None:
-        return [Finding(path, 0, "ledger-allowlist", "ledger JSON has no list of claims")]
-    return [Finding(path, 0, "ledger-allowlist", problem) for problem in public_violations(records)]
+    # A bare list is read as a list of claim records; an object is a whole public ledger.
+    problems = (
+        public_violations(payload) if isinstance(payload, list) else ledger_violations(payload)
+    )
+    return [Finding(path, 0, "ledger-allowlist", problem) for problem in problems]
 
 
 def _notebook_findings(path: str, text: str) -> list[Finding]:
