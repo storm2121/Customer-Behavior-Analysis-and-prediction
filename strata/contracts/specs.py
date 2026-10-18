@@ -54,8 +54,10 @@ class ExtractSpec:
         return self.date_column is not None
 
     @property
-    def raw_table(self) -> str:
-        return f"raw.{self.name.value}"
+    def landing_table(self) -> str:
+        """Where ``strata ingest`` keeps the file exactly as parsed (the canonical tables are
+        ``raw.clients``, ``raw.events`` and ``raw.client_aggregates``)."""
+        return f"landing.{self.name.value}"
 
 
 CLIENTS = ExtractSpec(

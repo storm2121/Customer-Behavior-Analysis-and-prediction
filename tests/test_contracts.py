@@ -31,7 +31,7 @@ def test_every_extract_has_a_type_for_every_column() -> None:
 
 def test_specs_are_looked_up_by_logical_name() -> None:
     assert spec_for("card_transactions") is CARD
-    assert CARD.raw_table == "raw.card_transactions"
+    assert CARD.landing_table == "landing.card_transactions"
     assert CARD.event
     assert not CLIENTS.event
 

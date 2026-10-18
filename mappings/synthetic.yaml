@@ -1,0 +1,116 @@
+# The public synthetic generator's output, which reproduces the reference extract's files and format exactly (strata synth).
+source: synthetic
+description: >
+  The public synthetic generator's output, which reproduces the reference extract's files and format exactly (strata synth).
+encoding: latin-1
+delimiter: ","
+decimal: "."
+date_format: "%Y-%m-%dT%H:%M"
+
+clients:
+  file: "echantillons_clients(in).csv"
+  contract: clients
+  columns:
+    client_id: "identifiant_client"
+    tenure_years: "anciennete_client"
+    age: "age"
+    gender_code: "genre"
+    marital_code: "situation_familiale"
+    children: "nombre_d_enfants"
+    sector_code: "secteur_professionnel"
+    profession_code: "profession"
+    socio_category_code: "categorie_socio_professionelle"
+
+events:
+  - file: "transactions_monetiques_annee_glissante_anonymise(in).csv"
+    contract: card_transactions
+    channel: card
+    columns:
+      client_id: identifiant_client
+      ts: date_transaction
+      amount: montant_local
+      kind: libelle_nature_transaction
+      origin: type_origine
+  - file: "operations_en_ligne_annee_glissante_anonymise(in).csv"
+    contract: online_operations
+    channel: online
+    columns:
+      client_id: identifiant_client
+      ts: operation_date_time
+      kind: service
+      amount: montant_transaction
+  - file: "operations_en_agence_annee_glissante_anonymise(in).csv"
+    contract: branch_operations
+    channel: branch
+    columns:
+      client_id: identifiant_client
+      ts: date_operation
+      amount: montant_operation
+      direction: sens_operation
+      kind: operation
+      currency: devise
+
+client_aggregates:
+  file: "al_akhawayn_dataset_v2(in).csv"
+  contract: aggregate_clients
+  columns:
+    client_id: "identifier"
+    tenure_years: "duree_creation_client_en_annee"
+    age: "age"
+    civilite_code: "civilite"
+    birth_country_code: "pays_de_naissance"
+    residence_country_code: "code_pays_de_residence"
+    marital_code: "situation_familiale"
+    children: "nombre_d_enfants"
+    professional_status_code: "situation_professionelle"
+    creation_place_code: "lieu_creation"
+    email_flag: "a_email"
+    resident_status_code: "resident_status"
+    profession_flag: "flag_profession"
+    online_flag: "client_has_cih_online"
+    active_contract_flag: "flag_contrat_actif"
+    ops_one_off_transfer: "virement_ponctuel"
+    ops_bill_pay: "paiement_facture_recharge_telecom_paiement_vignette"
+    ops_standing_transfer: "virement_permanent"
+    ops_card_service: "operations_sur_carte"
+    ops_cash_express: "transfert_cash_express"
+    ops_eshopping_recharge: "recharge_eshopping"
+    ops_card_debit: "debit_carte"
+    ops_binatna_recharge: "recharge_binatna"
+    ops_cheque_image: "image_cheque_emis"
+    ops_total: "nombre_operations"
+    op_amount_mean: "moyenne_operation"
+    op_amount_std: "ecart_type_operation"
+    op_amount_median: "mediane_operation"
+    op_amount_min: "minimum_operation"
+    op_amount_max: "maximum_operation"
+    months_since_first_op: "nombre_mois_premiere_operation"
+    months_since_last_op: "nombre_mois_derniere_operation"
+    credits_total: "nombre_total_credits"
+    credits_mortgage: "credit_immobilier"
+    credits_consumer: "credit_consommation"
+    debit_credit_flag: "flag_debit_credit"
+    card_cih_atm_count: "carte_cih_utilisee_dans_un_gab_cih"
+    card_merchant_national_count: "carte_cih_utilisee_chez_un_commerçant_national"
+    card_merchant_international_count: "carte_cih_utilisee_chez_un_commerçant_international"
+    other_national_card_atm_count: "carte_nationale_hors_carte_cih_utilisee_dans_un_gab_cih"
+    other_international_card_atm_count: "carte_internationale_hors_carte_cih_utilisee_dans_un_gab_cih"
+    txn_deposit: "deposit"
+    txn_withdrawal: "withdrawal"
+    txn_mastercard_send: "mastercardmoney_send"
+    txn_refund: "refund"
+    txn_bill_payment: "bill_payment"
+    txn_atm_purchase: "achat_sur_gab"
+    txn_visa_load: "visa_money_transfert_load"
+    txn_ecommerce: "achats_e_commerce"
+    txn_purchases: "purchases_and_services"
+    txn_vignette: "paiement_vignette"
+    txn_total: "nombre_transaction"
+    txn_amount_mean: "moyenne_montant_transaction"
+    txn_amount_std: "ecart_type_montant_transaction"
+    txn_amount_median: "mediane_montant_transaction"
+    txn_amount_min: "minimum_montant_transaction"
+    txn_amount_max: "maximum_montant_transaction"
+    international_txn_flag: "transaction_international"
+    months_since_first_txn: "nombre_mois_premiere_transaction"
+    months_since_last_txn: "nombre_mois_derniere_transaction"
