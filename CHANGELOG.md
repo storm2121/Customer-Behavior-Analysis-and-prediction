@@ -26,6 +26,16 @@ The Kashf rebuild (`kashf` package), developed on branch `feat/kashf-rebuild`.
   reconciliation between files and warehouse; public runs refuse unmarked data.
 - `kashf dq`: a sample-free data-quality report (exact repeats, zero and sub-one amounts,
   vocabulary, plausibility, join coverage, the aggregate file's empty rows and semantics).
+- The dbt warehouse on DuckDB: five staging models, `int_events`, `int_client_month` (a dense
+  client-month panel with rolling sums and recency), `int_channel_state`, and the marts
+  `client_360`, `features_silence` (every cutoff of the seed, no feature past its cutoff),
+  `features_segments`, `features_anomaly`, `daily_counts` (dense, with calendar columns) and
+  `aggregate_clients`; generic and singular tests on every model, including a reconciliation of
+  the exact-repeat flags with the data-quality report and of the marts with the manifest.
+- `kashf dbt …`: dbt on the active zone's warehouse, with target and logs inside that zone and
+  telemetry off.
+- Seeds for the age and tenure bands, the silence cutoffs and the calendar periods and holidays,
+  read by both dbt and Python.
 
 ### Changed
 

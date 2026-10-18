@@ -27,7 +27,10 @@ Every command runs in one of two zones, chosen explicitly:
   variables are refused if they resolve inside the repository.
 
 The location of the extract is known only through the environment. No file in the repository
-names it, and the CLI prints private locations as `<KASHF_PRIVATE_DIR>/…`.
+names it, and the CLI prints private locations as `<KASHF_PRIVATE_DIR>/…`. One exception is
+cosmetic: dbt's own log lines name the folders it writes to, so a private `kashf dbt` run shows the
+private folder's path in the terminal (never in a file inside the repository). dbt's anonymous usage
+statistics are switched off in the project and in the environment of every run.
 
 ## The pre-commit guard
 
