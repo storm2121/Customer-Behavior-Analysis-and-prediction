@@ -1,92 +1,50 @@
-# CIH Bank — Customer Behaviour Analysis & Prediction
+# Kashf
 
-Analyses retail banking customer behaviour to support digital-payment adoption in
-Morocco: it merges five anonymised extracts into a per-client view, engineers
-behavioural features, predicts transaction type with a Random Forest, and segments
-customers with KMeans.
+**Kashf** (كشف: an account statement, and the act of uncovering) is a retail-banking behaviour
+analytics system built on a rolling-year, anonymised extract of card transactions, online
+operations and branch operations of a sample of clients, provided by CIH Bank for an academic
+challenge. It replaces a hackathon script from 2024 whose bugs are documented openly in
+[`legacy/README.md`](legacy/README.md).
 
-Built as a data-analytics project at Al Akhawayn University.
+> **Status: under reconstruction.** The rebuild follows [`ARCHITECTURE.md`](ARCHITECTURE.md) and
+> [`MILESTONES.md`](MILESTONES.md); progress is logged in [`PROGRESS.md`](PROGRESS.md).
 
----
+## What makes it different
 
-## Quickstart
+- **No number is typed by hand.** Every figure in the documentation is rendered from an evidence
+  ledger of registered, bootstrapped claims, and CI fails when a document drifts from the ledger or
+  contains a number that does not come from it.
+- **Findings are stress-tested.** A robustness checker re-computes each headline finding within
+  strata of activity, age and tenure and labels it *holds*, *weakens* or *reverses*.
+- **The privacy boundary is structural.** The real extract is reachable only through
+  `KASHF_DATA_DIR`, private outputs only go to `KASHF_PRIVATE_DIR`, and a pre-commit guard blocks
+  anything shaped like the extract. The public repository runs end to end on synthetic data from a
+  hand-specified generator. See [`PRIVACY.md`](PRIVACY.md).
+- **Time is respected.** Client-level outcomes are validated forward in time, never with random
+  splits.
+
+## Quick start (synthetic data, no access to the extract needed)
 
 ```bash
-pip install -r requirements.txt
-python cli.py train
+uv sync                 # Python 3.12 environment from uv.lock
+uv run pre-commit install
+just check              # format, lint, types, tests with coverage, privacy scan
+uv run kashf --help
 ```
 
-| Command | What it does |
+[`uv`](https://docs.astral.sh/uv/) and [`just`](https://just.systems/) are the only tools to install
+by hand (`uv tool install rust-just` provides `just`).
+
+## Repository layout
+
+| Path | Contents |
 |---|---|
-| `python cli.py explore` | Dataset summary and the four exploratory plots |
-| `python cli.py train` | Fits the classifier, prints accuracy, report and feature importances |
-| `python cli.py cluster` | KMeans segmentation with elbow curve and PCA projection |
-| `python cli.py gui` | Trains, then opens the Tkinter prediction window |
+| `kashf/` | The Python package: configuration, CLI, contracts, ingest, synthetic data, ledger, analysis, models, reports, privacy guard. |
+| `tests/` | `pytest` and `hypothesis` suites; every test runs on synthetic data. |
+| `docs/adr/` | Architecture decision records. |
+| `legacy/` | The 2024 script and the 2025 package, frozen, with a list of their bugs. |
 
-Useful flags: `--data-dir PATH`, `--sample-size N`, `--clusters K`, `--no-plots`
-(compute without rendering figures, for headless runs).
+## Licence and data
 
-## Data
-
-**The datasets are confidential and are not distributed with this repository.**
-`.gitignore` excludes `data/` and all CSVs so they cannot be committed by accident.
-
-Place the five extracts in `data/` (or point `--data-dir` elsewhere):
-
-```
-data/
-├── echantillons_clients(in).csv
-├── transactions_monetiques_annee_glissante_anonymise(in).csv
-├── operations_en_ligne_annee_glissante_anonymise(in).csv
-├── operations_en_agence_annee_glissante_anonymise(in).csv
-└── al_akhawayn_dataset_v2(in).csv
-```
-
-Missing files are reported by name at startup rather than failing deep inside pandas.
-
-## Structure
-
-```
-customer_analytics/
-├── config.py          paths, column names, model hyperparameters
-├── data.py            loading, client sampling, aggregation, merging, imputation
-├── features.py        derived features — pure functions, fully unit tested
-├── modeling.py        encoding, SMOTE balancing, Random Forest, evaluation
-├── clustering.py      scaling, elbow scores, KMeans, PCA projection
-├── visualization.py   plots, each with an explicit show flag
-└── gui.py             Tkinter front-end
-cli.py                 command-line entry point
-tests/                 pytest suite, runs without the datasets
-```
-
-## Pipeline
-
-1. **Load & sample** — read the five extracts, sample 1,000 clients, and restrict
-   the satellite tables to those ids before aggregating.
-2. **Aggregate** — collapse transactions, online and agency operations to one row
-   per client (sum of amounts, modal category, latest date).
-3. **Merge** — left-join onto the client table; Al Akhawayn demographics backfill
-   missing age and marital status.
-4. **Engineer** — `days_since_last_transaction`, `avg_transaction_amount`, `age_group`.
-5. **Model** — one-hot encode, drop classes too small for SMOTE, oversample, then
-   fit a 100-tree Random Forest on a 70/30 split.
-6. **Segment** — standardise, choose k via the elbow method, cluster, project to 2 PCs.
-
-## Testing
-
-```bash
-pip install -r requirements-dev.txt
-pytest
-```
-
-The suite covers feature engineering and model assembly, and needs no datasets —
-`features.py` is deliberately free of file access and global state.
-
-## Notes on the model
-
-- **SMOTE** balances the target so the forest is not dominated by the majority
-  transaction type. Classes with fewer than 6 samples are dropped first, since
-  SMOTE cannot synthesise neighbours from fewer.
-- **Sampling** is fixed at `random_state=42` throughout, so runs are reproducible.
-- One-hot encoding is built to work across scikit-learn versions — the relevant
-  parameter was renamed in 1.2 and removed in 1.4.
+The code is published for reading and review. The bank extract is confidential and is not, and will
+never be, part of this repository.

@@ -1,0 +1,46 @@
+# Changelog
+
+All notable changes to this project are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
+[Semantic Versioning](https://semver.org/) from its first tagged release.
+
+## [Unreleased]
+
+The Kashf rebuild (`kashf` package), developed on branch `feat/kashf-rebuild`.
+
+### Added
+
+- `uv` project on Python 3.12 with a lock file, `ruff`, `mypy --strict`, `pytest` with `hypothesis`
+  and a coverage gate, `pre-commit` hooks, a `justfile` and a CI workflow.
+- `kashf` package skeleton: typed settings (`pydantic-settings`) that refuse private locations
+  inside the repository, public and private zones, redacting structured logs, and a `typer` CLI
+  that reports failures without tracebacks or identifiers.
+- The privacy guard (`kashf privacy-check`), run on every commit and in CI.
+- `PRIVACY.md`, architecture decision records 0001 to 0006 filled in, and ADR 0008.
+
+### Changed
+
+- The 2024 script and the 2025 package moved, unchanged, into `legacy/`.
+
+### Known defects of the legacy code
+
+These are the reasons for the rebuild; each is explained in [`legacy/README.md`](legacy/README.md).
+
+- SMOTE oversampling ran before the train/test split, so the reported accuracy was inflated.
+- The join with the aggregate file matched no rows (it is a different sample of clients) and left
+  empty columns without any warning.
+- Recency was measured from the day the script ran instead of the end of the extract.
+- The target, each client's most frequent card transaction type, was a weak question, and missing
+  labels became a spurious `'nan'` class.
+- No time-based validation and no uncertainty on any result.
+- The script's sample output printed identifiers and ages of unrelated clients next to predictions.
+
+## legacy 2025-08-18: `customer_analytics` package
+
+The 2024 script restructured into a tested package with a CLI. It fixed the scikit-learn 1.4 crash,
+the fixed-seed "random" prediction button and the unreachable manual-input window, but kept the
+analytical design and its defects. Frozen in `legacy/2025_package/`.
+
+## legacy 2024-11-04: `Analysis.py`
+
+The original hackathon script. Frozen in `legacy/2024_script/`.
