@@ -515,3 +515,65 @@ below). Entries above this one use the old names (`kashf`, `KASHF_*`, `.kashf/`)
   full warehouse; the schema space it samples is listed in `tests/alien.py`.
 - Open questions for the architect: none.
 - Next: M5.
+
+### M5: Risk models: silence, survival, adoption, segments, registry — done — 2026-10-18
+
+- Built (`strata/models/`):
+  - `splits`: the cutoffs of the `silence_cutoffs` seed, backtests that train on one cutoff and
+    test on the next (the primary backtest tests on the primary cutoff), the model matrix from
+    `features_silence` with fixed missing-value flags.
+  - `metrics`: ROC AUC, average precision, Brier, log loss, calibration error, reliability bins,
+    precision and lift at ten per cent, each with a client-bootstrap interval, and paired
+    differences on the same resamples.
+  - `churn` (silence): majority and activity-rule baselines, a logistic GLM with odds ratios per
+    standard deviation, LightGBM tuned by Optuna inside the earliest cutoff only, isotonic and Platt
+    calibration on a held-out fifth of the training clients, SHAP (global and the top reasons per
+    client), and the paired ROC AUC gain of the trees over the GLM. The served score is the
+    Platt-calibrated one (monotone, so it keeps the trees' ranking), chosen before any evaluation.
+  - `survival`: recurrent gaps between active days and time to silence; Kaplan-Meier by channel
+    profile and age band with client-bootstrap medians (a vectorised weighted estimator), log-rank
+    tests, and a Cox model with client-clustered robust errors (statsmodels `PHReg`) plus a
+    Schoenfeld-residual test of proportional hazards.
+  - `adoption`: online access and active online use on the aggregate sample, out-of-fold over
+    stratified folds (the file has no time axis); GLM odds ratios, LightGBM, gain importance, the
+    decile table with lift and cumulative gain; the online counts that define the targets are never
+    features (tested).
+  - `segments`: Gaussian mixtures by BIC with KMeans silhouettes, bootstrap ARI stability,
+    Kruskal-Wallis and chi-square profiles, segment names in words from the two most distinctive
+    features, UMAP coordinates for display.
+  - `registry` and `cards`: every run logged to an MLflow file store in the zone's workspace, the
+    zone's registry and model cards in `<workspace>/models`, `strata promote` publishing
+    `models/registry.json` and `docs/model_cards/` from synthetic models only (MLflow run ids left
+    out), and `strata ledger check` failing on a card that drifts from the registry.
+  - `strata train [all|silence|survival|adoption|segments] [--quick] [--promote]`, `strata promote`,
+    `just train` and `just private-train`; CI trains at quick effort.
+- Commands run and results:
+  - DoD: `uv run strata train all --promote` (synthetic, full effort): four models registered,
+    `models/registry.json` and the four model cards written; `strata ledger check` passes (cards
+    match the registry); the privacy scan of the published files is clean.
+  - DoD: `tests/test_models.py::test_no_feature_reads_past_its_cutoff` rewrites every event after
+    the earliest cutoff (drops half, triples the remaining amounts and duplicates them), rebuilds
+    the features with dbt and requires that cutoff's features and model matrix to be unchanged,
+    while the later cutoffs' features change. Passes.
+  - DoD: every metric of the registry and the cards carries a client-bootstrap interval.
+  - `uv run strata --private train all` (full effort): exit 0; registry, cards, MLflow runs and
+    scores written under `STRATA_PRIVATE_DIR` (output in the private log; only the model names and
+    the exit code were read).
+  - `just check`: exit 0 (374 passed, 1 skipped, coverage 96.20%).
+- Decisions:
+  - ADR 0003 gained an implementation section: the backtest protocol, the two-month overlap of
+    consecutive outcome windows (stated in every card), the leakage test and the cross-sectional
+    validation of the adoption models.
+  - lifelines 0.30.3 caps pandas below version three; it is pinned through `pandas>=3.0` in
+    `pyproject.toml`, which resolves lifelines 0.30.0. The robust Cox model uses statsmodels,
+    because lifelines' clustered sandwich estimator took half a minute on the synthetic gaps.
+  - MLflow 3 requires an opt-in to the plain file store that ARCHITECTURE section 10 specifies;
+    the registry sets `MLFLOW_ALLOW_FILE_STORE`.
+  - Published registries drop MLflow run ids: they only point into a local store, and their
+    thirty-two hexadecimal characters would trip the guard's conservative identifier pattern on
+    machines without the extract.
+- Stubbed or skipped, and why: SHAP is computed for the primary backtest only; no reliability plot
+  image is drawn (the bins are in the results file, for the dashboard). Model cards for real data
+  stay in the private folder by design.
+- Open questions for the architect: none.
+- Next: M6.
