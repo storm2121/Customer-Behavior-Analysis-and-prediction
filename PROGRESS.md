@@ -471,3 +471,47 @@ below). Entries above this one use the old names (`kashf`, `KASHF_*`, `.kashf/`)
     bare JSON string).
 - Open questions for the architect: confirm Amazigh New Year; the rest stands as answered.
 - Next: M4.5.
+
+### M4.5: Source mappings (the pipeline is the product) — done — 2026-10-18
+
+- Built:
+  - `strata/contracts/mapping.py`: strict pydantic models of a mapping (defaults, file roles,
+    column renames, code maps for channels, kinds and directions, per-file encoding, delimiter,
+    decimal mark and date format), the canonical column sets, and the translation of a parsed file
+    into canonical rows. `mappings/reference_cih.yaml` and `mappings/synthetic.yaml` (the same
+    format; generated from the contracts so they cannot disagree), and `mappings/README.md`.
+  - `strata ingest --mapping <file>`: files with a reference contract are read through it exactly
+    as in M1 and kept in `landing.*`; other files are read generically (every mapped column present
+    and parseable, row count equal to line count). Canonical `raw.clients`, `raw.events` and
+    `raw.client_aggregates` are written for every source; reconciliation covers both layers.
+  - dbt staging reads only the canonical tables; the manifest reconciliation test works from the
+    files' roles, so it holds for any source.
+  - `strata dq`: the M1 checks on the landing tables, and source-agnostic checks on the canonical
+    tables for channels without one.
+  - Provenance: the manifest and the ledger record the mapping's name and digest; the fingerprint
+    still names the bytes; partial ledger builds merge only within the same bytes and mapping.
+  - ADR 0010 (a `currency` column in canonical events, landing tables, provenance, code maps).
+- Commands run and results:
+  - DoD, synthetic: `tests/test_mapping.py::test_the_reference_mapping_reproduces_the_pipeline_before_mappings`
+    compares the warehouse built through `mappings/synthetic.yaml` with a snapshot taken from the
+    pipeline before this milestone (`tests/fixtures/reference_snapshot.json`): manifest files and
+    fingerprint, data-quality report and the row count of every staging, intermediate and mart
+    model are identical. Passes.
+  - DoD, real data (private, compared by script, nothing printed but identical or different):
+    `strata --private ingest --mapping reference_cih`, `strata --private dq`,
+    `strata --private dbt build --full-refresh` (PASS=192): fingerprint, files, data-quality report
+    and every model's row count identical to the snapshot taken before the change; a full
+    `strata --private ledger build --public` afterwards leaves all twenty-three claims unchanged
+    (values, intervals, verdicts).
+  - Portability: `tests/test_mapping.py::test_an_alien_schema_maps_onto_the_same_marts`, a
+    hypothesis test (three derandomized examples) that draws a schema with other column names,
+    delimiter, decimal mark, date format, encoding, recoded channels, kinds and directions,
+    shuffled rows and either one file per channel or one file with a channel column; the
+    canonical tables and every mart are identical to the reference's. Passes.
+  - `just check`: exit 0 (360 passed, 1 skipped, coverage 97.63%).
+- Decisions: ADR 0010. The mapping files are looked up under the configured repository and then
+  under the checkout the code runs from, so a private run from another folder still finds them.
+- Stubbed or skipped, and why: the alien-schema test runs three examples, because each builds a
+  full warehouse; the schema space it samples is listed in `tests/alien.py`.
+- Open questions for the architect: none.
+- Next: M5.
