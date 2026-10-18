@@ -432,6 +432,21 @@ def promote(ctx: typer.Context) -> None:
         console.print(f"published {_describe(path, AppState(state.settings, Zone.PUBLIC))}")
 
 
+@app.command()
+def serve(
+    ctx: typer.Context,
+    host: Annotated[str, typer.Option("--host", help="Interface to listen on.")] = "127.0.0.1",
+    port: Annotated[int, typer.Option("--port", help="Port (Strata's default is 8000).")] = 8000,
+) -> None:  # pragma: no cover - runs a server until interrupted
+    """Serve the API on the zone's workspace (OpenAPI docs at /docs, metrics at /metrics)."""
+    import uvicorn
+
+    from strata.api.app import create_app
+
+    state = _state(ctx)
+    uvicorn.run(create_app(state.settings, state.zone), host=host, port=port)
+
+
 anomaly_app = typer.Typer(
     name="anomaly",
     help="The monitoring layer: a ranked triage queue for people to review, never an accusation.",
