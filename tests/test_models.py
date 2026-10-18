@@ -219,6 +219,13 @@ def test_segments_are_selected_and_profiled(built_warehouse: Settings) -> None:
     assert len(result["assignments"]) == result["n_clients"]
 
 
+def test_segment_names_take_their_second_word_from_another_channel() -> None:
+    ranked = ["branch_recency_never", "branch_monetary", "card_frequency", "online_share"]
+    assert segments.distinctive(ranked) == ["branch_recency_never", "card_frequency"]
+    assert segments.distinctive(["card_frequency", "card_monetary"]) == ["card_frequency"]
+    assert segments.distinctive([]) == []
+
+
 def _entry(source_kind: str = "synthetic") -> registry.ModelEntry:
     return registry.entry(
         name="segments",

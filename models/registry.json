@@ -713,21 +713,21 @@
       "effort": "full",
       "headline": {
         "bic": {
-          "10": -30979.098290336406,
-          "2": 1661.2721834232048,
-          "3": -12098.849482677306,
-          "4": -18538.378528081554,
+          "10": -30979.098290336362,
+          "2": 1661.2721834232054,
+          "3": -12098.849482677393,
+          "4": -18538.37852808155,
           "5": -28454.711606830773,
-          "6": -31768.704427052136,
-          "7": -27912.48049401429,
-          "8": -30656.43752348408,
-          "9": -29847.098636322902
+          "6": -31768.70442705205,
+          "7": -27912.48049401424,
+          "8": -30656.437523484423,
+          "9": -29847.09863632288
         },
         "k": 6,
         "segments": [
           {
             "n_clients": 333,
-            "name": "recent online use / high online frequency",
+            "name": "recent online use / recent branch use",
             "segment": 0,
             "share": 0.35200845665961944
           },
@@ -745,7 +745,7 @@
           },
           {
             "n_clients": 173,
-            "name": "no branch use / low branch monetary",
+            "name": "no branch use / low deposits per active month",
             "segment": 3,
             "share": 0.1828752642706131
           },
@@ -757,7 +757,7 @@
           },
           {
             "n_clients": 128,
-            "name": "no online use / low online monetary",
+            "name": "no online use / high card share",
             "segment": 5,
             "share": 0.13530655391120508
           }
@@ -791,8 +791,8 @@
       "source_kind": "synthetic",
       "strata_version": "0.1.0",
       "title": "Behavioural segments of active clients",
-      "trained_at": "2026-10-18T16:49:33Z",
-      "version": "0.1.0+c4418043.20261018164933"
+      "trained_at": "2026-10-18T21:51:30Z",
+      "version": "0.1.0+c4418043.20261018215130"
     }
   ],
   "source_kind": "synthetic",

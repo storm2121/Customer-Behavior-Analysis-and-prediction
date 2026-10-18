@@ -2,7 +2,7 @@
 
 # Model card: Behavioural segments of active clients
 
-- Version `0.1.0+c4418043.20261018164933`, trained 2026-10-18, effort full.
+- Version `0.1.0+c4418043.20261018215130`, trained 2026-10-18, effort full.
 - Data: synthetic data from the public generator (the numbers say nothing about any bank); fingerprint `c4418043910d`.
 - MLflow run: kept in the local workspace's store, not published.
 
@@ -16,12 +16,12 @@ Segments chosen: 6. Stability (mean ARI, 95% interval): 0.830 (0.696 to 0.982).
 
 | Segment | Name | Clients | Share |
 |---|---|---|---|
-| 0 | recent online use / high online frequency | 333 | 35.2% |
+| 0 | recent online use / recent branch use | 333 | 35.2% |
 | 1 | high branch share / no card use | 147 | 15.5% |
 | 2 | no card use / high online share | 86 | 9.1% |
-| 3 | no branch use / low branch monetary | 173 | 18.3% |
+| 3 | no branch use / low deposits per active month | 173 | 18.3% |
 | 4 | no branch use / no online use | 79 | 8.4% |
-| 5 | no online use / low online monetary | 128 | 13.5% |
+| 5 | no online use / high card share | 128 | 13.5% |
 
 BIC by number of segments (lower is better):
 

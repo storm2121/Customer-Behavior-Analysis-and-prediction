@@ -119,6 +119,19 @@ def describe(feature: str, *, high: bool) -> str:
     return f"{'high' if high else 'low'} {readable}"
 
 
+def distinctive(ranked: list[str]) -> list[str]:
+    """The most distinctive feature, then the most distinctive one about another channel.
+
+    Two features of the same channel would name one trait twice ("no branch use / low branch
+    monetary"), so the second word comes from a different channel when there is one.
+    """
+    if not ranked:
+        return []
+    channel = ranked[0].split("_", 1)[0]
+    other = next((f for f in ranked[1:] if f.split("_", 1)[0] != channel), None)
+    return [ranked[0]] if other is None else [ranked[0], other]
+
+
 def profiles(
     features: pd.DataFrame, x: pd.DataFrame, labels: np.ndarray
 ) -> tuple[list[dict[str, Any]], dict[str, dict[str, float]]]:
@@ -128,7 +141,7 @@ def profiles(
     for segment in sorted(np.unique(labels)):
         members = labels == segment
         distinct = (x[members].median() - overall).abs().sort_values(ascending=False)
-        top = list(distinct.index[:2])
+        top = distinctive(list(distinct.index))
         name = " / ".join(
             describe(feature, high=bool(x[members][feature].median() > overall[feature]))
             for feature in top
