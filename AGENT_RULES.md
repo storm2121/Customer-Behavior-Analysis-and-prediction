@@ -1,4 +1,4 @@
-# Agent rules for the Kashf rebuild
+# Agent rules for the Strata rebuild
 
 These rules bind every agent session working in this repository. Read `ARCHITECTURE.md` and
 `MILESTONES.md` first. When a rule and convenience conflict, the rule wins. When a rule and the
@@ -6,15 +6,16 @@ architecture conflict, write an ADR and stop for review.
 
 ## 1. Privacy (non-negotiable)
 
-1. The real extract is read only through `kashf.config.Settings.data_dir`, set by `KASHF_DATA_DIR`
-   (on this machine: `D:\Data_CIh`). Never hard-code that path in code, tests, docs or notebooks.
+1. The real extract is read only through `strata.config.Settings.data_dir`, set by `STRATA_DATA_DIR`
+   (the value for this machine is in the gitignored `.env.local`, never in a tracked file). Never
+   hard-code that path in code, tests, docs or notebooks.
 2. Never print, log, assert on, or paste an identifier or a raw row from the real data, not in
    terminal output, not in PROGRESS.md, not in commit messages, not in test fixtures.
 3. Nothing derived from real rows is written inside the repository, except claims whose ids are in
-   `kashf/ledger/allowlist.py`, written to `docs/ledger/claims.public.json` by `kashf ledger build --public`.
-   Everything else goes under `KASHF_PRIVATE_DIR` (default `D:\Data_CIh\private_out`).
+   `strata/ledger/allowlist.py`, written to `docs/ledger/claims.public.json` by `strata ledger build --public`.
+   Everything else goes under `STRATA_PRIVATE_DIR` (also set in `.env.local`).
 4. Models trained on real data are private artefacts. Models in the repo are trained on synthetic data.
-5. Before every commit run `git status` and `uv run kashf privacy-check --staged`; the pre-commit
+5. Before every commit run `git status` and `uv run strata privacy-check --staged`; the pre-commit
    hook must be installed in M0 and never bypassed (`--no-verify` is forbidden).
 6. Plots are allowed in the repo only when generated from synthetic data or from allow-listed claims.
 7. If in doubt whether something is private, it is private.
@@ -37,11 +38,11 @@ architecture conflict, write an ADR and stop for review.
 1. Python 3.12 managed by `uv` (`uv python install 3.12`; `.python-version`; `uv sync`). All
    commands run as `uv run …`. Dependencies are declared in `pyproject.toml` with lower bounds and
    locked in `uv.lock`.
-2. Typed code: `mypy --strict` on `kashf/`, `ruff` format and lint clean. Pydantic v2 models at
+2. Typed code: `mypy --strict` on `strata/`, `ruff` format and lint clean. Pydantic v2 models at
    boundaries; `pydantic-settings` for configuration; `typer` for the CLI; `structlog` for logging.
 3. Tests first for pure functions. `pytest` + `hypothesis`. Everything in `tests/` runs on synthetic
-   data generated in a session fixture; no test may require `KASHF_DATA_DIR`. Coverage gate 85% on
-   `kashf/`. A marked `@pytest.mark.private` suite may run locally against real data but is skipped
+   data generated in a session fixture; no test may require `STRATA_DATA_DIR`. Coverage gate 85% on
+   `strata/`. A marked `@pytest.mark.private` suite may run locally against real data but is skipped
    by default and never asserts on values.
 4. Deterministic seeds everywhere. Any randomness takes a `seed` argument.
 5. No notebooks as source of truth. Notebooks may live in `notebooks/` for exploration only, with
@@ -55,12 +56,12 @@ architecture conflict, write an ADR and stop for review.
 
 ## 4. Git
 
-1. Work on branch `feat/kashf-rebuild`. Small conventional commits (`feat:`, `fix:`, `docs:`,
+1. Work on branch `feat/strata-rebuild` (renamed from `feat/kashf-rebuild` with `git branch -m`). Small conventional commits (`feat:`, `fix:`, `docs:`,
    `test:`, `chore:`, `refactor:`), one concern each.
 2. Never push. Never open a PR. Mohamed decides when anything leaves the machine.
 3. Never add co-author or "generated with" lines to commits.
 4. Never commit `data/`, `*.csv` (except `dbt/seeds/*.csv` and fixtures under 200 rows),
-   `.kashf/`, `mlruns/`, `*.duckdb`, `claims.private.json`, or anything under `KASHF_PRIVATE_DIR`.
+   `.strata/`, `mlruns/`, `*.duckdb`, `claims.private.json`, or anything under `STRATA_PRIVATE_DIR`.
 
 ## 5. Workflow
 
@@ -75,7 +76,7 @@ architecture conflict, write an ADR and stop for review.
    context, decision, consequences) before the code.
 5. Stop and return a report when M4 is complete, or earlier if context is running low. The architect
    session continues from `PROGRESS.md`.
-6. Never modify anything outside this repository except files under `KASHF_PRIVATE_DIR` and the
+6. Never modify anything outside this repository except files under `STRATA_PRIVATE_DIR` and the
    project's own virtual environment. Never touch `D:\CV's`.
 
 ## 6. Definition of done for the whole rebuild
@@ -83,5 +84,5 @@ architecture conflict, write an ADR and stop for review.
 `just demo` on a clean clone with no real data: generates synthetic data, builds the warehouse, runs
 dbt tests, builds and checks the ledger, trains and evaluates every model, renders the public report,
 and brings up API, dashboard and Airflow in Compose, with CI green. Separately, with
-`KASHF_DATA_DIR` set, `just private-report` produces the full private report and the private twin
+`STRATA_DATA_DIR` set, `just private-report` produces the full private report and the private twin
 with fidelity and privacy metrics, writing nothing into the repository.

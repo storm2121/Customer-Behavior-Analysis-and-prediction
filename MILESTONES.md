@@ -13,20 +13,20 @@ claim ids.
   filled from the stubs, `.github/workflows/ci.yml` (lint, type, test).
 - Move `customer_analytics/`, `cli.py`, old `tests/` and old requirements into `legacy/` unchanged,
   with `legacy/README.md` listing the bugs from ARCHITECTURE §17.
-- `kashf/` package skeleton with `config.py` (pydantic-settings), `cli.py` (typer) and
+- `strata/` package skeleton with `config.py` (pydantic-settings), `cli.py` (typer) and
   `privacy_guard.py` working and tested.
-- DoD: `uv run kashf --help`, `uv run pytest`, `uv run mypy kashf`, `pre-commit run --all-files` all
+- DoD: `uv run strata --help`, `uv run pytest`, `uv run mypy strata`, `pre-commit run --all-files` all
   pass; the privacy guard blocks a staged fixture that mimics an extract header.
 - CV line: none yet.
 
 ## M1. Contracts, ingest, data quality, public synthetic generator
 
-- pandera schemas for the five extracts (`kashf/contracts/`), loaders with manifest and
-  reconciliation checks (`kashf ingest`, `kashf dq`), DuckDB `raw` schema.
-- `kashf synth` parametric generator reproducing schema, encodings, date format and the quirks in
+- pandera schemas for the five extracts (`strata/contracts/`), loaders with manifest and
+  reconciliation checks (`strata ingest`, `strata dq`), DuckDB `raw` schema.
+- `strata synth` parametric generator reproducing schema, encodings, date format and the quirks in
   ARCHITECTURE §5.1, with hypothesis invariants.
-- DoD: `kashf synth --out .kashf/synth && kashf ingest --data-dir .kashf/synth && kashf dq` passes;
-  the same two commands run locally against `KASHF_DATA_DIR` and the DQ report records the repeat
+- DoD: `strata synth --out .strata/synth && strata ingest --data-dir .strata/synth && strata dq` passes;
+  the same two commands run locally against `STRATA_DATA_DIR` and the DQ report records the repeat
   rows, the zero-amount rows, the sub-1-MAD rows and the non-joining aggregate file (counts only).
 - CV line: "Built a typed ingestion layer with schema contracts and reconciliation checks that
   surfaced {n} undecidable repeat rows and a silently empty join in the original analysis."
@@ -37,22 +37,22 @@ claim ids.
   (`int_events`, `int_client_month`, `int_channel_state`), marts (`client_360`, `features_silence`
   parameterised by cutoff, `features_segments`, `features_anomaly`, `daily_counts`,
   `aggregate_clients`), generic and custom tests, docs generated.
-- DoD: `uv run kashf dbt run && uv run kashf dbt test` green on synthetic; marts row counts match
+- DoD: `uv run strata dbt run && uv run strata dbt test` green on synthetic; marts row counts match
   the synthetic manifest; `dbt docs generate` works.
 - CV line: "Modelled three banking channels into a dbt warehouse on DuckDB with {n} tested models and
   window-function features for recency, rolling sums and monthly channel states."
 
 ## M3. Evidence ledger, robustness checker, findings docs
 
-- `kashf/ledger/`: registry, `build`, `render`, `check`, allowlist, robustness checker.
+- `strata/ledger/`: registry, `build`, `render`, `check`, allowlist, robustness checker.
 - First claims: channel_mix, age_digital_divide, weekday_pattern, benford_purchases (public), and
   online_service_mix, branch_deposit_share, december_deposit_wave, salary_day_withdrawals,
   ecommerce_international_share, spend_concentration, repeat_rows, aggregate_join_coverage,
   silence_by_channel (headline, expected to reverse), ramadan_card_effect, pre_eid_branch_deposits (private).
 - `docs/findings/*.md.j2` rendered; README gains a ledger-governed "What the data says" section with
-  only public claims; CI runs `kashf ledger check`.
-- Private report v1 (`kashf report --variant private`) written under `KASHF_PRIVATE_DIR`.
-- DoD: `kashf ledger build --public`, `kashf ledger render`, `kashf ledger check` pass; a test proves
+  only public claims; CI runs `strata ledger check`.
+- Private report v1 (`strata report --variant private`) written under `STRATA_PRIVATE_DIR`.
+- DoD: `strata ledger build --public`, `strata ledger render`, `strata ledger check` pass; a test proves
   that a hand-typed number in a governed section fails the check; the silence_by_channel claim carries
   verdict `reverses` on real data and the mechanism is explained in its caveats.
 - CV line: "Designed an evidence ledger where every number in the documentation is generated from a
@@ -61,22 +61,33 @@ claim ids.
 
 ## M4. Calendar, seasonality, concentration, Benford, Markov simulator
 
-- `kashf/analysis/` modules per ARCHITECTURE §9, each producing ledger claims and figures.
+- `strata/analysis/` modules per ARCHITECTURE §9, each producing ledger claims and figures.
 - Bayesian calendar model with posterior predictive checks (fallback path documented in ADR 0007).
 - Markov channel chain with Dirichlet posterior, stationary distribution, and `simulate(policy)`.
-- DoD: `kashf analyse all` runs on synthetic and locally on real data; claims for each module exist;
+- DoD: `strata analyse all` runs on synthetic and locally on real data; claims for each module exist;
   the simulator returns bands for a sample policy; equations documented in `docs/methods/`.
 - CV line: "Fitted negative-binomial and Bayesian calendar models of daily transactions with Ramadan,
   Eid and salary-day effects, and a Dirichlet-posterior channel Markov chain that simulates branch
   load under migration policies with uncertainty bands."
 - **Stop here and report** (AGENT_RULES §5.5), unless context allows continuing safely.
 
+## M4.5. Source mappings (the pipeline is the product)
+
+- `strata/contracts/mapping.py` and `mappings/reference_cih.yaml`, `mappings/synthetic.yaml` per
+  ARCHITECTURE §5.0; `strata ingest --mapping`; canonical `raw.clients`, `raw.events`,
+  `raw.client_aggregates`; dbt staging reads only canonical tables; a hypothesis-built third schema
+  proves portability (identical marts after mapping).
+- DoD: the existing M1 behaviour is reproduced through `reference_cih.yaml` (same manifest, same
+  DQ report, same mart row counts); the portability test passes; `just check` green.
+- CV line: "Made the pipeline source-agnostic: any client-and-events extract plugs in through a
+  mapping file, proven by a property-based test that maps a generated alien schema onto the same marts."
+
 ## M5. Risk models: silence, survival, adoption, segments, registry
 
-- `kashf/models/` per ARCHITECTURE §10 with time-based splits and rolling-origin backtests,
+- `strata/models/` per ARCHITECTURE §10 with time-based splits and rolling-origin backtests,
   baselines, GLM odds ratios, LightGBM + Optuna, calibration, SHAP, lifelines survival, adoption
   on the aggregate file, GMM/KMeans/UMAP segments with bootstrap stability, MLflow registry, model cards.
-- DoD: `kashf train all` on synthetic produces `models/registry.json` and model cards; a test asserts
+- DoD: `strata train all` on synthetic produces `models/registry.json` and model cards; a test asserts
   no feature uses post-cutoff data; metrics carry bootstrap CIs.
 - CV line: "Predicted ninety-day client silence with time-based validation, comparing a logistic GLM
   against a tuned LightGBM with isotonic calibration (Brier {n}, lift at 10% {n}), and profiled
@@ -87,7 +98,7 @@ claim ids.
 - Rules engine from YAML, Isolation Forest, empirical-Bayes amount models, Benford per client,
   combined scoring with reasons, precision at k, alert budget; Postgres schema (alerts, feedback,
   annotations) with Alembic migrations and SQLite fallback.
-- DoD: `kashf anomaly run` produces a ranked queue on synthetic; feedback round-trips through the
+- DoD: `strata anomaly run` produces a ranked queue on synthetic; feedback round-trips through the
   database; precision at k is computed against pseudo-labels; rules are unit-tested with hand-built
   cases (structuring, pass-through, velocity).
 - CV line: "Built a transaction-monitoring triage layer combining configurable rules (structuring,
@@ -114,10 +125,10 @@ claim ids.
 
 ## M9. Orchestration and the private twin
 
-- Airflow DAG `kashf_daily` running the whole pipeline in Compose on synthetic data; `airflow dags test` passes.
-- `kashf synth-twin` with DP-noised copula, fidelity and privacy metrics, hard-refusing any output
+- Airflow DAG `strata_daily` running the whole pipeline in Compose on synthetic data; `airflow dags test` passes.
+- `strata synth-twin` with DP-noised copula, fidelity and privacy metrics, hard-refusing any output
   path inside the repository; run locally only.
-- DoD: DAG test green; twin metrics written under `KASHF_PRIVATE_DIR`; a test asserts the refusal.
+- DoD: DAG test green; twin metrics written under `STRATA_PRIVATE_DIR`; a test asserts the refusal.
 - CV line: "Orchestrated ingestion, dbt, training, evaluation and reporting as an Airflow DAG, and
   generated a differentially-private synthetic twin whose fidelity and membership-inference risk are
   measured before any demo use."
@@ -128,5 +139,5 @@ claim ids.
   limitations; privacy; the legacy bugs), model and data cards, CHANGELOG, ADRs complete,
   `docs/CV_NOTES.md` with every bullet traced to claim ids, `just demo` one-command run verified on a
   clean clone.
-- DoD: a clean clone with no real data completes `just demo`; CI green; `kashf ledger check` green.
+- DoD: a clean clone with no real data completes `just demo`; CI green; `strata ledger check` green.
 - CV line: assembled from `docs/CV_NOTES.md`.

@@ -1,6 +1,7 @@
-# Kashf: architecture
+# Strata: architecture
 
-Working name: **Kashf** (كشف: an account statement, and the act of uncovering). Python package `kashf`.
+Working name: **Strata**: the pipeline layers (raw, staging, marts), stratifies (the robustness
+checker, the segments) and checks. Python package `strata`, CLI `strata`, environment variables `STRATA_*`.
 The GitHub repository keeps its current name because CVs link to it.
 
 Status: architecture v1, written 2026-10-18 by the architect session (Fable). The executing agent
@@ -9,24 +10,29 @@ through an ADR in `docs/adr/`.
 
 ## 1. What this is
 
-A research-grade retail-banking behaviour analytics system built on a twelve-month anonymised extract
-of 1,000 clients (card transactions, online operations, branch operations, a client table, and a
-second, pre-aggregated sample of 1,000 other clients). It replaces a 2024 hackathon script.
+A research-grade behaviour-analytics **pipeline** for multi-channel retail-banking event data. The
+product is the pipeline: contracts, warehouse, evidence ledger, robustness checks, calendar and
+channel models, time-validated risk models, an anomaly layer, serving, orchestration and a dashboard.
+Its reference instance is a twelve-month anonymised extract of 1,000 clients (card transactions,
+online operations, branch operations, a client table, and a second, pre-aggregated sample of 1,000
+other clients), but any source with clients and dated channel events plugs in through a mapping file
+(§5.0), and the synthetic generator is a first-class source. It replaces a 2024 hackathon script.
 
-It is **a whole solution, not a pipeline**: a typed data warehouse, an evidence ledger where no number
+It is **a whole system, not a notebook**: a typed data warehouse, an evidence ledger where no number
 in any document is typed by hand, a robustness checker that re-stratifies every headline finding, a
 Bayesian calendar model, a channel-migration simulator, time-validated risk models, an anomaly layer
 with a review queue, a served API, an orchestrated DAG, and a dashboard. The public repository runs
 end to end on synthetic data. The real findings are produced locally and stay private.
 
-The framing is general (any retail bank with these three channels), with CIH Bank named as the source
-of the anonymised extract.
+The framing is general (any retail bank with these channels), with CIH Bank named as the source of
+the reference extract. Findings are a by-product that demonstrates the pipeline; the pipeline is
+what is being built and judged.
 
 ## 2. Principles
 
 1. **No number is typed by hand.** Every figure in docs, README, dashboard and reports comes from the
    evidence ledger, with its sample size, confidence interval, method and data fingerprint.
-2. **Privacy boundary is structural, not a habit.** Real data is read only through `KASHF_DATA_DIR`.
+2. **Privacy boundary is structural, not a habit.** Real data is read only through `STRATA_DATA_DIR`.
    Nothing derived from real rows enters the repository except allow-listed aggregate claims.
    A pre-commit guard enforces it. See section 6.
 3. **Every finding carries its uncertainty and its stratified check.** A headline that reverses under
@@ -47,8 +53,8 @@ of the anonymised extract.
 ```mermaid
 flowchart LR
   subgraph Private["Private zone (local machine only)"]
-    RAW[(Five CSV extracts<br/>KASHF_DATA_DIR)]
-    TWIN[(DP-noised synthetic twin<br/>KASHF_PRIVATE_DIR)]
+    RAW[(Five CSV extracts<br/>STRATA_DATA_DIR)]
+    TWIN[(DP-noised synthetic twin<br/>STRATA_PRIVATE_DIR)]
     PRIV[Private HTML/PDF report]
   end
   subgraph Repo["Public repository (synthetic data path)"]
@@ -60,7 +66,7 @@ flowchart LR
     ML[Models<br/>silence risk, survival, adoption,<br/>segments, anomaly, MLflow registry]
     API[FastAPI service]
     PG[(PostgreSQL<br/>alerts, feedback, annotations)]
-    AF[Airflow DAG kashf_daily]
+    AF[Airflow DAG strata_daily]
     UI[React + TypeScript dashboard]
     DOCS[Generated docs, model cards, reports]
   end
@@ -91,9 +97,9 @@ its own metadata Postgres), `mlflow` (optional, file store). DuckDB is a file, m
 .
 ├── ARCHITECTURE.md  AGENT_RULES.md  MILESTONES.md  PROGRESS.md  PRIVACY.md  CHANGELOG.md
 ├── pyproject.toml  uv.lock  justfile  .pre-commit-config.yaml  .python-version (3.12)
-├── kashf/                         # Python package (typed, tested)
-│   ├── config.py                  # pydantic-settings: KASHF_DATA_DIR, KASHF_PRIVATE_DIR, KASHF_DB, ...
-│   ├── cli.py                     # typer: kashf synth | ingest | dq | dbt | ledger | analyse | train | report | serve
+├── strata/                         # Python package (typed, tested)
+│   ├── config.py                  # pydantic-settings: STRATA_DATA_DIR, STRATA_PRIVATE_DIR, STRATA_DB, ...
+│   ├── cli.py                     # typer: strata synth | ingest | dq | dbt | ledger | analyse | train | report | serve
 │   ├── contracts/                 # pandera schemas for the five extracts and the marts
 │   ├── ingest/                    # loaders, manifest (hashes, counts, date ranges), reconciliation checks
 │   ├── synthetic/
@@ -106,7 +112,7 @@ its own metadata Postgres), `mlflow` (optional, file store). DuckDB is a file, m
 │   └── privacy_guard.py           # pre-commit scanner for identifiers and extract signatures
 ├── dbt/                           # dbt-duckdb project: staging, intermediate, marts, seeds, tests
 ├── services/api/                  # FastAPI app, SQLAlchemy models, Alembic migrations
-├── orchestration/airflow/dags/    # kashf_daily.py
+├── orchestration/airflow/dags/    # strata_daily.py
 ├── apps/dashboard/                # React 19 + TypeScript + Vite + TanStack Query + ECharts + Tailwind
 ├── docs/
 │   ├── adr/                       # architecture decision records
@@ -123,7 +129,21 @@ its own metadata Postgres), `mlflow` (optional, file store). DuckDB is a file, m
 
 ## 5. Data plane
 
-### 5.1 The extract (facts measured on 2026-10-18)
+### 5.0 Canonical event model and source mappings
+
+The pipeline is source-agnostic from the raw layer upward. Every source is described by a mapping
+file (`mappings/<source>.yaml`: file names or globs, encoding, delimiter, date formats, column
+renames, code maps or seed references, and which file plays which role) that `strata ingest
+--mapping <file>` uses to load the source into the canonical raw tables: `raw.clients`
+(client_id, attributes), `raw.events` (client_id, ts, channel, kind, amount, direction, origin,
+source_file, source_row) and the optional `raw.client_aggregates`. dbt staging reads only the
+canonical tables, so every mart, claim and model works unchanged on a new source. Two mappings
+ship: `reference_cih.yaml` (the five extracts, reproducing the behaviour of the typed contracts
+built in M1) and `synthetic.yaml` (the generator's output). A portability test builds a third,
+deliberately different schema with hypothesis and proves the marts are identical after mapping.
+This layer is introduced as milestone M4.5 as a thin layer over the existing contracts.
+
+### 5.1 The reference extract (facts measured on 2026-10-18)
 
 All files are comma-separated, `latin-1` encoded, dates as `YYYY-MM-DDTHH:MM` with the time always
 `00:00` (no time of day anywhere). Window: 2023-10-02 to 2024-10-02 (a rolling year; the last
@@ -147,16 +167,17 @@ yes (clients coded 2 have zero operations); `a_email` is the strings True/False;
 `transaction_international` is 0/1; `flag_debit_credit` takes -1/0/1/2 (unknown meaning, keep as
 category). Two column names contain `ç` (`commerçant`): rename in staging.
 
-Quirks the synthetic generator must reproduce: about 3.1% of card rows are exact repeats
-(same client, date, amount, category, origin) that cannot be told from double posting because there is
-no transaction id or time of day; all 1,096 zero-amount online rows are card-service operations;
-43 card transactions are under 1 MAD; branch amounts are heavy-tailed (median 1,600, p99 100,000);
-withdrawals are almost all multiples of 100; card deposits surge in December; days 1–5 of the month
-carry more withdrawals; e-commerce purchases are mostly international and small.
+Quirks the synthetic generator must reproduce (rates are in the private findings note): a few
+percent of card rows are exact repeats (same client, date, amount, category, origin) that cannot be
+told from double posting because there is no transaction id or time of day; every zero-amount
+online row is a card-service operation; a handful of card transactions are under 1 MAD; branch
+amounts are heavy-tailed; withdrawals are almost all multiples of 100; card deposits surge in
+December; the first days of the month carry more withdrawals; e-commerce purchases are mostly
+international and small.
 
 ### 5.2 Warehouse
 
-DuckDB file at `KASHF_DB` (default `.kashf/kashf.duckdb`, gitignored). Schemas:
+DuckDB file at `STRATA_DB` (default `.strata/strata.duckdb`, gitignored). Schemas:
 
 - `raw.*`: the five files as loaded, plus `raw.manifest` (file name, sha256, rows, columns, date
   range, loaded_at) and `raw.dq_report` (check id, severity, count, sample-free description).
@@ -174,48 +195,49 @@ DuckDB file at `KASHF_DB` (default `.kashf/kashf.duckdb`, gitignored). Schemas:
 
 ### 5.3 Synthetic data
 
-- **Parametric (public)**: `kashf synth --out <dir> --clients 1000 --seed 42` writes the five files
+- **Parametric (public)**: `strata synth --out <dir> --clients 1000 --seed 42` writes the five files
   with the real names, encodings and date format. Distributions are hand-specified in one module
   (`synthetic/parametric.py`) with comments explaining each choice. Hypothesis tests assert
   invariants: schema equality with the contracts, the quirk rates within tolerance, join coverage
   within the observed ranges, deterministic output for a seed.
-- **Twin (private)**: `kashf synth-twin --data-dir $KASHF_DATA_DIR --out $KASHF_PRIVATE_DIR/twin
+- **Twin (private)**: `strata synth-twin --data-dir $STRATA_DATA_DIR --out $STRATA_PRIVATE_DIR/twin
   --epsilon 1.0`: Gaussian copula fitted on real marginals with Laplace noise added to each marginal
   histogram (budget `epsilon`), sampled at 1,000 clients. Reports fidelity (per-column KS, correlation
   matrix distance, propensity-score AUC with a classifier that tries to tell real from synthetic) and
   privacy (nearest-neighbour distance ratio, membership-inference AUC). Output paths must be under
-  `KASHF_PRIVATE_DIR`; a test asserts the writer refuses any path inside the repository.
+  `STRATA_PRIVATE_DIR`; a test asserts the writer refuses any path inside the repository.
 
 ## 6. The privacy boundary
 
-- Real data: read only via `kashf.config.Settings.data_dir` (`KASHF_DATA_DIR`). No module may
+- Real data: read only via `strata.config.Settings.data_dir` (`STRATA_DATA_DIR`). No module may
   hard-code the private path. The loaders raise if the path is inside the repository.
 - Private outputs (twin, private claims, private report, trained models fitted on real data) go to
-  `KASHF_PRIVATE_DIR` (default `D:\Data_CIh\private_out`), never into the repo.
+  `STRATA_PRIVATE_DIR` (the value for this machine is in the gitignored `.env.local`; there is no
+  default inside the repository), never into the repo.
 - The only real-data numbers allowed in the repository are claims listed in
-  `kashf/ledger/allowlist.py` (initial list: `channel_mix`, `age_digital_divide`, `weekday_pattern`,
+  `strata/ledger/allowlist.py` (initial list: `channel_mix`, `age_digital_divide`, `weekday_pattern`,
   `benford_purchases`), each with n ≥ 50 and no identifiers, written to `docs/ledger/claims.public.json`.
-- `kashf/privacy_guard.py` runs as a pre-commit hook on staged files: it blocks any file whose header
+- `strata/privacy_guard.py` runs as a pre-commit hook on staged files: it blocks any file whose header
   matches one of the five extracts, any CSV with more than 200 rows outside `tests/fixtures/`, any
   identifier-like token pattern learned from the extracts' id format (regex derived at run time from
-  `KASHF_DATA_DIR` if present, falling back to a conservative pattern), and any JSON under
+  `STRATA_DATA_DIR` if present, falling back to a conservative pattern), and any JSON under
   `docs/ledger/` whose claim ids are not in the allowlist.
 - Logs never print identifiers. `structlog` processors redact any field named `client_id`.
 - `PRIVACY.md` documents all of the above for readers.
 
 ## 7. The evidence ledger
 
-- `kashf.ledger.claim` decorator registers a function `(warehouse) -> ClaimResult`. A claim has:
+- `strata.ledger.claim` decorator registers a function `(warehouse) -> ClaimResult`. A claim has:
   `id`, `title`, `question`, `method`, `values: dict[str, float]`, `n: int`,
   `ci: dict[str, tuple[float, float]]` (bootstrap, 1,000 resamples by client), `caveats: list[str]`,
   `headline: bool`, `group_col`/`metric` (for the robustness checker), `public: bool`.
-- `kashf ledger build --data-dir … --out docs/ledger/claims.private.json` (gitignored) and
+- `strata ledger build --data-dir … --out docs/ledger/claims.private.json` (gitignored) and
   `--public` to write only allow-listed claims to `docs/ledger/claims.public.json`. Each JSON record
   carries `data_fingerprint` (sha256 of the manifest) and `computed_at`.
 - Docs are templates: `docs/findings/*.md.j2` with `{{ ledger("age_digital_divide", "branch_only_65plus") }}`
-  and `{{ ci("age_digital_divide", "branch_only_65plus") }}`. `kashf ledger render` produces the
+  and `{{ ci("age_digital_divide", "branch_only_65plus") }}`. `strata ledger render` produces the
   `.md`. Rendered files carry a header "generated, do not edit".
-- `kashf ledger check` (CI): re-renders and fails on any diff; fails if a tracked `.md` under
+- `strata ledger check` (CI): re-renders and fails on any diff; fails if a tracked `.md` under
   `docs/findings/` or the README's ledger-governed sections (between `<!-- ledger:start -->` and
   `<!-- ledger:end -->`) contain a number (regex) that does not map to a rendered placeholder; fails if
   `claims.public.json` contains a non-allow-listed id. On CI the claim functions themselves run on
@@ -231,7 +253,7 @@ and a verdict: `holds` (same sign in every stratum, shrinkage < 0.5), `weakens`,
 The verdict is stored in the claim record, rendered as a badge in docs and dashboard, and the
 private report lists every headline with its verdict. The silence-by-channel finding is the
 canonical example: it reverses once activity level is controlled (branch-only clients simply have
-fewer events, median 5 versus 46 for digital-only).
+far fewer events than digital-only clients).
 
 ## 9. Analysis modules
 
@@ -274,7 +296,7 @@ fewer events, median 5 versus 46 for digital-only).
   standardise; Gaussian mixtures selected by BIC (k = 2..10), KMeans with silhouette, UMAP 2D for
   display; bootstrap ARI stability over 50 resamples; profile tables with chi-square and
   Kruskal–Wallis tests; automatic segment naming from the two most distinctive features.
-- `anomaly`: a rules engine configured in `kashf/models/anomaly/rules.yaml` (large cash deposit ≥ T,
+- `anomaly`: a rules engine configured in `strata/models/anomaly/rules.yaml` (large cash deposit ≥ T,
   deposit velocity ≥ k in 30 days, structuring: ≥ 3 deposits each below T summing ≥ T within 30 days,
   pass-through: deposit ≥ X followed by a branch withdrawal within 7 days, dormant-then-burst,
   cash-intensive: branch deposits ≥ 5× card spend); Isolation Forest on `features_anomaly`; per-category
@@ -282,13 +304,13 @@ fewer events, median 5 versus 46 for digital-only).
   (robust z on log amounts); Benford per high-volume client. Combined score with reasons; precision
   at k against pseudo-labels (flagged by ≥ 2 independent rules) and against analyst feedback stored
   in Postgres; an alert-budget selector. Explicitly framed as triage, never as accusation.
-- `registry`: MLflow (file store under `.kashf/mlruns`, gitignored) with params, metrics, artefacts,
+- `registry`: MLflow (file store under `.strata/mlruns`, gitignored) with params, metrics, artefacts,
   and a `promote` command that writes `models/registry.json` (public, synthetic-trained models only).
 
 ## 11. Serving
 
 FastAPI (`services/api`), Pydantic v2, SQLAlchemy 2 + Alembic for Postgres (SQLite fallback via
-`KASHF_PG_URL`), DuckDB read-only connection per request, structlog, Prometheus metrics at
+`STRATA_PG_URL`), DuckDB read-only connection per request, structlog, Prometheus metrics at
 `/metrics`, OpenAPI docs, optional API key middleware.
 
 | Endpoint | Returns |
@@ -305,8 +327,8 @@ FastAPI (`services/api`), Pydantic v2, SQLAlchemy 2 + Alembic for Postgres (SQLi
 
 ## 12. Orchestration
 
-`orchestration/airflow/dags/kashf_daily.py`: ingest → dq → dbt run → dbt test → features → train
-(churn, adoption, segments, anomaly) → evaluate → ledger build → report. Tasks call the `kashf` CLI.
+`orchestration/airflow/dags/strata_daily.py`: ingest → dq → dbt run → dbt test → features → train
+(churn, adoption, segments, anomaly) → evaluate → ledger build → report. Tasks call the `strata` CLI.
 Runs in Compose on synthetic data; locally it can point at the private directory. Tested with
 `airflow dags test`.
 
@@ -322,37 +344,34 @@ Runs against the API on synthetic data; no real-data numbers are bundled except 
 
 ## 14. Reports
 
-`kashf report --variant public|private`: Jinja2 + Plotly HTML (PDF via WeasyPrint if available).
-The private variant renders every claim and goes to `KASHF_PRIVATE_DIR`; the public variant renders
+`strata report --variant public|private`: Jinja2 + Plotly HTML (PDF via WeasyPrint if available).
+The private variant renders every claim and goes to `STRATA_PRIVATE_DIR`; the public variant renders
 only allow-listed claims and the synthetic demo.
 
 ## 15. Quality and developer experience
 
-`uv` with `.python-version` 3.12 and `uv.lock`; `ruff` (format + lint), `mypy` (strict on `kashf`),
-`pytest` with `hypothesis`, coverage gate 85% on `kashf`; `pre-commit` (ruff, mypy, privacy guard,
+`uv` with `.python-version` 3.12 and `uv.lock`; `ruff` (format + lint), `mypy` (strict on `strata`),
+`pytest` with `hypothesis`, coverage gate 85% on `strata`; `pre-commit` (ruff, mypy, privacy guard,
 nbstripout); `justfile` recipes: `setup`, `synth`, `ingest`, `dbt`, `ledger`, `train`, `report`,
 `api`, `dashboard`, `check`, `demo` (one command: synth → ingest → dbt → ledger → train → report →
 compose up); GitHub Actions: lint, type, unit, dbt tests on synthetic, ledger check, dashboard build
 and tests, Docker build; `CHANGELOG.md` (Keep a Changelog); ADRs; C4 diagrams in Mermaid; model
 cards; data card.
 
-## 16. Candidate findings to verify (first pass, 2026-10-18)
+## 16. Candidate findings (pointer only)
 
-Treat every item as a hypothesis until it is a ledger claim with a CI and a robustness verdict.
+The architect's first-pass findings live outside the repository, in `architect_findings.md` under
+`STRATA_PRIVATE_DIR`. They are hypotheses until they are ledger claims with CIs and robustness
+verdicts, and only allow-listed claims may ever appear in tracked files. Qualitatively, the claims to
+implement in M3 and M4 cover: the channel mix and its relation to age and tenure; the concentration
+of the online channel on bill payment; branches as cash-in points; a year-end wave of card deposits;
+start-of-month withdrawals; the international share of e-commerce; concentration of card spend;
+a Benford deviation in purchase amounts; cash-deposit patterns suitable for triage; repeat rows that
+cannot be classified without a transaction id; the non-joining aggregate file; a headline retention
+finding that reverses under stratification; and calendar effects around Ramadan and the Eids.
 
-1. Branch-only share rises from about 6% under 25 to 36% at 65+; digital-only falls from 21% to 4%; no gender gap.
-2. 87% of online operations are bill pay or telecom recharge with a median of 20 MAD; all zero-amount online rows are card-service operations.
-3. 82% of branch operations are cash deposits; withdrawals happen on cards.
-4. December card deposits were about six times a normal month, from 131 different clients.
-5. Days 1–5 carry 23% of withdrawal value against a uniform 16%; 2,000 MAD is the second most common withdrawal.
-6. 56% of e-commerce purchases are international, median about 73 MAD; about 48% of card users have at least one.
-7. Top 10% of card clients make 48% of card spend; Gini 0.65.
-8. Purchase amounts follow Benford except a digit-9 excess.
-9. 13 clients made three or more deposits totalling over 100k MAD within 30 days; 51 clients deposit over five times their card spend; no clustering just under 100k.
-10. About 3% of card rows are exact repeats that cannot be classified without a transaction id.
-11. The aggregate file's identifiers match none of the client file; the 2024 merge was silently empty.
-12. "Branch-only clients go silent three times more often" reverses once activity level is controlled.
-13. Ramadan shows no change in card behaviour; the week before Eid al-Adha shows a branch deposit spike.
+The findings are a by-product that demonstrates the pipeline. The pipeline is what is being built
+and judged.
 
 ## 17. The legacy code and its bugs (state them openly in `legacy/README.md` and the changelog)
 
