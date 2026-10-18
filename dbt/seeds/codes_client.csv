@@ -1,0 +1,7 @@
+column_name,code,label,assumed_meaning,evidence
+genre,1,gender_1,male,assumed
+genre,2,gender_2,female,assumed
+situation_familiale,1,marital_1,single,assumed
+situation_familiale,2,marital_2,married,assumed
+situation_familiale,3,marital_3,divorced,assumed
+situation_familiale,4,marital_4,widowed,assumed

@@ -1,0 +1,7 @@
+label,service_key,zero_amount_expected,description_en
+Paiement facture / Recharge telecom / paiement vignette,bill_pay,false,"Bill payment, mobile top-up or vehicle tax"
+Opérations sur carte,card_service,true,"Card management operation (activation, limits); carries no amount"
+Recharge eshopping,eshopping_recharge,false,Top-up of a prepaid e-shopping card
+Transfert Cash Express,cash_express,false,Cash Express money transfer
+Débit carte,card_debit,false,Debit to a card from the online channel
+Recharge Binatna,binatna_recharge,false,Top-up of a Binatna card

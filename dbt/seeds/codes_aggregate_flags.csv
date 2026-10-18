@@ -1,0 +1,15 @@
+column_name,code,meaning,evidence
+client_has_cih_online,1,yes,observed
+client_has_cih_online,2,no,observed
+flag_contrat_actif,1,yes,assumed
+flag_contrat_actif,2,no,assumed
+a_email,TRUE,yes,label
+a_email,FALSE,no,label
+transaction_international,0,no,assumed
+transaction_international,1,yes,assumed
+civilite,0,civilite_0,assumed
+civilite,1,civilite_1,assumed
+flag_debit_credit,-1,flag_minus_1,assumed
+flag_debit_credit,0,flag_0,assumed
+flag_debit_credit,1,flag_1,assumed
+flag_debit_credit,2,flag_2,assumed

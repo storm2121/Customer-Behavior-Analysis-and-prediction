@@ -1,0 +1,8 @@
+label,category_key,direction,is_spend,description_en
+PURCHASES & SERVICES,purchase,debit,true,Card payment at a physical merchant
+ACHATS E COMMERCE,ecommerce,debit,true,Card payment online
+WITHDRAWAL,withdrawal,debit,false,Cash withdrawal at an ATM
+Deposit,deposit,credit,false,Cash deposit onto the card account
+Refund,refund,credit,false,Merchant refund
+VISA MONEY TRANSFERT LOAD,transfer_load,credit,false,Incoming card-to-card transfer (Visa Money Transfer)
+MastercardMoney Send,transfer_send,debit,false,Outgoing card-to-card transfer (Mastercard Send)

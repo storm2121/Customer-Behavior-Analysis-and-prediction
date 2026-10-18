@@ -1,0 +1,25 @@
+label,operation_key,category,assumed_direction,is_cash_deposit,semantics
+VERSEMENT SUR COMPTE,cash_deposit,deposit,C,true,label
+VERSEMENT SUR COMPTE SUR CARNET,passbook_deposit,deposit,C,true,label
+RETRAIT BORDEREAU,slip_withdrawal,withdrawal,D,false,label
+RETRAIT CHEQUE,cheque_withdrawal,withdrawal,D,false,label
+RETRAIT COMPTE SUR CARNET,passbook_withdrawal,withdrawal,D,false,label
+TRANSFERT A L'ETRANGER,foreign_transfer,transfer,D,false,label
+RESITUTION DU SOLDE CARTE E-SHOPPING,eshopping_card_refund,card,C,false,assumed
+RESTITUTION DE SOLDE SUR CARTE PAR CREDIT DE COMPTE,card_balance_refund,card,C,false,label
+RECHARGE CARTE PAR DEBIT DE COMPTE,card_topup_account,card,D,false,label
+RECHARGE CARTE EN ESPECE,card_topup_cash,card,C,false,assumed
+ACHAT BILLET MONO-DEVISE PAR UN CLIENT PAR CREDIT DE COMPTE,fx_notes_account,fx,C,false,assumed
+ACHAT BILLET MONO-DEVISE PAR UN CLIENT EN ESPECES,fx_notes_cash,fx,D,false,assumed
+PAIEMENT VIGNETTE PAR DÉBIT DE COMPTE,vehicle_tax_payment,payment,D,false,label
+PAIEMENT TGR PAR DEBIT DE COMPTE,treasury_payment,payment,D,false,label
+FRAIS SOUSCRIPTION CARTE TAWFIR PAR DEBIT DE COMPTE,card_subscription_fee,fee,D,false,label
+COMMISSION SOUSCRIPTION CARTE BINATNA  PAR DB CPTE,card_subscription_fee,fee,D,false,label
+FRAIS DELIVRANCE ATTESTATIONS PAR DB DE COMPTE,certificate_fee,fee,D,false,label
+FRAIS D ACTE LIBERATOIRE OU MAINLEVEE PAR DB DE COMPTE,release_deed_fee,fee,D,false,label
+COMMISSION SOUSCR AUTO ENTREPRENEUR AVEC FORMULAIRE DB CPT,service_fee,fee,D,false,label
+ANNULATION VERSEMENT SUR COMPTE,deposit_reversal,adjustment,D,false,assumed
+ANNULATION RETRAIT CHEQUE,cheque_withdrawal_reversal,adjustment,C,false,assumed
+INITIATION REGULARISATION INCIDENT DE PAIEMENT,payment_incident_regularisation,adjustment,D,false,assumed
+BLOCAGE DE PROVISION,funds_hold,adjustment,D,false,assumed
+REGULARISATION RETRACT DEPOT DE CASH,cash_deposit_regularisation,adjustment,C,false,assumed
