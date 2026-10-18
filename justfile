@@ -71,6 +71,10 @@ ledger: dbt
 analyse: dbt
     uv run --frozen strata analyse all --quick
 
+# Risk models on the synthetic warehouse, then the public registry and model cards.
+train: dbt
+    uv run --frozen strata train all --promote
+
 # Private zone: load the real extract from STRATA_DATA_DIR; outputs go to STRATA_PRIVATE_DIR only.
 private-ingest:
     uv run --frozen strata --private ingest
@@ -88,6 +92,10 @@ private-report: private-dbt
 # Private zone: analysis modules at full effort on the real extract (private folder only).
 private-analyse: private-dbt
     uv run --frozen strata --private analyse all
+
+# Private zone: risk models on the real extract (registry, cards and scores stay private).
+private-train: private-dbt
+    uv run --frozen strata --private train all
 
 # Refresh the allow-listed public claims from the real extract and re-render the documents.
 publish-claims: private-dbt

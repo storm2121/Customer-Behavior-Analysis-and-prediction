@@ -90,6 +90,18 @@ instance and the synthetic generator a first-class source.
   sources get source-agnostic checks. The manifest and the ledger record the mapping's digest.
   A snapshot test proves the reference behaviour unchanged, and a property-based test maps a
   generated alien schema onto identical marts.
+- `strata train [all|silence|survival|adoption|segments] [--quick] [--promote]` and
+  `strata promote` (`strata.models`): silence risk with baselines, GLM odds ratios, LightGBM
+  tuned with Optuna on the earliest cutoff, isotonic and Platt calibration and SHAP reasons;
+  survival of the gaps between active days and of time to silence (Kaplan-Meier with
+  client-bootstrap medians, log-rank, Cox with client-clustered errors and a proportional-hazards
+  test); online adoption on the aggregate sample with out-of-fold metrics and a decile table; and
+  behavioural segments (Gaussian mixtures by BIC, KMeans silhouettes, bootstrap ARI stability,
+  profiles with tests, generated names, UMAP for display). Every metric has a client-bootstrap
+  interval; runs are logged to MLflow in the workspace; `models/registry.json` and
+  `docs/model_cards/` are published from synthetic models only and checked for drift.
+- A leakage test rewrites every event after a cutoff, rebuilds the features with dbt and proves
+  that cutoff's features unchanged.
 
 ### Changed
 

@@ -20,6 +20,25 @@ used at all, happens inside the training fold only. A test asserts no feature re
 The cutoffs and their outcome windows live in a dbt seed, so the SQL that builds features and the
 Python that evaluates models read the same definition.
 
+## Implementation (M5)
+
+- `strata.models.splits` reads the cutoffs from the `silence_cutoffs` seed, as dbt does. Each
+  cutoff is one problem: features from `marts.features_silence` (events on or before the cutoff),
+  the label from the three months after it.
+- Backtests train on one cutoff and test on the next, so a model is always evaluated on a later
+  origin than the one it learnt from; the primary backtest tests on the primary cutoff. LightGBM's
+  hyperparameters are tuned by Optuna with cross-validation inside the earliest cutoff only;
+  calibration (isotonic and Platt) is fitted on a held-out fifth of the training clients.
+- With one year of data, the outcome windows of consecutive cutoffs overlap by two months, so a
+  backtest's training labels share calendar weeks with its test labels. This is the price of three
+  origins in one year; every model card states it.
+- The leakage test rewrites every event after the earliest cutoff (drops half, triples the
+  amounts of the rest, duplicates them), rebuilds the features with dbt, and requires the earliest
+  cutoff's features to be unchanged while the later cutoffs' features do change.
+- The adoption models have no time axis (the aggregate file is one cross-section): they are
+  evaluated out of fold over stratified folds, and the online operation counts that define their
+  targets are never features.
+
 ## Alternatives considered
 
 - **Random k-fold on clients.** Rejected: it mixes calendar periods, so seasonal behaviour in the

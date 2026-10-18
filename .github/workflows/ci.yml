@@ -67,6 +67,7 @@ jobs:
       - run: uv run strata dbt docs generate
       - run: uv run strata ledger build
       - run: uv run strata analyse all --quick
+      - run: uv run strata train all --quick
       - run: uv run strata report --variant public
 
   ledger:

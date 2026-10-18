@@ -79,6 +79,12 @@ is the only verdict-only headline; it is there to show the checker at work.
 the synthetic demo can never overwrite it. Every other finding stays in the private report
 (`strata --private report --variant private`, written under `STRATA_PRIVATE_DIR`).
 
+The risk models follow the same zones. `strata --private train` writes its registry, its model
+cards, its MLflow runs and its scores (client by client, with the reasons behind each score) under
+`STRATA_PRIVATE_DIR` only. `strata promote` publishes `models/registry.json` and
+`docs/model_cards/`, and refuses any model that was not trained on synthetic data; the published
+registry leaves out MLflow run ids, which only point into a local store.
+
 The analysis modules follow the same zones. `strata --private analyse` writes its figures, its
 claims and the simulator's inputs (transition counts between channel states, state counts and
 branch-operation rates, all aggregates) under `STRATA_PRIVATE_DIR` and refuses any other location;

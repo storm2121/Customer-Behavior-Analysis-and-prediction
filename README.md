@@ -27,8 +27,9 @@ Strata replaces a hackathon script from 2024 whose bugs are documented openly in
 | Evidence ledger | Registered claims with client-bootstrap intervals, sample sizes, caveats and a data fingerprint. Documents are templates over the ledger, and CI fails on drift or on a number typed by hand. | `strata/ledger/` |
 | Robustness checker | Each headline is recomputed inside strata of activity, age and tenure and labelled *holds*, *weakens* or *reverses*. | [method](docs/methods/robustness.md) |
 | Analysis modules | Calendar effects from a negative-binomial regression with client-bootstrap intervals and a PyMC twin with posterior predictive checks; STL seasonality and the December wave split into breadth and depth; Lorenz, Gini and RFM scores per channel; Benford tests per category; a Dirichlet-posterior Markov chain of channel states with a what-if simulator. Each module writes ledger claims and figures. | `strata analyse`, [methods](docs/methods/) |
+| Risk models | Silence risk (baselines, a logistic GLM with odds ratios, LightGBM tuned on the earliest cutoff, isotonic and Platt calibration, SHAP), survival of the gaps between active days (Kaplan-Meier, log-rank, Cox with client-clustered errors), online adoption on the aggregate sample, and behavioural segments (Gaussian mixtures by BIC, bootstrap stability). Time-based backtests, a leakage test, client-bootstrap intervals on every metric, MLflow runs and generated model cards. | `strata train`, [model cards](docs/model_cards/) |
 | Reports | A private report of every claim, kept outside the repository, and a public demo on synthetic data. | `strata report` |
-| Next | Source mappings (any extract with clients and dated channel events), time-validated risk models, an anomaly triage layer, an API, an orchestrated DAG and a dashboard. | [milestones](MILESTONES.md) |
+| Next | An anomaly triage layer, an API, an orchestrated DAG and a dashboard. | [milestones](MILESTONES.md) |
 
 ## How it is checked
 
@@ -100,6 +101,7 @@ uv run pre-commit install
 just check              # lint, types, tests with coverage, privacy scan, ledger check
 just ledger             # synthetic extract -> warehouse -> claims -> demo report
 just analyse            # analysis modules: claims, figures and the simulator's bands
+just train              # risk models, the public registry and the model cards (synthetic)
 uv run strata --help
 ```
 
