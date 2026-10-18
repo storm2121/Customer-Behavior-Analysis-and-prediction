@@ -23,3 +23,8 @@ tables, methods, caveats and robustness checks behind each sentence.
   law; the share of leading nines differs from the law's expectation by
   {{ ledger("benford_purchases", "digit_9_excess") }}{% if raw("benford_purchases", "digit_9_excess") > 0 %},
   the usual mark of psychological pricing{% endif %} ({{ context("benford_purchases") }}).
+- **Concentration.** The Gini coefficient of card spend is
+  {{ ledger("spend_concentration", "gini") }} ({{ context("spend_concentration") }}).
+- **Robustness at work.** {{ text("silence_by_channel", "question") }}
+  {{ mechanism("silence_by_channel") }}
+  ({{ verdict_context("silence_by_channel") }}; the numbers stay private).

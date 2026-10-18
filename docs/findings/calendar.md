@@ -38,3 +38,9 @@ Caveats:
 
 - Dates may be posting dates rather than transaction dates, so weekend activity can surface on the next working day.
 - Branches are closed at weekends; branch shares on those days show where postings land.
+
+Limitation of every calendar result: the extract covers a single year, so the effect of a month,
+or of a period such as Ramadan, cannot be separated from the trend over that year (see
+[the calendar model's design record](../adr/0009-calendar-model-terms.md)). The weekday shares
+above are not affected, because every weekday occurs about equally often over a year; the month
+and period effects stay in the private ledger.

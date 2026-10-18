@@ -16,9 +16,9 @@ the fingerprint of the data it was computed from.
 
 | Page | What it covers |
 |---|---|
-| [Channels and age](channels.md) | How clients split across channels; The digital divide by age |
+| [Channels and age](channels.md) | How clients split across channels; The digital divide by age; Who goes silent: branch-only against digital-only clients (verdict only) |
 | [The week](calendar.md) | The week of a retail bank |
-| [Leading digits](amounts.md) | Leading digits of card purchases |
+| [Amounts](amounts.md) | Leading digits of card purchases; How concentrated card spend is |
 
 How the robustness verdicts are reached is explained in
 [the robustness method](../methods/robustness.md).

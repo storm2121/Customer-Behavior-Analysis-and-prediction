@@ -51,7 +51,7 @@
           0.098073
         ]
       },
-      "computed_at": "2026-10-18T14:20:36Z",
+      "computed_at": "2026-10-18T15:11:36Z",
       "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
       "headline": false,
       "id": "benford_purchases",
@@ -140,6 +140,58 @@
         "share_digit_7": 0.0568433,
         "share_digit_8": 0.0427014,
         "share_digit_9": 0.0837472
+      }
+    },
+    {
+      "caveats": [
+        "Spend outside the bank (other cards, cash) is invisible; concentration is of this bank's card spend."
+      ],
+      "ci": {
+        "gini": [
+          0.735089,
+          0.785403
+        ],
+        "top_10_share": [
+          0.577156,
+          0.671653
+        ],
+        "top_20_share": [
+          0.762549,
+          0.825987
+        ]
+      },
+      "computed_at": "2026-10-18T15:11:36Z",
+      "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
+      "headline": false,
+      "id": "spend_concentration",
+      "interval_label": "95% CI",
+      "meta": {
+        "rows_tops": "top 10%:top_10_share|top 20%:top_20_share",
+        "withheld_values": "top_1_share"
+      },
+      "method": "Card spend (physical and online purchases) per client with any spend (client_360): share of the top 1%, 10% and 20% of spenders and the Gini coefficient; client bootstrap intervals.",
+      "n": 646,
+      "n_events": null,
+      "public": true,
+      "question": "Which share of card spend comes from the heaviest spenders, and what is the Gini?",
+      "robustness": null,
+      "source_kind": "real",
+      "strata_version": "0.1.0",
+      "title": "How concentrated card spend is",
+      "units": {
+        "gini": "number",
+        "top_10_share": "share",
+        "top_20_share": "share"
+      },
+      "value_n": {
+        "gini": 646,
+        "top_10_share": 65,
+        "top_20_share": 130
+      },
+      "values": {
+        "gini": 0.764276,
+        "top_10_share": 0.630103,
+        "top_20_share": 0.798651
       }
     },
     {
@@ -233,7 +285,7 @@
           0.154713
         ]
       },
-      "computed_at": "2026-10-18T14:20:36Z",
+      "computed_at": "2026-10-18T15:11:36Z",
       "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
       "headline": false,
       "id": "weekday_pattern",
@@ -346,7 +398,7 @@
           0.068
         ]
       },
-      "computed_at": "2026-10-18T14:20:36Z",
+      "computed_at": "2026-10-18T15:11:36Z",
       "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
       "headline": false,
       "id": "channel_mix",
@@ -443,7 +495,7 @@
           0.37569
         ]
       },
-      "computed_at": "2026-10-18T14:20:36Z",
+      "computed_at": "2026-10-18T15:11:36Z",
       "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
       "headline": true,
       "id": "age_digital_divide",
@@ -475,6 +527,7 @@
           0.278257689278548
         ],
         "overall_effect": 0.21277953996848004,
+        "public_mechanism": "Before stratification the branch-only share is higher for clients aged 55 and over than for clients under 35. Holding gender code fixed, the difference keeps its sign. Holding tenure band fixed, the difference keeps its sign. Verdict: holds.",
         "reference": "under 35",
         "shrinkage": 0.29721855367759054,
         "sign_flips": 0,
@@ -608,8 +661,30 @@
       }
     }
   ],
-  "computed_at": "2026-10-18T14:20:36Z",
+  "computed_at": "2026-10-18T15:11:36Z",
   "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
   "schema_version": 1,
-  "source_kind": "real"
+  "source_kind": "real",
+  "verdicts": [
+    {
+      "computed_at": "2026-10-18T15:11:36Z",
+      "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
+      "id": "silence_by_channel",
+      "mechanism": "Before stratification the silence rate is higher for branch-only clients than for digital-only clients. Holding activity level (tercile of events) fixed, the difference reverses its sign. Holding age band fixed, the difference keeps its sign. Holding tenure band fixed, the difference keeps its sign. Verdict: reverses. Mechanism: branch-only clients have fewer events in the observation window than digital-only clients; with few events a quarter without any is likely by chance, so the crude gap mostly measures activity, not channel.",
+      "publication": "verdict_only",
+      "question": "Are branch-only clients more likely than digital-only clients to have no event in the quarter after the observation window, and does that survive holding activity fixed?",
+      "reversing_stratifiers": [
+        "activity_tercile"
+      ],
+      "source_kind": "real",
+      "strata_version": "0.1.0",
+      "stratifiers": [
+        "activity_tercile",
+        "age_band",
+        "tenure_band"
+      ],
+      "title": "Who goes silent: branch-only against digital-only clients",
+      "verdict": "reverses"
+    }
+  ]
 }

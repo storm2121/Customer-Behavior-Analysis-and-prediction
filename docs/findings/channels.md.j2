@@ -49,3 +49,18 @@ Caveats:
 {% for caveat in caveats("age_digital_divide") %}
 - {{ caveat }}
 {% endfor %}
+
+## {{ text("silence_by_channel", "title") }}
+
+*{{ text("silence_by_channel", "question") }}*
+
+This headline is published as a robustness verdict only: its values, intervals and group sizes
+stay in the private ledger. It is here to show the robustness checker at work on real data.
+
+**Robustness verdict: {{ verdict("silence_by_channel") }}.** Stratifiers checked:
+{{ stratifiers("silence_by_channel") | join("; ") }}. The effect changes sign within:
+{{ reversed_by("silence_by_channel") | join("; ") or "none of them" }}.
+
+{{ mechanism("silence_by_channel") }}
+
+Context: {{ verdict_context("silence_by_channel") }}.

@@ -54,3 +54,18 @@ Caveats:
 - Shares use every client of the band as denominator, including clients with no event.
 - Gender codes are kept as codes; their meaning is assumed, not documented.
 - The robustness check leaves activity level out: activity is partly a consequence of channel choice, so holding it fixed would bias the comparison.
+
+## Who goes silent: branch-only against digital-only clients
+
+*Are branch-only clients more likely than digital-only clients to have no event in the quarter after the observation window, and does that survive holding activity fixed?*
+
+This headline is published as a robustness verdict only: its values, intervals and group sizes
+stay in the private ledger. It is here to show the robustness checker at work on real data.
+
+**Robustness verdict: reverses.** Stratifiers checked:
+activity level (tercile of events); age band; tenure band. The effect changes sign within:
+activity level (tercile of events).
+
+Before stratification the silence rate is higher for branch-only clients than for digital-only clients. Holding activity level (tercile of events) fixed, the difference reverses its sign. Holding age band fixed, the difference keeps its sign. Holding tenure band fixed, the difference keeps its sign. Verdict: reverses. Mechanism: branch-only clients have fewer events in the observation window than digital-only clients; with few events a quarter without any is likely by chance, so the crude gap mostly measures activity, not channel.
+
+Context: verdict only, no value published; 2023-10-02 to 2024-10-02; real extract; data fingerprint 85887a44d747.

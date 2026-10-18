@@ -1,4 +1,4 @@
-# Leading digits
+# Amounts: leading digits and concentration
 
 ## {{ text("benford_purchases", "title") }}
 
@@ -26,5 +26,29 @@ Method: {{ text("benford_purchases", "method") }}
 Caveats:
 
 {% for caveat in caveats("benford_purchases") %}
+- {{ caveat }}
+{% endfor %}
+
+## {{ text("spend_concentration", "title") }}
+
+*{{ text("spend_concentration", "question") }}*
+
+| Spenders | Share of card spend | Interval |
+|---|---|---|
+{% for label, key in rows("spend_concentration", "tops") %}
+| {{ label }} | {{ ledger("spend_concentration", key) }} | {{ ci("spend_concentration", key) }} |
+{% endfor %}
+
+The Gini coefficient of card spend is {{ ledger("spend_concentration", "gini") }}
+({{ ci("spend_concentration", "gini") }}). Values computed on fewer clients than the publication
+floor (the smallest top groups) are withheld from this page.
+
+Context: {{ context("spend_concentration") }}.
+
+Method: {{ text("spend_concentration", "method") }}
+
+Caveats:
+
+{% for caveat in caveats("spend_concentration") %}
 - {{ caveat }}
 {% endfor %}
