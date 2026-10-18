@@ -1,0 +1,139 @@
+version: 2
+
+seeds:
+  - name: codes_card_category
+    description: The seven card transaction labels, their key, direction and whether they are spend.
+    columns:
+      - name: label
+        data_tests: [unique, not_null]
+      - name: category_key
+        data_tests: [unique, not_null]
+      - name: direction
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [debit, credit]
+
+  - name: codes_card_origin
+    columns:
+      - name: label
+        data_tests: [unique, not_null]
+      - name: origin_key
+        data_tests: [unique, not_null]
+
+  - name: codes_online_service
+    description: The six online services; card-service operations are the only zero-amount ones.
+    columns:
+      - name: label
+        data_tests: [unique, not_null]
+      - name: service_key
+        data_tests: [unique, not_null]
+      - name: direction
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [debit, none]
+
+  - name: codes_branch_operation
+    description: >
+      The branch operation labels with an operation key, a category and an assumed direction.
+      `semantics` says whether the meaning is evident from the label or assumed.
+    columns:
+      - name: label
+        data_tests: [unique, not_null]
+      - name: category
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [deposit, withdrawal, transfer, card, fx, payment, fee, adjustment]
+      - name: assumed_direction
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [C, D]
+      - name: semantics
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [label, assumed]
+
+  - name: codes_branch_direction
+    columns:
+      - name: code
+        data_tests: [unique, not_null]
+
+  - name: codes_client
+    columns:
+      - name: evidence
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [label, observed, assumed]
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [column_name, code]
+
+  - name: codes_aggregate_flags
+    columns:
+      - name: evidence
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [label, observed, assumed]
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [column_name, code]
+
+  - name: bands_age
+    description: Age bands, half-open intervals [lower, upper), shared with the Python ledger.
+    columns:
+      - name: band
+        data_tests: [unique, not_null]
+    data_tests:
+      - expression_is_true:
+          arguments:
+            expression: "lower < upper"
+
+  - name: bands_tenure
+    description: Tenure bands in years, half-open intervals [lower, upper).
+    columns:
+      - name: band
+        data_tests: [unique, not_null]
+    data_tests:
+      - expression_is_true:
+          arguments:
+            expression: "lower < upper"
+
+  - name: silence_cutoffs
+    description: Feature cutoffs and outcome windows of the silence models (ADR 0003).
+    columns:
+      - name: cutoff_date
+        data_tests: [unique, not_null]
+      - name: role
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [primary, backtest]
+    data_tests:
+      - expression_is_true:
+          arguments:
+            expression: "cutoff_date < outcome_start and outcome_start <= outcome_end"
+
+  - name: calendar_periods
+    description: Ramadan, the two Eids and the week before Eid al-Adha.
+    columns:
+      - name: period_key
+        data_tests: [unique, not_null]
+    data_tests:
+      - expression_is_true:
+          arguments:
+            expression: "start_date <= end_date"
+
+  - name: bank_holidays
+    description: Fixed-date national holidays inside the window.
+    columns:
+      - name: holiday_date
+        data_tests: [unique, not_null, within_window]

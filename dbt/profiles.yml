@@ -1,0 +1,8 @@
+# The warehouse path comes from the environment, set by `kashf dbt` for the active zone.
+kashf:
+  target: local
+  outputs:
+    local:
+      type: duckdb
+      path: "{{ env_var('KASHF_DBT_DB') }}"
+      threads: 4

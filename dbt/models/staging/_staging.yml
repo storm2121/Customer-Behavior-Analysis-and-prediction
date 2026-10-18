@@ -1,0 +1,132 @@
+version: 2
+
+models:
+  - name: stg_clients
+    description: The client file with English names, assumed code meanings and the shared bands.
+    columns:
+      - name: client_id
+        description: Opaque client identifier.
+        data_tests: [unique, not_null]
+      - name: age
+        data_tests: [not_null, non_negative]
+      - name: tenure_years
+        data_tests: [non_negative]
+      - name: age_band
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('bands_age')
+                field: band
+      - name: tenure_band
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('bands_tenure')
+                field: band
+      - name: children
+        data_tests: [non_negative]
+
+  - name: stg_card_transactions
+    description: Card transactions with keys and the exact-repeat flag (flagged, never dropped).
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: client_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_clients')
+                field: client_id
+      - name: event_date
+        data_tests: [not_null, within_window]
+      - name: amount
+        data_tests: [non_negative]
+      - name: category
+        description: Null only where the extract has no label.
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('codes_card_category')
+                field: category_key
+      - name: origin
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [national, international]
+      - name: is_repeat
+        data_tests: [not_null]
+
+  - name: stg_online_operations
+    description: Online operations with the service key and the exact-repeat flag.
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: client_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_clients')
+                field: client_id
+      - name: event_date
+        data_tests: [not_null, within_window]
+      - name: service
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('codes_online_service')
+                field: service_key
+      - name: amount
+        data_tests: [non_negative]
+    data_tests:
+      - expression_is_true:
+          arguments:
+            expression: "not is_zero_amount or service = 'card_service'"
+
+  - name: stg_branch_operations
+    description: Branch operations with the operation key and category and the exact-repeat flag.
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: client_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_clients')
+                field: client_id
+      - name: event_date
+        data_tests: [not_null, within_window]
+      - name: amount
+        data_tests: [non_negative]
+      - name: direction
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [credit, debit]
+      - name: operation_category
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('codes_branch_operation')
+                field: category
+
+  - name: stg_aggregate_clients
+    description: >
+      The second sample with its empty rows dropped and its columns renamed. Never joined to the
+      event data: its identifiers belong to different clients.
+    columns:
+      - name: client_id
+        data_tests: [unique, not_null]
+      - name: age
+        data_tests: [non_negative]
+      - name: ops_total
+        data_tests: [non_negative]
+    data_tests:
+      - expression_is_true:
+          arguments:
+            expression: "has_online or ops_total = 0"

@@ -1,0 +1,152 @@
+version: 2
+
+models:
+  - name: client_360
+    description: >
+      One row per client of the sample: demographics and bands, the whole-year channel profile,
+      per-channel recency, frequency and monetary value, and the shares used by the segments.
+    columns:
+      - name: client_id
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_clients')
+                field: client_id
+      - name: channel_profile
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [none, branch_only, digital_only, mixed]
+      - name: n_events
+        data_tests: [not_null, non_negative]
+      - name: recency_days
+        data_tests: [non_negative]
+      - name: card_spend
+        data_tests: [non_negative]
+      - name: international_share
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "international_share between 0 and 1"
+    data_tests:
+      - expression_is_true:
+          arguments:
+            expression: "n_events = n_card + n_online + n_branch"
+      - expression_is_true:
+          arguments:
+            expression: "(channel_profile = 'none') = (n_events = 0)"
+
+  - name: features_silence
+    description: >
+      Silence features per cutoff and client (ADR 0003). Features use events up to the cutoff
+      only; `silent` means no event in the outcome window that follows.
+    columns:
+      - name: cutoff_date
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silence_cutoffs')
+                field: cutoff_date
+      - name: client_id
+        data_tests: [not_null]
+      - name: silent
+        data_tests: [not_null]
+      - name: channel_profile
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [branch_only, digital_only, mixed]
+      - name: recency_days
+        data_tests: [not_null, non_negative]
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [cutoff_date, client_id]
+      - expression_is_true:
+          arguments:
+            expression: "last_event_date <= cutoff_date and outcome_start > cutoff_date"
+      - expression_is_true:
+          arguments:
+            expression: "silent = (n_events_outcome = 0)"
+
+  - name: features_segments
+    description: Behavioural features of every active client for segmentation (M5).
+    columns:
+      - name: client_id
+        data_tests: [unique, not_null]
+      - name: card_share
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "card_share between 0 and 1"
+      - name: round_amount_share
+        data_tests:
+          - expression_is_true:
+              arguments:
+                expression: "round_amount_share between 0 and 1"
+    data_tests:
+      - expression_is_true:
+          arguments:
+            expression: "abs(card_share + online_share + branch_share - 1) < 1e-9"
+
+  - name: features_anomaly
+    description: >
+      Per-client inputs of the monitoring layer: deposit velocity, sub-threshold deposit clusters,
+      pass-through deposits, cash-to-card ratio and dormant-then-burst activity. Triage features.
+    columns:
+      - name: client_id
+        data_tests: [unique, not_null]
+      - name: n_branch_deposits
+        data_tests: [not_null, non_negative]
+      - name: max_deposits_in_window
+        data_tests: [non_negative]
+      - name: structuring_pattern
+        data_tests: [not_null]
+
+  - name: daily_counts
+    description: >
+      Dense daily series per channel and kind with calendar columns (day of week, five-day bins of
+      the month, month, trend, bank holidays, Ramadan, the Eids and the week before Eid al-Adha).
+    columns:
+      - name: day
+        data_tests: [not_null, within_window]
+      - name: n_events
+        data_tests: [not_null, non_negative]
+      - name: day_of_week
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [1, 2, 3, 4, 5, 6, 7]
+                quote: false
+      - name: day_of_month_bin
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["01-05", "06-10", "11-15", "16-20", "21-25", "26-31"]
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [day, channel, kind]
+      - expression_is_true:
+          arguments:
+            expression: "in_coverage or n_events = 0"
+
+  - name: aggregate_clients
+    description: >
+      The second sample with the shared age bands and the two adoption targets. Never joined to the
+      client file.
+    columns:
+      - name: client_id
+        data_tests: [unique, not_null]
+      - name: target_has_online
+        data_tests: [not_null]
+      - name: target_active_online
+        data_tests: [not_null]
+    data_tests:
+      - expression_is_true:
+          arguments:
+            expression: "target_has_online or not target_active_online"

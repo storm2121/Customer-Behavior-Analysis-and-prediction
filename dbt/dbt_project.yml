@@ -1,0 +1,70 @@
+# dbt project for the Kashf warehouse (DuckDB). Run it through `kashf dbt ...`, which points the
+# profile at the right zone's warehouse and keeps target/ and logs/ inside that zone (ADR 0008).
+name: kashf
+version: "0.1.0"
+config-version: 2
+profile: kashf
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+clean-targets: ["target", "logs"]
+
+flags:
+  # No telemetry, ever: a private run must not report anything about the data it touched.
+  send_anonymous_usage_stats: false
+  partial_parse: true
+
+vars:
+  window_start: "2023-10-02"
+  window_end: "2024-10-02"
+  card_end: "2024-09-29"
+  large_deposit_threshold: 100000
+  pass_through_min_deposit: 20000
+  pass_through_days: 7
+  velocity_days: 30
+  burst_min_events: 5
+  burst_min_gap_months: 3
+  active_online_min_operations: 12
+
+seeds:
+  kashf:
+    +schema: ref
+    +quote_columns: false
+    codes_card_category:
+      +column_types: {label: varchar, category_key: varchar, direction: varchar, is_spend: boolean, description_en: varchar}
+    codes_card_origin:
+      +column_types: {label: varchar, origin_key: varchar}
+    codes_online_service:
+      +column_types: {label: varchar, service_key: varchar, direction: varchar, zero_amount_expected: boolean, description_en: varchar}
+    codes_branch_operation:
+      +column_types: {label: varchar, operation_key: varchar, category: varchar, assumed_direction: varchar, is_cash_deposit: boolean, semantics: varchar}
+    codes_branch_direction:
+      +column_types: {code: varchar, direction: varchar}
+    codes_client:
+      +column_types: {column_name: varchar, code: bigint, label: varchar, assumed_meaning: varchar, evidence: varchar}
+    codes_aggregate_flags:
+      +column_types: {column_name: varchar, code: varchar, meaning: varchar, evidence: varchar}
+    bands_age:
+      +column_types: {band: varchar, lower: integer, upper: integer}
+    bands_tenure:
+      +column_types: {band: varchar, lower: integer, upper: integer}
+    silence_cutoffs:
+      +column_types: {cutoff_date: date, outcome_start: date, outcome_end: date, role: varchar}
+    calendar_periods:
+      +column_types: {period_key: varchar, label: varchar, start_date: date, end_date: date}
+    bank_holidays:
+      +column_types: {holiday_date: date, label: varchar}
+
+models:
+  kashf:
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: table
+    marts:
+      +schema: marts
+      +materialized: table

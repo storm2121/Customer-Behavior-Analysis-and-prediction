@@ -1,0 +1,26 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      The five extracts exactly as loaded by `kashf ingest` after their contracts passed, plus the
+      ingest manifest and the data-quality report. Original (French) column names; `_source_row`
+      is each row's position in its file.
+    schema: raw
+    tables:
+      - name: clients
+        description: One row per client of the sample.
+      - name: card_transactions
+        description: One row per card transaction.
+      - name: online_operations
+        description: One row per online operation.
+      - name: branch_operations
+        description: One row per branch operation.
+      - name: aggregate_clients
+        description: >
+          A different sample of clients, pre-aggregated over the year. Every other row of the file
+          is empty; its identifiers match none of the client file.
+      - name: manifest
+        description: One row per loaded file (hash, rows, columns, date range, fingerprint).
+      - name: dq_report
+        description: The data-quality report written by `kashf dq` (counts only).

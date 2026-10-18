@@ -1,0 +1,84 @@
+version: 2
+
+models:
+  - name: int_events
+    description: >
+      Every event of the three channels: client, date, channel, kind, amount, direction, origin and
+      the zero-amount and repeat flags. The grain of the warehouse.
+    columns:
+      - name: event_id
+        data_tests: [unique, not_null]
+      - name: client_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('stg_clients')
+                field: client_id
+      - name: event_date
+        data_tests: [not_null, within_window]
+      - name: channel
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [card, online, branch]
+      - name: amount
+        data_tests: [non_negative]
+      - name: direction
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [credit, debit]
+
+  - name: int_client_month
+    description: >
+      A dense panel of every client in every month, with per-channel counts and amounts, rolling
+      three-month sums, events to date and months since the last active month.
+    columns:
+      - name: month_start
+        data_tests: [not_null]
+      - name: n_events
+        data_tests: [not_null, non_negative]
+      - name: events_rolling_3m
+        data_tests: [non_negative]
+      - name: months_since_active
+        data_tests: [non_negative]
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [client_id, month_start]
+      - one_row_per_client_and_month:
+          arguments:
+            month_column: month_start
+      - expression_is_true:
+          arguments:
+            expression: "n_events = n_card + n_online + n_branch"
+      - expression_is_true:
+          arguments:
+            expression: "events_rolling_3m >= n_events and events_to_date >= events_rolling_3m"
+
+  - name: int_channel_state
+    description: The channel state of every client in every month and the state of the month before.
+    columns:
+      - name: channel_state
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [none, branch_only, digital_only, mixed]
+      - name: previous_state
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [none, branch_only, digital_only, mixed]
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [client_id, month_start]
+      - one_row_per_client_and_month:
+          arguments:
+            month_column: month_start
+      - expression_is_true:
+          arguments:
+            expression: "(channel_state = 'none') = (n_events = 0)"
