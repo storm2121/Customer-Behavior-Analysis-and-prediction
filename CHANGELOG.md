@@ -102,7 +102,7 @@ instance and the synthetic generator a first-class source.
   `docs/model_cards/` are published from synthetic models only and checked for drift.
 - A leakage test rewrites every event after a cutoff, rebuilds the features with dbt and proves
   that cutoff's features unchanged.
-- The monitoring layer (`strata anomaly run|queue|feedback`, `strata.models.anomaly`): six triage
+- The monitoring layer (`strata anomaly run|queue|feedback`, `strata.models.anomaly`): triage
   rules configured in YAML with the evidence behind every hit, an Isolation Forest, an
   empirical-Bayes model of each client's amounts, per-client Benford tests, a combined score with
   reasons, an alert-budget selector, and precision at k against pseudo-labels (two rule families)
@@ -115,6 +115,21 @@ instance and the synthetic generator a first-class source.
   `/ledger/claims`; Prometheus metrics by route template; an optional API key; OpenAPI docs.
   `Dockerfile.api`, `Dockerfile.mlflow` and `docker-compose.yml` (API, PostgreSQL, MLflow UI and a
   dashboard placeholder) on synthetic data (ADR 0012).
+- Cash intensity is two rules: `cash_intensive` (branch deposits large beside a card spend above
+  zero) and `cash_only_high_volume` (large branch deposits from a client with no card spend).
+- The dashboard (`apps/dashboard`, ADR 0006): React 19, TypeScript strict, Vite, TanStack Query,
+  ECharts (only the charts used), Tailwind with design tokens, Radix sliders, KaTeX, pnpm. Nine
+  pages: Overview (KPIs, channel mix, calendar heatmap), Findings (public claims with intervals
+  and robustness badges, verdict-only claims in words), Customer 360, Segments (embedding map and
+  profiles), Risk (model comparison, calibration, lift, ranked list with reasons), Adoption
+  (deciles), Alerts (queue with reasons and analyst feedback), Simulator (sliders driving
+  `POST /markov/simulate`, bands for policy and baseline) and Methods (equations). Light and dark
+  themes with AA contrast, phone width, lazy-loaded pages. Every number is fetched from the API;
+  `scripts/check-bundle.mjs` fails the build if the bundle holds a ledger value, a fingerprint, an
+  identifier or a data file. Vitest and Testing Library tests, Storybook stories with illustrative
+  fixtures, Playwright smoke tests with axe checks on desktop and phone. `Dockerfile.dashboard`
+  (nginx, same-origin `/api/` proxy) replaces the Compose placeholder; `/overview`,
+  `/segments/points` and `/risk/silence/evaluation` were added to the API for it.
 
 ### Changed
 
