@@ -66,6 +66,15 @@ once in that module and enforced both by the build and by the commit guard:
 - a stratum of a robustness result keeps its numbers only when each of its two groups reaches the
   floor; otherwise only its label and whether it was used remain.
 
+Two publication modes exist. A `full` claim is published with its aggregate values, intervals and
+robustness result under the rules above; a value computed on fewer clients than the floor (the top
+one per cent of spenders, say) is withheld with its table row. A `verdict_only` headline is
+published by what the robustness checker concluded: its verdict, the names of the stratifiers, the
+stratifiers within which the effect reverses, and an explanation in words. It carries no value, no
+interval and no group size, and the build, the ledger check and the commit guard all refuse a
+verdict-only record with any other field or with a digit in its words. Today `silence_by_channel`
+is the only verdict-only headline; it is there to show the checker at work.
+
 `--public` refuses to run on synthetic data, so the public file always holds real aggregates and
 the synthetic demo can never overwrite it. Every other finding stays in the private report
 (`strata --private report --variant private`, written under `STRATA_PRIVATE_DIR`).
