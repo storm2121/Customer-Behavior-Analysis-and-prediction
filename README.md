@@ -29,7 +29,9 @@ Strata replaces a hackathon script from 2024 whose bugs are documented openly in
 | Analysis modules | Calendar effects from a negative-binomial regression with client-bootstrap intervals and a PyMC twin with posterior predictive checks; STL seasonality and the December wave split into breadth and depth; Lorenz, Gini and RFM scores per channel; Benford tests per category; a Dirichlet-posterior Markov chain of channel states with a what-if simulator. Each module writes ledger claims and figures. | `strata analyse`, [methods](docs/methods/) |
 | Risk models | Silence risk (baselines, a logistic GLM with odds ratios, LightGBM tuned on the earliest cutoff, isotonic and Platt calibration, SHAP), survival of the gaps between active days (Kaplan-Meier, log-rank, Cox with client-clustered errors), online adoption on the aggregate sample, and behavioural segments (Gaussian mixtures by BIC, bootstrap stability). Time-based backtests, a leakage test, client-bootstrap intervals on every metric, MLflow runs and generated model cards. | `strata train`, [model cards](docs/model_cards/) |
 | Reports | A private report of every claim, kept outside the repository, and a public demo on synthetic data. | `strata report` |
-| Next | An anomaly triage layer, an API, an orchestrated DAG and a dashboard. | [milestones](MILESTONES.md) |
+| Monitoring | Triage rules configured in YAML (large cash deposits, structuring, velocity, pass-through, dormant-then-burst, cash intensity), an Isolation Forest, an empirical-Bayes model of each client's amounts and per-client Benford tests, combined into a ranked queue under an alert budget, with reasons on every alert; analyst feedback in a PostgreSQL or SQLite review store with Alembic migrations. Triage for people to review, never an accusation. | `strata anomaly`, [method](docs/methods/anomaly.md) |
+| Serving | A FastAPI service: client 360, silence risk with reasons, segments, adoption deciles, the alert queue with feedback, calendar effects, the policy simulator and the public claims; Prometheus metrics by route; OpenAPI docs; Docker Compose with PostgreSQL and the MLflow UI. | `strata serve`, `docker compose up` |
+| Next | An orchestrated DAG and a dashboard. | [milestones](MILESTONES.md) |
 
 ## How it is checked
 
@@ -102,11 +104,22 @@ just check              # lint, types, tests with coverage, privacy scan, ledger
 just ledger             # synthetic extract -> warehouse -> claims -> demo report
 just analyse            # analysis modules: claims, figures and the simulator's bands
 just train              # risk models, the public registry and the model cards (synthetic)
+just anomaly            # the monitoring layer's ranked review queue (synthetic)
 uv run strata --help
 ```
 
 [`uv`](https://docs.astral.sh/uv/) and [`just`](https://just.systems/) are the only tools to install
 by hand (`uv tool install rust-just` provides `just`).
+
+### The whole stack, on synthetic data
+
+```bash
+docker compose up --build
+```
+
+The API answers on `http://localhost:8000` (documentation at `/docs`, metrics at `/metrics`),
+PostgreSQL on 5432, the MLflow UI on 5000 and the dashboard placeholder on 5173. The image builds
+the synthetic workspace once; nothing in the stack reads the real extract ([ADR 0012](docs/adr/0012-api-and-compose.md)).
 
 ## Repository layout
 

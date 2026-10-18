@@ -68,6 +68,7 @@ jobs:
       - run: uv run strata ledger build
       - run: uv run strata analyse all --quick
       - run: uv run strata train all --quick
+      - run: uv run strata anomaly run --budget 50
       - run: uv run strata report --variant public
 
   ledger:
@@ -80,3 +81,15 @@ jobs:
           enable-cache: true
       - run: uv sync
       - run: uv run strata ledger check
+
+  compose:
+    name: Docker Compose stack on synthetic data (every endpoint answers)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose up --build --detach
+      - run: python3 docker/smoke.py http://localhost:8000
+      - if: always()
+        run: docker compose logs api
+      - if: always()
+        run: docker compose down --volumes

@@ -85,6 +85,17 @@ cards, its MLflow runs and its scores (client by client, with the reasons behind
 `docs/model_cards/`, and refuses any model that was not trained on synthetic data; the published
 registry leaves out MLflow run ids, which only point into a local store.
 
+The API serves one zone. In Docker Compose it serves the synthetic workspace baked into its image,
+and the build context excludes `.env*`, the workspace and every data or database file
+(`.dockerignore`), so nothing local or private can enter an image. Real data is served only by
+`strata --private serve` on the machine that holds the extract. Request metrics are labelled by
+route template, never by path, so no client id reaches the metrics.
+
+The monitoring layer follows the same zones. Its queue names clients, so a private run writes the
+queue, its evaluation and the review store under `STRATA_PRIVATE_DIR` (a SQLite file, never the
+PostgreSQL server of `STRATA_PG_URL`; ADR 0011), and the CLI shows client ids for synthetic data
+only.
+
 The analysis modules follow the same zones. `strata --private analyse` writes its figures, its
 claims and the simulator's inputs (transition counts between channel states, state counts and
 branch-operation rates, all aggregates) under `STRATA_PRIVATE_DIR` and refuses any other location;

@@ -75,6 +75,18 @@ analyse: dbt
 train: dbt
     uv run --frozen strata train all --promote
 
+# The monitoring layer on the synthetic warehouse: the ranked queue, stored for review.
+anomaly: dbt
+    uv run --frozen strata anomaly run --budget 50
+
+# Serve the API on the public workspace (http://127.0.0.1:8000/docs).
+serve:
+    uv run --frozen strata serve
+
+# The whole stack on synthetic data: API, PostgreSQL, MLflow UI and the dashboard placeholder.
+up:
+    docker compose up --build
+
 # Private zone: load the real extract from STRATA_DATA_DIR; outputs go to STRATA_PRIVATE_DIR only.
 private-ingest:
     uv run --frozen strata --private ingest

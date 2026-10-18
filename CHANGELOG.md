@@ -102,6 +102,19 @@ instance and the synthetic generator a first-class source.
   `docs/model_cards/` are published from synthetic models only and checked for drift.
 - A leakage test rewrites every event after a cutoff, rebuilds the features with dbt and proves
   that cutoff's features unchanged.
+- The monitoring layer (`strata anomaly run|queue|feedback`, `strata.models.anomaly`): six triage
+  rules configured in YAML with the evidence behind every hit, an Isolation Forest, an
+  empirical-Bayes model of each client's amounts, per-client Benford tests, a combined score with
+  reasons, an alert-budget selector, and precision at k against pseudo-labels (two rule families)
+  and against analyst feedback. The review store (`strata.review`): runs, alerts, feedback and
+  annotations in PostgreSQL or SQLite through SQLAlchemy and Alembic migrations; real alerts stay in
+  a SQLite file under `STRATA_PRIVATE_DIR` (ADR 0011).
+- The API (`strata.api`, `strata serve`): `/health`, `/clients/{id}/360`, `/segments`,
+  `/risk/silence`, `/adoption/deciles`, `/alerts` with `POST /alerts/{id}/feedback`,
+  `/calendar/effects`, `POST /markov/simulate` (age-band policies from the simulator inputs) and
+  `/ledger/claims`; Prometheus metrics by route template; an optional API key; OpenAPI docs.
+  `Dockerfile.api`, `Dockerfile.mlflow` and `docker-compose.yml` (API, PostgreSQL, MLflow UI and a
+  dashboard placeholder) on synthetic data (ADR 0012).
 
 ### Changed
 

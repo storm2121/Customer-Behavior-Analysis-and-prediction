@@ -15,3 +15,5 @@ Each record states its status, context, decision and consequences. A deviation f
 | [0008](0008-private-zone-outside-the-working-tree.md) | Private runs write nothing inside the working tree | accepted |
 | [0009](0009-calendar-model-terms.md) | Calendar model terms for a single year of data | accepted |
 | [0010](0010-canonical-layer.md) | The canonical raw layer, its landing tables and its provenance | accepted |
+| [0011](0011-review-store.md) | The review store, and where real alerts may live | accepted |
+| [0012](0012-api-and-compose.md) | The API inside the package, and a Compose stack built on synthetic data | accepted |
