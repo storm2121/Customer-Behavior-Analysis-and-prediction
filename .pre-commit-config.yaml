@@ -1,0 +1,55 @@
+# Every hook except the generic hygiene ones runs through `uv run`, so the versions are the ones
+# locked in uv.lock and a hook can never disagree with `just check`.
+# legacy/ is frozen: hygiene hooks skip it, but the privacy guard scans every file.
+default_install_hook_types: [pre-commit]
+fail_fast: false
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-yaml
+        exclude: ^legacy/
+      - id: check-toml
+        exclude: ^legacy/
+      - id: check-json
+        exclude: ^legacy/
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: end-of-file-fixer
+        exclude: ^legacy/
+      - id: trailing-whitespace
+        exclude: ^legacy/
+      - id: mixed-line-ending
+        exclude: ^legacy/
+        args: [--fix=lf]
+
+  - repo: local
+    hooks:
+      - id: kashf-privacy-guard
+        name: kashf privacy guard (extract files, headers, identifiers, ledger allowlist)
+        entry: uv run --frozen kashf privacy-check
+        language: system
+        pass_filenames: true
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --frozen ruff format
+        language: system
+        types_or: [python, pyi]
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --frozen ruff check --fix --exit-non-zero-on-fix
+        language: system
+        types_or: [python, pyi]
+      - id: mypy
+        name: mypy --strict (kashf)
+        entry: uv run --frozen mypy
+        language: system
+        types_or: [python, pyi]
+        pass_filenames: false
+      - id: nbstripout
+        name: nbstripout
+        entry: uv run --frozen nbstripout
+        language: system
+        files: \.ipynb$
