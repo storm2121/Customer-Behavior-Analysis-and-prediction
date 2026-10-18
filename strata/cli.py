@@ -208,12 +208,20 @@ def ingest(
         Path | None,
         typer.Option("--data-dir", help="Synthetic folder (public) or the extract (private)."),
     ] = None,
+    mapping: Annotated[
+        str | None,
+        typer.Option(
+            "--mapping",
+            help="Source mapping: a YAML file or a name in mappings/ (default: synthetic in "
+            "the public zone, reference_cih in the private zone).",
+        ),
+    ] = None,
 ) -> None:
-    """Validate the five files against their contracts and load the raw layer of the warehouse."""
+    """Read a source through its mapping, check it, and load the warehouse's canonical raw layer."""
     from strata.ingest.load import ingest as run_ingest
 
     state = _state(ctx)
-    report = run_ingest(state.settings, state.zone, data_dir)
+    report = run_ingest(state.settings, state.zone, data_dir, mapping)
     table = Table(title=f"ingest ({state.zone.value}, {report.manifest.source_kind} data)")
     for column in ("extract", "rows", "columns", "first date", "last date", "line ends"):
         table.add_column(column)
@@ -228,6 +236,7 @@ def ingest(
         )
     console.print(table)
     console.print(f"warehouse: {_describe(report.workspace.warehouse, state)}")
+    console.print(f"mapping: {report.manifest.mapping}")
     console.print(f"fingerprint: {report.manifest.fingerprint[:16]}")
     failed = [check for check in report.reconciliations if not check.ok]
     for check in failed:

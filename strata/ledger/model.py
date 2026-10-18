@@ -156,6 +156,9 @@ class Ledger(BaseModel):
     schema_version: int = SCHEMA_VERSION
     source_kind: SourceKind
     data_fingerprint: str
+    mapping_sha256: str | None = None
+    """Digest of the source mapping the data was read through (claims of the same bytes read
+    through another mapping are never merged)."""
     computed_at: datetime
     claims: list[ClaimRecord]
     verdicts: list[PublishedVerdict] = Field(default_factory=list)

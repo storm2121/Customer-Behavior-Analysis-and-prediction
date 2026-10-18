@@ -32,6 +32,9 @@ from strata.contracts.vocab import (
 )
 from strata.warehouse import read_table, replace_table, row_count, table_exists
 
+RAW = "raw"
+LANDING = "landing"
+
 Status = Literal["ok", "info", "warning", "error"]
 Frames = dict[Extract, pd.DataFrame]
 
@@ -552,20 +555,111 @@ def run_checks(frames: Frames) -> list[DQResult]:
 
 
 def typed_raw_frames(con: duckdb.DuckDBPyConnection) -> Frames:
-    """Read the raw tables back with the contract's dtypes (DuckDB's defaults differ)."""
+    """Read the landing tables back with the contract's dtypes (DuckDB's defaults differ).
+
+    Only files read through a typed contract of the reference extract have a landing table; the
+    source-specific checks above run on them.
+    """
     frames: Frames = {}
     for name, types in COLUMN_TYPES.items():
-        if not table_exists(con, "raw", name.value):
+        if not table_exists(con, LANDING, name.value):
             continue
-        stored = read_table(con, "raw", name.value).sort_values("_source_row", kind="stable")
+        stored = read_table(con, LANDING, name.value).sort_values("_source_row", kind="stable")
         typed = {column: cast_to_contract(stored[column], kind) for column, kind in types.items()}
         frames[name] = pd.DataFrame(typed).reset_index(drop=True)
     return frames
 
 
+CANONICAL_REPEAT_KEYS: dict[str, tuple[str, ...]] = {
+    "card": ("client_id", "ts", "amount", "kind", "origin"),
+    "online": ("client_id", "ts", "kind", "amount"),
+    "branch": ("client_id", "ts", "amount", "direction", "kind", "currency"),
+}
+"""The exact-repeat definition on canonical columns: the same fields as :data:`REPEAT_KEYS`."""
+
+CHANNEL_EXTRACTS: dict[str, Extract] = {
+    "card": Extract.CARD,
+    "online": Extract.ONLINE,
+    "branch": Extract.BRANCH,
+}
+
+
+def canonical_results(con: duckdb.DuckDBPyConnection, covered: set[Extract]) -> list[DQResult]:
+    """Source-agnostic checks on the canonical tables, for channels without a landing table.
+
+    A mapped source without a reference contract gets the checks every source can answer: exact
+    repeats (reported under the reference extract's name of the channel, so dbt's reconciliation
+    of the repeat flags works for every source), events outside the window, zero amounts, and
+    events whose client is not in the client file.
+    """
+    if not table_exists(con, RAW, "events"):
+        return []
+    events = read_table(con, RAW, "events").sort_values(["source_file", "source_row"])
+    clients = read_table(con, RAW, "clients")
+    start, end = pd.Timestamp(WINDOW_START), pd.Timestamp(WINDOW_END)
+    results: list[DQResult] = []
+    for channel, extract in CHANNEL_EXTRACTS.items():
+        if extract in covered:
+            continue
+        rows = events[events["channel"] == channel]
+        repeats = int(rows.duplicated(list(CANONICAL_REPEAT_KEYS[channel]), keep="first").sum())
+        dates = pd.to_datetime(rows["ts"])
+        results.extend(
+            [
+                _result(
+                    "exact_repeats",
+                    extract,
+                    repeats,
+                    len(rows),
+                    "rows repeating an earlier row on every field; undecidable without an id",
+                ),
+                _result(
+                    "outside_window",
+                    extract,
+                    int(((dates < start) | (dates > end)).sum()),
+                    len(rows),
+                    "events outside the rolling year",
+                ),
+                _result(
+                    "zero_amounts",
+                    extract,
+                    int((rows["amount"] == 0).sum()),
+                    len(rows),
+                    "events with an amount of exactly zero",
+                    when_nonzero="info",
+                ),
+            ]
+        )
+    if len(covered & set(CHANNEL_EXTRACTS.values())) < len(CHANNEL_EXTRACTS):
+        unknown = int((~events["client_id"].isin(clients["client_id"])).sum())
+        results.append(
+            _result(
+                "events_without_client",
+                "events",
+                unknown,
+                len(events),
+                "events whose client is not in the client file",
+            )
+        )
+    return results
+
+
+def _stored_rows(con: duckdb.DuckDBPyConnection, row: object) -> int:
+    """Rows of one manifest entry in the warehouse: its landing table, or its canonical rows."""
+    extract, role, filename = (str(getattr(row, name)) for name in ("extract", "role", "filename"))
+    if table_exists(con, LANDING, extract):
+        return row_count(con, LANDING, extract)
+    if role == "events":
+        found = con.execute(
+            "select count(*) from raw.events where source_file = ?", [filename]
+        ).fetchone()
+        return int(found[0]) if found else 0
+    return row_count(con, RAW, role)
+
+
 def reconciliation_results(con: duckdb.DuckDBPyConnection) -> list[DQResult]:
     """Row counts in the warehouse against the manifest of the load."""
-    if not table_exists(con, "raw", "manifest"):
+    if not table_exists(con, RAW, "manifest"):
         return [
             _result(
                 "manifest_present",
@@ -576,11 +670,10 @@ def reconciliation_results(con: duckdb.DuckDBPyConnection) -> list[DQResult]:
                 when_nonzero="error",
             )
         ]
-    manifest = read_table(con, "raw", "manifest")
+    manifest = read_table(con, RAW, "manifest")
     results = []
     for row in manifest.itertuples(index=False):
-        stored = row_count(con, "raw", str(row.extract))
-        gap = abs(stored - int(str(row.rows)))
+        gap = abs(_stored_rows(con, row) - int(str(row.rows)))
         results.append(
             _result(
                 "rows_match_manifest",
@@ -596,8 +689,9 @@ def reconciliation_results(con: duckdb.DuckDBPyConnection) -> list[DQResult]:
 
 def run(con: duckdb.DuckDBPyConnection) -> list[DQResult]:
     """Run every check against the warehouse and store the report in ``raw.dq_report``."""
-    results = reconciliation_results(con) + run_checks(typed_raw_frames(con))
-    replace_table(con, "raw", "dq_report", pd.DataFrame([asdict(r) for r in results]))
+    frames = typed_raw_frames(con)
+    results = reconciliation_results(con) + run_checks(frames) + canonical_results(con, set(frames))
+    replace_table(con, RAW, "dq_report", pd.DataFrame([asdict(r) for r in results]))
     return results
 
 

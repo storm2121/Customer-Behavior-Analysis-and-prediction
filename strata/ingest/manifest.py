@@ -42,11 +42,19 @@ class Manifest(BaseModel):
     generator: dict[str, str | int] | None = None
     files: list[FileManifest]
     loaded_at: datetime
+    mapping: str | None = None
+    """The source mapping the files were read through (``mappings/<mapping>.yaml``)."""
+    mapping_sha256: str | None = None
 
     @property
     def fingerprint(self) -> str:
-        """sha256 of the content that identifies the data (timestamp excluded)."""
-        content = self.model_dump(mode="json", exclude={"loaded_at"})
+        """sha256 of the content that identifies the data.
+
+        The timestamp and the mapping are excluded: the fingerprint names the bytes, so the same
+        files give the same fingerprint whichever mapping read them. The ledger records the
+        mapping's digest separately and refuses to merge claims read through another mapping.
+        """
+        content = self.model_dump(mode="json", exclude={"loaded_at", "mapping", "mapping_sha256"})
         canonical = json.dumps(content, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 

@@ -3,24 +3,24 @@ version: 2
 sources:
   - name: raw
     description: >
-      The five extracts exactly as loaded by `strata ingest` after their contracts passed, plus the
-      ingest manifest and the data-quality report. Original (French) column names; `_source_row`
-      is each row's position in its file.
+      The canonical raw layer written by `strata ingest --mapping <file>`: whatever the source, its
+      clients, its dated events and its optional client aggregates arrive in the same three tables
+      (ARCHITECTURE section 5.0), so staging and everything above it are source-agnostic. The
+      ingest manifest and the data-quality report sit next to them.
     schema: raw
     tables:
       - name: clients
-        description: One row per client of the sample.
-      - name: card_transactions
-        description: One row per card transaction.
-      - name: online_operations
-        description: One row per online operation.
-      - name: branch_operations
-        description: One row per branch operation.
-      - name: aggregate_clients
+        description: One row per client, with the canonical client attributes.
+      - name: events
         description: >
-          A different sample of clients, pre-aggregated over the year. Every other row of the file
-          is empty; its identifiers match none of the client file.
+          One row per dated event of any channel: client, timestamp, channel, kind (the label of
+          the reference vocabulary), amount, direction, origin, currency, and the file and row it
+          came from.
+      - name: client_aggregates
+        description: >
+          Optional pre-aggregated clients. For the reference instance this is a different sample of
+          clients, and every other row of its file is empty.
       - name: manifest
-        description: One row per loaded file (hash, rows, columns, date range, fingerprint).
+        description: One row per loaded file (role, hash, rows, columns, date range, fingerprint).
       - name: dq_report
         description: The data-quality report written by `strata dq` (counts only).

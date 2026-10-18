@@ -149,3 +149,27 @@ def marker_matches(marker: Marker, data_dir: Path, names: Iterable[str]) -> bool
         ):
             return False
     return True
+
+
+def write_derived_marker(
+    out_dir: Path, files: Iterable[str], base: Marker, *, generator: str
+) -> Marker:
+    """Mark files derived from synthetic data (for example re-shaped into another schema).
+
+    The derived files are as synthetic as their base, so they may be ingested in the public zone;
+    the marker records their own hashes, so a real file copied among them is still refused.
+    """
+    hashes = {name: hashlib.sha256((out_dir / name).read_bytes()).hexdigest() for name in files}
+    marker = Marker(
+        generator=generator,
+        generator_version=base.generator_version,
+        strata_version=__version__,
+        seed=base.seed,
+        n_clients=base.n_clients,
+        config_digest=base.config_digest,
+        files=hashes,
+    )
+    (out_dir / SYNTHETIC_MARKER).write_text(
+        json.dumps(asdict(marker), indent=2, sort_keys=True) + "\n", encoding="utf-8", newline=""
+    )
+    return marker

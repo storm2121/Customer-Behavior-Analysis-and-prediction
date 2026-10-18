@@ -213,14 +213,18 @@ def _selected(only: list[str] | None) -> list[ClaimSpec]:
 
 
 def _merged(
-    previous: Ledger, records: list[ClaimRecord], fingerprint: str, attempted: set[str]
+    previous: Ledger,
+    records: list[ClaimRecord],
+    fingerprint: str,
+    attempted: set[str],
+    mapping_sha256: str | None = None,
 ) -> list[ClaimRecord]:
     """``records`` plus the claims of ``previous`` that were not attempted, for the same data.
 
     A claim that was attempted and skipped loses its old record: a stale number must not survive
     the claim failing on the current code.
     """
-    if previous.data_fingerprint != fingerprint:
+    if previous.data_fingerprint != fingerprint or previous.mapping_sha256 != mapping_sha256:
         return records
     kept = [record for record in previous.claims if record.id not in attempted]
     # Registry order, whatever order the modules were recomputed in.
@@ -281,10 +285,13 @@ def build_ledger(
         settings.assert_private_output(path)
     if only and path.is_file():
         attempted = {spec.id for spec in selected}
-        records = _merged(load_ledger(path), records, manifest.fingerprint, attempted)
+        records = _merged(
+            load_ledger(path), records, manifest.fingerprint, attempted, manifest.mapping_sha256
+        )
     ledger = Ledger(
         source_kind=source_kind,
         data_fingerprint=manifest.fingerprint,
+        mapping_sha256=manifest.mapping_sha256,
         computed_at=computed_at,
         claims=records,
     )
@@ -307,6 +314,7 @@ def _publish(settings: Settings, ledger: Ledger, skipped: dict[str, str]) -> Pat
     shared = Ledger(
         source_kind=ledger.source_kind,
         data_fingerprint=ledger.data_fingerprint,
+        mapping_sha256=ledger.mapping_sha256,
         computed_at=ledger.computed_at,
         claims=[public_view(record) for record in ledger.claims if record.public],
         verdicts=[verdict_view(record) for record in ledger.claims if is_verdict_only(record.id)],

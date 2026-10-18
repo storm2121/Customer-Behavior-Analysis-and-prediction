@@ -1,0 +1,526 @@
+{
+  "dq_report": [
+    {
+      "check_id": "age_out_of_range",
+      "count": 0,
+      "denominator": 1000.0,
+      "description": "aggregate-file ages below adulthood or above one hundred",
+      "extract": "aggregate_clients",
+      "status": "ok"
+    },
+    {
+      "check_id": "age_out_of_range",
+      "count": 0,
+      "denominator": 1000.0,
+      "description": "client ages below adulthood or above one hundred",
+      "extract": "clients",
+      "status": "ok"
+    },
+    {
+      "check_id": "aggregate_join_coverage",
+      "count": 0,
+      "denominator": 1000.0,
+      "description": "aggregate-file identifiers found in the client file (none means a different sample: any join is empty)",
+      "extract": "aggregate_clients",
+      "status": "warning"
+    },
+    {
+      "check_id": "clients_with_events",
+      "count": 660,
+      "denominator": 1000.0,
+      "description": "clients of the client file with at least one event here",
+      "extract": "branch_operations",
+      "status": "info"
+    },
+    {
+      "check_id": "clients_with_events",
+      "count": 715,
+      "denominator": 1000.0,
+      "description": "clients of the client file with at least one event here",
+      "extract": "card_transactions",
+      "status": "info"
+    },
+    {
+      "check_id": "clients_with_events",
+      "count": 592,
+      "denominator": 1000.0,
+      "description": "clients of the client file with at least one event here",
+      "extract": "online_operations",
+      "status": "info"
+    },
+    {
+      "check_id": "clients_without_events",
+      "count": 54,
+      "denominator": 1000.0,
+      "description": "clients with no event in any channel",
+      "extract": "clients",
+      "status": "info"
+    },
+    {
+      "check_id": "constant_columns",
+      "count": 9,
+      "denominator": 60.0,
+      "description": "columns holding a single value for every client",
+      "extract": "aggregate_clients",
+      "status": "info"
+    },
+    {
+      "check_id": "currency_not_mad",
+      "count": 0,
+      "denominator": 4135.0,
+      "description": "branch operations in a currency other than MAD",
+      "extract": "branch_operations",
+      "status": "ok"
+    },
+    {
+      "check_id": "direction_contradicts_label",
+      "count": 0,
+      "denominator": 4135.0,
+      "description": "branch rows whose direction contradicts an unambiguous label",
+      "extract": "branch_operations",
+      "status": "ok"
+    },
+    {
+      "check_id": "empty_rows",
+      "count": 1000,
+      "denominator": 2000.0,
+      "description": "rows with every field empty",
+      "extract": "aggregate_clients",
+      "status": "info"
+    },
+    {
+      "check_id": "exact_repeats",
+      "count": 21,
+      "denominator": 4135.0,
+      "description": "rows repeating an earlier row on every field; undecidable without an id",
+      "extract": "branch_operations",
+      "status": "warning"
+    },
+    {
+      "check_id": "exact_repeats",
+      "count": 1004,
+      "denominator": 30227.0,
+      "description": "rows repeating an earlier row on every field; undecidable without an id",
+      "extract": "card_transactions",
+      "status": "warning"
+    },
+    {
+      "check_id": "exact_repeats",
+      "count": 504,
+      "denominator": 20878.0,
+      "description": "rows repeating an earlier row on every field; undecidable without an id",
+      "extract": "online_operations",
+      "status": "warning"
+    },
+    {
+      "check_id": "implausible_children",
+      "count": 5,
+      "denominator": 1000.0,
+      "description": "clients with more than 15 children recorded",
+      "extract": "clients",
+      "status": "warning"
+    },
+    {
+      "check_id": "missing_amount",
+      "count": 3,
+      "denominator": 4135.0,
+      "description": "rows without an amount",
+      "extract": "branch_operations",
+      "status": "warning"
+    },
+    {
+      "check_id": "missing_amount",
+      "count": 6,
+      "denominator": 30227.0,
+      "description": "rows without an amount",
+      "extract": "card_transactions",
+      "status": "warning"
+    },
+    {
+      "check_id": "missing_amount",
+      "count": 0,
+      "denominator": 20878.0,
+      "description": "rows without an amount",
+      "extract": "online_operations",
+      "status": "ok"
+    },
+    {
+      "check_id": "missing_category",
+      "count": 58,
+      "denominator": 30227.0,
+      "description": "card rows without a category",
+      "extract": "card_transactions",
+      "status": "warning"
+    },
+    {
+      "check_id": "missing_direction",
+      "count": 3,
+      "denominator": 4135.0,
+      "description": "branch rows without a direction",
+      "extract": "branch_operations",
+      "status": "warning"
+    },
+    {
+      "check_id": "missing_marital_status",
+      "count": 2,
+      "denominator": 1000.0,
+      "description": "clients without a marital status",
+      "extract": "clients",
+      "status": "info"
+    },
+    {
+      "check_id": "online_flag_contradicts_operations",
+      "count": 0,
+      "denominator": 150.0,
+      "description": "clients coded without online access who have online operations",
+      "extract": "aggregate_clients",
+      "status": "ok"
+    },
+    {
+      "check_id": "orphan_events",
+      "count": 0,
+      "denominator": 4135.0,
+      "description": "events whose client is not in the client file",
+      "extract": "branch_operations",
+      "status": "ok"
+    },
+    {
+      "check_id": "orphan_events",
+      "count": 0,
+      "denominator": 30227.0,
+      "description": "events whose client is not in the client file",
+      "extract": "card_transactions",
+      "status": "ok"
+    },
+    {
+      "check_id": "orphan_events",
+      "count": 0,
+      "denominator": 20878.0,
+      "description": "events whose client is not in the client file",
+      "extract": "online_operations",
+      "status": "ok"
+    },
+    {
+      "check_id": "outside_window",
+      "count": 0,
+      "denominator": 4135.0,
+      "description": "events outside the rolling year",
+      "extract": "branch_operations",
+      "status": "ok"
+    },
+    {
+      "check_id": "outside_window",
+      "count": 0,
+      "denominator": 30227.0,
+      "description": "events outside the rolling year",
+      "extract": "card_transactions",
+      "status": "ok"
+    },
+    {
+      "check_id": "outside_window",
+      "count": 0,
+      "denominator": 20878.0,
+      "description": "events outside the rolling year",
+      "extract": "online_operations",
+      "status": "ok"
+    },
+    {
+      "check_id": "profession_block_missing",
+      "count": 511,
+      "denominator": 1000.0,
+      "description": "clients with no profession information",
+      "extract": "clients",
+      "status": "info"
+    },
+    {
+      "check_id": "profession_block_partial",
+      "count": 0,
+      "denominator": 1000.0,
+      "description": "clients with some but not all profession fields",
+      "extract": "clients",
+      "status": "ok"
+    },
+    {
+      "check_id": "rows",
+      "count": 2000,
+      "denominator": null,
+      "description": "rows in the file",
+      "extract": "aggregate_clients",
+      "status": "info"
+    },
+    {
+      "check_id": "rows",
+      "count": 4135,
+      "denominator": null,
+      "description": "rows in the file",
+      "extract": "branch_operations",
+      "status": "info"
+    },
+    {
+      "check_id": "rows",
+      "count": 30227,
+      "denominator": null,
+      "description": "rows in the file",
+      "extract": "card_transactions",
+      "status": "info"
+    },
+    {
+      "check_id": "rows",
+      "count": 1000,
+      "denominator": null,
+      "description": "rows in the file",
+      "extract": "clients",
+      "status": "info"
+    },
+    {
+      "check_id": "rows",
+      "count": 20878,
+      "denominator": null,
+      "description": "rows in the file",
+      "extract": "online_operations",
+      "status": "info"
+    },
+    {
+      "check_id": "rows_match_manifest",
+      "count": 0,
+      "denominator": 2000.0,
+      "description": "row-count gap between warehouse and manifest",
+      "extract": "aggregate_clients",
+      "status": "ok"
+    },
+    {
+      "check_id": "rows_match_manifest",
+      "count": 0,
+      "denominator": 4135.0,
+      "description": "row-count gap between warehouse and manifest",
+      "extract": "branch_operations",
+      "status": "ok"
+    },
+    {
+      "check_id": "rows_match_manifest",
+      "count": 0,
+      "denominator": 30227.0,
+      "description": "row-count gap between warehouse and manifest",
+      "extract": "card_transactions",
+      "status": "ok"
+    },
+    {
+      "check_id": "rows_match_manifest",
+      "count": 0,
+      "denominator": 1000.0,
+      "description": "row-count gap between warehouse and manifest",
+      "extract": "clients",
+      "status": "ok"
+    },
+    {
+      "check_id": "rows_match_manifest",
+      "count": 0,
+      "denominator": 20878.0,
+      "description": "row-count gap between warehouse and manifest",
+      "extract": "online_operations",
+      "status": "ok"
+    },
+    {
+      "check_id": "sub_one_mad",
+      "count": 41,
+      "denominator": 30227.0,
+      "description": "card amounts below one dirham",
+      "extract": "card_transactions",
+      "status": "info"
+    },
+    {
+      "check_id": "time_of_day_present",
+      "count": 0,
+      "denominator": 4135.0,
+      "description": "timestamps with a time other than midnight",
+      "extract": "branch_operations",
+      "status": "ok"
+    },
+    {
+      "check_id": "time_of_day_present",
+      "count": 0,
+      "denominator": 30227.0,
+      "description": "timestamps with a time other than midnight",
+      "extract": "card_transactions",
+      "status": "ok"
+    },
+    {
+      "check_id": "time_of_day_present",
+      "count": 0,
+      "denominator": 20878.0,
+      "description": "timestamps with a time other than midnight",
+      "extract": "online_operations",
+      "status": "ok"
+    },
+    {
+      "check_id": "unknown_direction",
+      "count": 0,
+      "denominator": 4135.0,
+      "description": "branch directions outside the code map",
+      "extract": "branch_operations",
+      "status": "ok"
+    },
+    {
+      "check_id": "unknown_genre",
+      "count": 0,
+      "denominator": 1000.0,
+      "description": "genre codes outside the code map",
+      "extract": "clients",
+      "status": "ok"
+    },
+    {
+      "check_id": "unknown_label",
+      "count": 0,
+      "denominator": 4135.0,
+      "description": "branch operations outside the code map",
+      "extract": "branch_operations",
+      "status": "ok"
+    },
+    {
+      "check_id": "unknown_label",
+      "count": 0,
+      "denominator": 30227.0,
+      "description": "card categories outside the code map",
+      "extract": "card_transactions",
+      "status": "ok"
+    },
+    {
+      "check_id": "unknown_label",
+      "count": 0,
+      "denominator": 20878.0,
+      "description": "online services outside the code map",
+      "extract": "online_operations",
+      "status": "ok"
+    },
+    {
+      "check_id": "unknown_origin",
+      "count": 0,
+      "denominator": 30227.0,
+      "description": "card origins outside the code map",
+      "extract": "card_transactions",
+      "status": "ok"
+    },
+    {
+      "check_id": "unknown_situation_familiale",
+      "count": 0,
+      "denominator": 1000.0,
+      "description": "situation_familiale codes outside the code map",
+      "extract": "clients",
+      "status": "ok"
+    },
+    {
+      "check_id": "withdrawal_not_multiple_of_100",
+      "count": 171,
+      "denominator": 7332.0,
+      "description": "withdrawals not a multiple of one hundred",
+      "extract": "card_transactions",
+      "status": "info"
+    },
+    {
+      "check_id": "zero_amount",
+      "count": 0,
+      "denominator": 4135.0,
+      "description": "rows with a zero amount",
+      "extract": "branch_operations",
+      "status": "ok"
+    },
+    {
+      "check_id": "zero_amount",
+      "count": 0,
+      "denominator": 30227.0,
+      "description": "rows with a zero amount",
+      "extract": "card_transactions",
+      "status": "ok"
+    },
+    {
+      "check_id": "zero_amount",
+      "count": 581,
+      "denominator": 20878.0,
+      "description": "rows with a zero amount",
+      "extract": "online_operations",
+      "status": "info"
+    },
+    {
+      "check_id": "zero_amount_outside_card_service",
+      "count": 0,
+      "denominator": 581.0,
+      "description": "zero-amount online rows that are not card-service operations",
+      "extract": "online_operations",
+      "status": "ok"
+    }
+  ],
+  "files": [
+    {
+      "columns": 9,
+      "date_max": null,
+      "date_min": null,
+      "extract": "clients",
+      "filename": "echantillons_clients(in).csv",
+      "line_terminator": "CRLF",
+      "rows": 1000,
+      "sha256": "4dbd006e9376a614fd95ca5769747b719067f3cb9937859a2151866ffac865a7",
+      "size_bytes": 34792
+    },
+    {
+      "columns": 5,
+      "date_max": "2024-09-29",
+      "date_min": "2023-10-02",
+      "extract": "card_transactions",
+      "filename": "transactions_monetiques_annee_glissante_anonymise(in).csv",
+      "line_terminator": "CRLF",
+      "rows": 30227,
+      "sha256": "57495589e2e29e2cf7d716ad1d5f6a8ffebd3dbba84cdc479921b175cb66f788",
+      "size_bytes": 2061598
+    },
+    {
+      "columns": 4,
+      "date_max": "2024-10-02",
+      "date_min": "2023-10-02",
+      "extract": "online_operations",
+      "filename": "operations_en_ligne_annee_glissante_anonymise(in).csv",
+      "line_terminator": "CRLF",
+      "rows": 20878,
+      "sha256": "00deeaeb2ae5bc7cd6d0bdff7dff7fa3b13996bff3623858aab09f4c9d753099",
+      "size_bytes": 1966800
+    },
+    {
+      "columns": 6,
+      "date_max": "2024-10-02",
+      "date_min": "2023-10-02",
+      "extract": "branch_operations",
+      "filename": "operations_en_agence_annee_glissante_anonymise(in).csv",
+      "line_terminator": "CRLF",
+      "rows": 4135,
+      "sha256": "f76a44fbd1d4bbf7df30de51b09a51eeedae6d80b0e21c95aa24f3613a2abfa3",
+      "size_bytes": 282294
+    },
+    {
+      "columns": 60,
+      "date_max": null,
+      "date_min": null,
+      "extract": "aggregate_clients",
+      "filename": "al_akhawayn_dataset_v2(in).csv",
+      "line_terminator": "CRLF",
+      "rows": 2000,
+      "sha256": "a181aebeafa1f03853a51a3f525a46d0db2dac75b99f84f03d926bc2dbbb92e0",
+      "size_bytes": 266434
+    }
+  ],
+  "fingerprint": "c4418043910db0638676e461693c2c186e1523b1f5096d0e7e2e53ec950f72a9",
+  "row_counts": {
+    "intermediate.int_channel_state": 13000,
+    "intermediate.int_client_month": 13000,
+    "intermediate.int_events": 55240,
+    "marts.aggregate_clients": 1000,
+    "marts.client_360": 1000,
+    "marts.daily_counts": 7707,
+    "marts.features_anomaly": 1000,
+    "marts.features_segments": 946,
+    "marts.features_silence": 2795,
+    "staging.stg_aggregate_clients": 1000,
+    "staging.stg_branch_operations": 4135,
+    "staging.stg_card_transactions": 30227,
+    "staging.stg_clients": 1000,
+    "staging.stg_online_operations": 20878
+  }
+}

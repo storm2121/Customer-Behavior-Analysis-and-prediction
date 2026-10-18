@@ -69,6 +69,7 @@ def table_exists(con: duckdb.DuckDBPyConnection, schema: str, table: str) -> boo
 
 
 def row_count(con: duckdb.DuckDBPyConnection, schema: str, table: str) -> int:
-    relation = con.table(f"{_identifier(schema)}.{_identifier(table)}")
-    found = relation.aggregate("count(*)").fetchone()
+    """Rows of a table or a view (identifiers are validated, so the query cannot be injected)."""
+    query = f"select count(*) from {_identifier(schema)}.{_identifier(table)}"  # noqa: S608
+    found = con.execute(query).fetchone()
     return int(found[0]) if found else 0

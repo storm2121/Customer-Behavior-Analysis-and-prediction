@@ -1,28 +1,37 @@
--- Row counts of the warehouse against the ingest manifest: every staged event file keeps all its
--- rows, the event table is their union, and the client marts hold every client exactly once.
+-- Row counts of the warehouse against the ingest manifest: the canonical event table keeps every
+-- row of the event files, each staging model keeps every canonical event of its channel, the event
+-- table is their union, and the client marts hold every client exactly once. Written against the
+-- manifest's roles, so it holds for every mapped source.
 with manifest as (
-    select extract, rows from {{ source('raw', 'manifest') }}
+    select role, rows from {{ source('raw', 'manifest') }}
+),
+
+events as (
+    select channel, count(*) as rows from {{ source('raw', 'events') }} group by channel
 ),
 
 expected as (
-    select 'stg_clients' as model, rows from manifest where extract = 'clients'
+    select 'stg_clients' as model, sum(rows) as rows from manifest where role = 'clients'
     union all
-    select 'client_360', rows from manifest where extract = 'clients'
+    select 'client_360', sum(rows) from manifest where role = 'clients'
     union all
-    select 'stg_card_transactions', rows from manifest where extract = 'card_transactions'
+    select 'raw_events', sum(rows) from manifest where role = 'events'
     union all
-    select 'stg_online_operations', rows from manifest where extract = 'online_operations'
+    select 'stg_card_transactions', coalesce(sum(rows), 0) from events where channel = 'card'
     union all
-    select 'stg_branch_operations', rows from manifest where extract = 'branch_operations'
+    select 'stg_online_operations', coalesce(sum(rows), 0) from events where channel = 'online'
     union all
-    select 'int_events', sum(rows) from manifest
-    where extract in ('card_transactions', 'online_operations', 'branch_operations')
+    select 'stg_branch_operations', coalesce(sum(rows), 0) from events where channel = 'branch'
+    union all
+    select 'int_events', sum(rows) from manifest where role = 'events'
 ),
 
 actual as (
     select 'stg_clients' as model, count(*) as rows from {{ ref('stg_clients') }}
     union all
     select 'client_360', count(*) from {{ ref('client_360') }}
+    union all
+    select 'raw_events', count(*) from {{ source('raw', 'events') }}
     union all
     select 'stg_card_transactions', count(*) from {{ ref('stg_card_transactions') }}
     union all

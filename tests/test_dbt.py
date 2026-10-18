@@ -62,7 +62,7 @@ def test_marts_row_counts_match_the_manifest(
     events = rows["card_transactions"] + rows["online_operations"] + rows["branch_operations"]
     assert scalar(con, "select count(*) from intermediate.int_events") == events
     non_empty = scalar(
-        con, "select count(*) from raw.aggregate_clients where identifier is not null"
+        con, "select count(*) from raw.client_aggregates where client_id is not null"
     )
     assert scalar(con, "select count(*) from marts.aggregate_clients") == non_empty
 

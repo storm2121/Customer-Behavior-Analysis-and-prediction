@@ -9,6 +9,7 @@ import duckdb
 import pytest
 
 from strata.config import SYNTHETIC_MARKER, PrivacyBoundaryError, Settings, Zone, is_within
+from strata.contracts.mapping import AGGREGATE_TYPES, CLIENT_TYPES, EVENT_COLUMNS
 from strata.contracts.specs import CARD, EXTRACTS
 from strata.ingest.load import Reconciliation, ingest, load_manifest, resolve_source
 from strata.warehouse import connect, read_table, replace_table, row_count, table_exists
@@ -58,14 +59,17 @@ def test_private_runs_refuse_unmarked_data_inside_the_repository(
         resolve_source(settings, Zone.PRIVATE, inside)
 
 
-def test_public_ingest_builds_the_raw_layer(public_warehouse: Settings) -> None:
+def test_public_ingest_builds_the_landing_and_canonical_layers(public_warehouse: Settings) -> None:
     workspace = public_warehouse.workspace(Zone.PUBLIC)
     con = connect(workspace.warehouse, read_only=True)
     try:
         for spec in EXTRACTS:
-            assert table_exists(con, "raw", spec.name.value)
-            stored = read_table(con, "raw", spec.name.value)
+            assert table_exists(con, "landing", spec.name.value)
+            stored = read_table(con, "landing", spec.name.value)
             assert list(stored.columns) == [*spec.columns, "_source_row"]
+        assert list(read_table(con, "raw", "events").columns) == list(EVENT_COLUMNS)
+        assert list(read_table(con, "raw", "clients").columns) == list(CLIENT_TYPES)
+        assert list(read_table(con, "raw", "client_aggregates").columns) == list(AGGREGATE_TYPES)
         manifest = read_table(con, "raw", "manifest")
         assert set(manifest["source_kind"]) == {"synthetic"}
         assert manifest["fingerprint"].nunique() == 1
