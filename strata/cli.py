@@ -201,6 +201,39 @@ def synth(
     console.print(table)
 
 
+@app.command("synth-twin")
+def synth_twin(
+    ctx: typer.Context,
+    out: Annotated[
+        Path | None,
+        typer.Option(
+            "--out", help="Destination under STRATA_PRIVATE_DIR (default: its twin folder)."
+        ),
+    ] = None,
+    epsilon: Annotated[
+        float, typer.Option("--epsilon", min=0.01, max=100.0, help="Privacy budget of the fit.")
+    ] = 1.0,
+    rows: Annotated[int, typer.Option("--rows", min=1, help="Twin rows.")] = 1000,
+    seed: Annotated[int | None, typer.Option("--seed", help="Defaults to STRATA_SEED.")] = None,
+) -> None:
+    """A differentially private twin of the real clients, with fidelity and privacy metrics.
+
+    Runs only in the private zone on the machine that holds the extract; the twin and its metrics
+    go under STRATA_PRIVATE_DIR, and a destination inside the repository is refused.
+    """
+    from strata.synthetic.twin import TwinConfig
+    from strata.synthetic.twin import run as build_twin
+
+    state = _state(ctx)
+    target = out if out is not None else state.settings.resolved_private_dir / "twin"
+    config = TwinConfig(
+        epsilon=epsilon, rows=rows, seed=state.settings.seed if seed is None else seed
+    )
+    for path in build_twin(state.settings, state.zone, target, config):
+        console.print(f"wrote {_describe(path, state)}")
+    console.print("Read the privacy and fidelity metrics before any use of the twin.")
+
+
 @app.command()
 def ingest(
     ctx: typer.Context,

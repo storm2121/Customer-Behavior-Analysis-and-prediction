@@ -17,3 +17,4 @@ Each record states its status, context, decision and consequences. A deviation f
 | [0010](0010-canonical-layer.md) | The canonical raw layer, its landing tables and its provenance | accepted |
 | [0011](0011-review-store.md) | The review store, and where real alerts may live | accepted |
 | [0012](0012-api-and-compose.md) | The API inside the package, and a Compose stack built on synthetic data | accepted |
+| [0013](0013-private-twin.md) | The private twin is a differentially private copula of the client table | proposed |
