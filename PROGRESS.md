@@ -153,3 +153,59 @@ the real data. Record exact commands and pass/fail counts.
   2. The meaning of several aggregate-file codes (`civilite`, `flag_debit_credit`,
      `flag_contrat_actif`) is undocumented and kept as categories.
 - Next: M2.
+
+### M2: dbt warehouse — done — 2026-10-18
+
+- Built:
+  - `dbt/` (dbt-core 1.12, dbt-duckdb 1.11): staging for the five extracts (English names, code maps
+    joined from seeds, exact-repeat and zero-amount flags kept as columns, the aggregate file's empty
+    rows dropped); `int_events` (the union of the three channels), `int_client_month` (a dense panel
+    of every client in every month with rolling three-month sums, events to date and months since
+    the last active month), `int_channel_state` (none / branch_only / digital_only / mixed, with the
+    previous month's state); marts `client_360`, `features_silence` (one row per cutoff of the
+    `silence_cutoffs` seed and client, features from events on or before the cutoff only),
+    `features_segments`, `features_anomaly` (deposit velocity, sub-threshold clusters, pass-through,
+    cash-to-card ratio, dormant-then-burst; thresholds are dbt variables), `daily_counts` (dense, with
+    day of week, five-day month bins, month, trend, holidays, Ramadan, the Eids and the pre-Eid week)
+    and `aggregate_clients` (the second sample with the two adoption targets).
+  - Tests on every model and seed: unique, not_null, accepted_values, relationships, and custom
+    generic tests (`non_negative`, `within_window`, `unique_combination`, `expression_is_true`,
+    `one_row_per_client_and_month` for the state partition); singular tests reconciling the
+    exact-repeat flags with the data-quality report, the models with the manifest, and a warn-level
+    check that the aggregate sample shares no identifier with the client file.
+  - New seeds read by both dbt and Python: age and tenure bands, the silence cutoffs with their
+    outcome windows, the calendar periods and the bank holidays (`kashf/holidays.py` now builds its
+    periods from them).
+  - `kashf dbt …` (`kashf/dbt_runner.py`): dbt in-process against the zone's warehouse, with target
+    and logs inside the zone and telemetry off; `justfile`: `dbt`, `private-dbt`; CI job `warehouse`.
+- Commands run and results:
+  - From an empty `.kashf/`: `uv run kashf synth --out .kashf/synth`, `uv run kashf ingest --data-dir .kashf/synth`,
+    `uv run kashf dq`, then `uv run kashf dbt seed` (PASS=12), `uv run kashf dbt run` (PASS=14),
+    `uv run kashf dbt test` (PASS=160, WARN=0, ERROR=0), `uv run kashf dbt docs generate` (catalog
+    written). `uv run kashf dbt build`: PASS=186, WARN=0, ERROR=0.
+  - Marts against the synthetic manifest (asserted in `tests/test_dbt.py` and in the singular dbt
+    test): `client_360` has one row per client, `int_events` holds every event row, the aggregate
+    mart every non-empty aggregate row, the channel states partition the clients in all thirteen
+    months, and no feature row has a last event after its cutoff.
+  - Locally on the real extract: `uv run kashf --private dq` exit 0, `uv run kashf --private dbt build`
+    PASS=186, WARN=0, ERROR=0; dbt target and logs written under `KASHF_PRIVATE_DIR`; nothing new in
+    the working tree.
+  - `uv run pytest`: 180 passed, 1 skipped (private); coverage 97.76%. `uv run mypy` (22 files) and
+    `uv run ruff check .`: clean. `just check`: exit 0.
+- Decisions:
+  - `features_silence` is "parameterised by cutoff" through the seed rather than a dbt variable: one
+    model holds every cutoff, so the rolling-origin backtests of M5 read one table.
+  - Day-of-month bins, bands, cutoffs and calendar periods are each defined once (SQL or seed), and
+    the duplicate Python helper for the bins was removed (AGENT_RULES §3.6).
+  - The public zone's dbt target and logs moved to `.kashf/dbt/` (the private zone's were already
+    under `KASHF_PRIVATE_DIR`), so tests and demo runs never write into `dbt/`.
+  - dbt-duckdb keeps a DuckDB handle open after a command and its `close_all_connections` only
+    drops the reference; `release_duckdb()` closes it explicitly so the same process can open the
+    warehouse read-only afterwards (needed by the ledger and the API). It touches an adapter
+    internal and tolerates a change in its shape.
+  - No dbt packages (no network dependency at build time); the few generic tests needed are local
+    macros.
+- Stubbed or skipped, and why: nothing stubbed. On private runs dbt's own log lines show the
+  private folder's path in the terminal (documented in PRIVACY.md; nothing is written to the repo).
+- Open questions for the architect: none new.
+- Next: M3.
