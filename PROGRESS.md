@@ -307,3 +307,118 @@ below). Entries above this one use the old names (`kashf`, `KASHF_*`, `.kashf/`)
   2. The README's governed section now shows the four allow-listed real aggregates. Please confirm
      the allowlist is final before anything leaves the machine.
 - Next: M4.
+
+### M4: Calendar, seasonality, concentration, Benford, Markov simulator — done — 2026-10-18
+
+- Built:
+  - `strata/analysis/calendar.py`: one negative-binomial (NB2) regression per daily series (all card
+    events, card withdrawals, card deposits, branch deposits on open days, online operations) on
+    day of week, five-day bins of the month, sum-coded month and the Ramadan, Eid, pre-Eid and
+    national-holiday terms; client-bootstrap intervals from refits at the fitted dispersion.
+  - `strata/analysis/calendar_bayes.py`: the same model in PyMC with weakly informative priors,
+    posterior medians and credible intervals, P(December card deposits > 2×), posterior predictive
+    coverage and a standard-deviation check, R-hat, bulk ESS and divergences.
+  - `strata/analysis/seasonality.py`: STL strength of the weekly cycle and of the trend, the
+    December breadth and depth decomposition, the weekday-standardised ratio (the M3 claims now use
+    these shared, tested functions).
+  - `strata/analysis/markov.py`: transition counts between complete months, Dirichlet(1) posterior
+    rows, stationary distribution, mean first-passage times, policies (share, filter, target
+    state), paired posterior paths and 5/50/95% bands of branch load, digital share and silent
+    share; the RFM quintile scores and per-client digit matrices for the other modules.
+  - Eight new claims, twenty-three in all: `calendar_effects`, `calendar_bayes`,
+    `weekly_seasonality`, `rfm_by_channel`, `benford_by_category` (first and first-two digits per
+    category), `benford_two_digits`, `channel_markov`, `markov_policy_simulation`.
+  - `strata analyse [all|calendar|seasonality|concentration|benford|markov] [--quick]`: recomputes
+    each module's claims (merged into the zone's ledger), writes Plotly figures to the zone's
+    figures folder (calendar forest plot, STL per channel, Lorenz curves, leading digits, the
+    policy fan chart), prints the sample policy's bands against the baseline, and saves the
+    simulator's inputs and bands (`analysis/markov_simulator.json` in the zone's workspace) for the
+    API of M7.
+  - Ledger: an interval label on every claim (95% CI, 95% credible interval, 90% posterior
+    interval) used wherever an interval is rendered; `--quick` effort for model claims, marked in
+    every claim and refused by `--public`; `--only` builds merge into the ledger of the same data
+    in registry order, refuse unknown ids, and drop the old record of a claim that is attempted
+    and skipped.
+  - `docs/methods/` pages with the equations of every module (calendar, seasonality,
+    concentration, Benford, Markov); ADR 0007 and ADR 0009; `just analyse` and
+    `just private-analyse`; CI runs `strata analyse all --quick` after the ledger build.
+- Commands run and results:
+  - `uv run strata dbt build` (synthetic) and `uv run strata --private dbt build`, after the
+    `daily_counts` fix below: PASS=186, WARN=0, ERROR=0 on both.
+  - `uv run strata analyse all --quick` (synthetic): exit 0; every module's claims computed, none
+    skipped; seven figures and the simulator file written under `.strata/`; the sample policy's
+    bands printed for months zero, one, three, six and twelve (DoD: the simulator returns bands for
+    a sample policy).
+  - `uv run strata analyse all` (synthetic, full effort): exit 0 in about seventy seconds.
+  - `uv run strata --private analyse all` (full effort): exit 0 in under eighty seconds; all
+    fifteen module claims present at full effort, none skipped; seven figures and the simulator
+    file written under `STRATA_PRIVATE_DIR`. The command's output went to the private log folder;
+    I read only the exit code, the claim ids present and the file names.
+  - `uv run strata --private ledger build --public`: twenty-three claims, none skipped. The public
+    file's values, intervals and robustness results are identical to the committed ones; only
+    `computed_at` and the new `interval_label` field changed, and that refresh is committed.
+  - `uv run strata ledger render` and `uv run strata ledger check`: documents unchanged and in
+    agreement with the ledger, no hand-typed numbers.
+  - `uv run strata --private report --variant private`: the private report, now with all
+    twenty-three claims (none at quick effort), rewritten under `STRATA_PRIVATE_DIR`.
+  - `just check`: exit 0 (ruff format and check, mypy on 52 files, pytest 330 passed and 1 skipped
+    with coverage 97.37%, privacy scan clean with the identifier rule derived from the extract,
+    ledger check). `uv run pytest --run-private -m private`: 1 passed.
+    `uv run pre-commit run --all-files`: every hook passed.
+- Decisions (with ADR ids where relevant):
+  - ADR 0007: PyMC 6 with PyTensor's Python backend (no C++ compiler on this machine; it installed
+    in minutes, so the NumPyro and Laplace fallbacks were not needed). NUTS with one process, seeded
+    by the master seed; full effort four chains of a thousand draws after a thousand tuning steps,
+    quick effort two chains of three hundred.
+  - ADR 0009 (a deviation from ARCHITECTURE section 9): no separate trend term, because one year
+    cannot separate month from trend and the trend coefficient would only measure drift within
+    months; month effects are against the average month and carry that caveat. The bank-holiday
+    term covers the national holidays and the Eids keep their own terms, so every holiday effect is
+    read against ordinary days. Branch series are modelled on open days.
+  - Fix: `daily_counts.is_bank_holiday` left out the two Eids, so branch series counted them as
+    open days and the Eid terms of the branch model were degenerate. It now has the definition of
+    `strata.holidays.is_bank_holiday`, and a test keeps the mart and the Python function in
+    agreement day by day.
+  - Model claims use the client bootstrap like every other claim: daily series are rebuilt from
+    resampled clients and refitted (two hundred refits at full effort), because days share their
+    clients and are not independent units.
+  - Simulator: policy and baseline are projected with the same posterior draw, so their difference
+    is exact draw by draw; the claim reports differences at months zero, one, three and twelve and
+    the branch operations saved over the horizon, plus the branch operations per client-month of
+    each state. The model can show branch load rising under a move to mixed use, if mixed-use
+    clients make more branch operations than branch-only clients; the methods page and the claim's
+    caveat say so rather than hiding it.
+  - The sample policy is thirty per cent of branch-only clients under 45 moving to mixed use (the
+    age filter is the ARCHITECTURE example; the share is my choice). A policy may also target
+    digital-only use or silence.
+  - RFM scores give tied values one score (average ranks), and the bootstrap holds the quintile
+    cut-offs fixed (stated in the claim). Two-digit Benford tests run per category only where there
+    are at least a thousand amounts.
+  - Figures are HTML pages sharing one `plotly.min.js` per folder; a private run writes them, the
+    simulator file and the claims under `STRATA_PRIVATE_DIR` only, and refuses any other location.
+- Stubbed or skipped, and why:
+  - No NumPyro or Laplace backend: PyMC installed cleanly, so ARCHITECTURE's fallbacks were not
+    triggered.
+  - No posterior plots for the Bayesian model; its diagnostics are claim values instead. One figure
+    per module (STL for each channel).
+  - The simulator projects expected counts, so its bands carry the uncertainty of the transition
+    matrix only. The saved file holds state-level aggregates, enough for the sample policy and for
+    any share; filters other than the sample's will need state counts by age band, to be decided
+    with the API in M7.
+  - CI has not run on these commits because nothing is pushed (as instructed). The report is still
+    HTML only (no PDF). M4.5 is after my stopping point and is not started.
+- Open questions for the architect:
+  1. The bank-holiday seed has the fixed national holidays and the code adds the two Eids; Islamic
+     New Year and the Prophet's birthday (Mawlid), also public holidays in Morocco, are not in it
+     because their dates follow the official moon-sighting announcement, which I could not verify
+     offline. Please confirm the dates in the window to add them (they change open days and the
+     holiday term). The same applies to the Ramadan and Eid dates already in the seed.
+  2. Should any M4 claim be allow-listed (for example the weekly cycle or the calendar rate
+     ratios)? All of them are private today.
+  3. Is the sample policy (thirty per cent, under 45, to mixed use) the one to showcase, or is there
+     a policy the bank would rather see simulated?
+  4. Is a second year of the extract available? It would separate month from trend (ADR 0009) and
+     let the chain's matrix vary by season.
+  5. Still open from M3: allow-listing the `silence_by_channel` verdict, and confirming that the
+     allowlist is final.
+- Next: stop and report (MILESTONES M4); M4.5 (source mappings) when the architect says so.
