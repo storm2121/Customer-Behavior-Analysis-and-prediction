@@ -52,7 +52,7 @@ jobs:
       - run: uv run kashf privacy-check --all-files
 
   warehouse:
-    name: warehouse on synthetic data (ingest, data quality, dbt build and docs)
+    name: warehouse and ledger on synthetic data (ingest, quality, dbt, claims, demo report)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,3 +65,16 @@ jobs:
       - run: uv run kashf dq
       - run: uv run kashf dbt build
       - run: uv run kashf dbt docs generate
+      - run: uv run kashf ledger build
+      - run: uv run kashf report --variant public
+
+  ledger:
+    name: ledger check (documents match the public claims)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync
+      - run: uv run kashf ledger check

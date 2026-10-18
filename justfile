@@ -38,8 +38,12 @@ test:
 privacy:
     uv run --frozen kashf privacy-check --all-files
 
+# The documents say exactly what the public ledger says (drift, hand-typed numbers, allowlist).
+ledger-check:
+    uv run --frozen kashf ledger check
+
 # Everything CI runs. A milestone is done only when this is green.
-check: lint test privacy
+check: lint test privacy ledger-check
 
 # Write the public synthetic extract.
 synth:
@@ -58,6 +62,11 @@ dbt: dq
     uv run --frozen kashf dbt build
     uv run --frozen kashf dbt docs generate
 
+# Every claim on the synthetic warehouse, and the public demo report.
+ledger: dbt
+    uv run --frozen kashf ledger build
+    uv run --frozen kashf report --variant public
+
 # Private zone: load the real extract from KASHF_DATA_DIR; outputs go to KASHF_PRIVATE_DIR only.
 private-ingest:
     uv run --frozen kashf --private ingest
@@ -66,6 +75,16 @@ private-ingest:
 # Private zone: the warehouse on the real extract (dbt target and logs stay private too).
 private-dbt: private-ingest
     uv run --frozen kashf --private dbt build
+
+# Private zone: every claim on the real extract and the private report (private folder only).
+private-report: private-dbt
+    uv run --frozen kashf --private ledger build
+    uv run --frozen kashf --private report --variant private
+
+# Refresh the allow-listed public claims from the real extract and re-render the documents.
+publish-claims: private-dbt
+    uv run --frozen kashf --private ledger build --public
+    uv run --frozen kashf ledger render
 
 # Run every pre-commit hook over the whole tree.
 hooks:
