@@ -18,6 +18,7 @@ from pathlib import Path
 
 from strata.analysis import calendar, figures, markov
 from strata.config import Settings, Workspace, Zone
+from strata.contracts.vocab import age_bands
 from strata.ledger.build import build_ledger
 from strata.ledger.claims.digits import BENFORD_SERIES, MIN_AMOUNTS
 from strata.ledger.claims.markov import PolicyRun, run_policy
@@ -109,6 +110,12 @@ def simulator_payload(run: PolicyRun) -> dict[str, object]:
         "transition_counts": run.counts.tolist(),
         "branch_rates": run.rates,
         "start_counts": run.start.tolist(),
+        "start_counts_by_age_band": {
+            band: counts.tolist() for band, counts in run.start_by_age_band.items()
+        },
+        "age_bands": [
+            {"band": band.label, "lower": band.lower, "upper": band.upper} for band in age_bands()
+        ],
         "posterior_samples": run.n_samples,
         "sample_policy": {
             "description": run.policy.description,

@@ -15,12 +15,14 @@ the extra noise of a finite population.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+
+from strata.contracts.vocab import Band, band_of
 
 FloatArray = npt.NDArray[np.float64]
 
@@ -83,6 +85,16 @@ def mean_first_passage(matrix: FloatArray) -> FloatArray:
     return np.asarray(passage, dtype=np.float64)
 
 
+def validate_move(share: float, target: str) -> None:
+    """A policy moves a proportion of the branch-only clients to another state."""
+    if not 0.0 <= share <= 1.0:
+        msg = "a policy share is a proportion between zero and one"
+        raise ValueError(msg)
+    if target not in STATES or target == "branch_only":
+        msg = "a policy moves branch-only clients to none, digital_only or mixed"
+        raise ValueError(msg)
+
+
 @dataclass(frozen=True, slots=True)
 class Policy:
     """Move ``share`` of the branch-only clients chosen by ``eligible`` to ``target`` at month 0."""
@@ -93,12 +105,7 @@ class Policy:
     target: str = "mixed"
 
     def __post_init__(self) -> None:
-        if not 0.0 <= self.share <= 1.0:
-            msg = "a policy share is a proportion between zero and one"
-            raise ValueError(msg)
-        if self.target not in STATES or self.target == "branch_only":
-            msg = "a policy moves branch-only clients to none, digital_only or mixed"
-            raise ValueError(msg)
+        validate_move(self.share, self.target)
 
 
 TARGET_WORDS = {"mixed": "mixed use", "digital_only": "digital only", "none": "no activity"}
@@ -139,6 +146,41 @@ def initial_counts(month_states: pd.DataFrame, clients: pd.DataFrame, policy: Po
     counts[STATES.index("branch_only")] -= moved
     counts[STATES.index(policy.target)] += moved
     return counts
+
+
+def counts_by_band(
+    month_states: pd.DataFrame, clients: pd.DataFrame, bands: Sequence[Band]
+) -> dict[str, FloatArray]:
+    """Clients per state in the starting month, for every age band (and ``missing``).
+
+    With these counts a policy filtered on age bands can be applied without client rows, which is
+    what the API and the dashboard's sliders need.
+    """
+    joined = month_states.merge(clients[["client_id", "age"]], on="client_id", how="left")
+    labels = pd.Series(
+        [band_of(None if pd.isna(age) else float(age), tuple(bands)) for age in joined["age"]],
+        index=joined.index,
+        dtype="object",
+    ).fillna("missing")
+    names = [*(band.label for band in bands), "missing"]
+    return {
+        name: np.array(
+            [float(((labels == name) & (joined["channel_state"] == s)).sum()) for s in STATES]
+        )
+        for name in names
+    }
+
+
+def banded_start(
+    by_band: dict[str, FloatArray], eligible: Sequence[str], share: float, target: str = "mixed"
+) -> FloatArray:
+    """Starting counts after moving ``share`` of the branch-only clients of ``eligible`` bands."""
+    validate_move(share, target)
+    start = np.sum(list(by_band.values()), axis=0).astype(np.float64)
+    moved = share * sum(float(by_band[band][STATES.index("branch_only")]) for band in eligible)
+    start[STATES.index("branch_only")] -= moved
+    start[STATES.index(target)] += moved
+    return start
 
 
 Paths = dict[str, FloatArray]

@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from strata.analysis import markov
+from strata.contracts.vocab import age_bands
 from strata.ledger.bootstrap import claim_seed
 from strata.ledger.claims._common import require
 from strata.ledger.model import Unit
@@ -71,6 +72,7 @@ class PolicyRun:
     policy_paths: markov.Paths
     n_clients: int
     n_samples: int
+    start_by_age_band: dict[str, markov.FloatArray]
 
 
 def run_policy(
@@ -93,6 +95,7 @@ def run_policy(
         policy_paths=markov.simulate_paths(fitted.samples, policy_start, rates, horizon),
         n_clients=int(latest["client_id"].nunique()),
         n_samples=int(fitted.samples.shape[0]),
+        start_by_age_band=markov.counts_by_band(latest, clients, age_bands()),
     )
 
 
