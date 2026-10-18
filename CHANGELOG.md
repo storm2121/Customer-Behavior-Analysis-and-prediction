@@ -130,6 +130,17 @@ instance and the synthetic generator a first-class source.
   fixtures, Playwright smoke tests with axe checks on desktop and phone. `Dockerfile.dashboard`
   (nginx, same-origin `/api/` proxy) replaces the Compose placeholder; `/overview`,
   `/segments/points` and `/risk/silence/evaluation` were added to the API for it.
+- Orchestration (ADR 0005): the Airflow 3 DAG `strata_daily` built from a plan kept as plain data
+  (`orchestration/airflow/dags/strata_pipeline.py`), every task one call of the `strata` CLI, one
+  task at a time; `Dockerfile.airflow` (Airflow and Strata in separate environments), the Compose
+  profile `orchestration` and `just dag-test` (`airflow dags test strata_daily`).
+- `strata evaluate`: the pipeline's gate; every model trained on the data now in the warehouse
+  and better than chance, or the run stops before the ledger and the report.
+- `strata --private synth-twin` (ADR 0013): a differentially private Gaussian copula of the
+  client table (Laplace noise on fixed-bin histograms and on Kendall's tau), its fidelity metrics
+  (Kolmogorov-Smirnov and total-variation distances, Spearman gaps, a real-or-twin classifier) and
+  privacy metrics (distances to the closest record, binned matches, a membership-inference attack),
+  written under `STRATA_PRIVATE_DIR` only; refused in CI and anywhere inside the repository.
 
 ### Changed
 

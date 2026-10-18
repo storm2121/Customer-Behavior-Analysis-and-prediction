@@ -103,6 +103,17 @@ branch-operation rates, all aggregates) under `STRATA_PRIVATE_DIR` and refuses a
 the figures are drawn from real data and are not published. Its terminal table of the sample
 policy's bands is for the person running it, not a publication channel.
 
+The dashboard bundles no data: every figure, including the public claims, is fetched from the API at
+run time, and its build fails if a built file holds a value or the fingerprint of the public ledger,
+an identifier-shaped token, a synthetic client id or a data file (`scripts/check-bundle.mjs`).
+
+The private twin (`strata --private synth-twin`, ADR 0013) is a differentially private copula of
+the client table. It refuses to run in CI, refuses any destination inside the repository and any
+destination outside `STRATA_PRIVATE_DIR`, writes the twin and its fidelity and privacy metrics there
+only, carries no synthetic marker (so a public ingest refuses it) and prints file names, never a
+metric. The evaluation gate of the daily pipeline (`strata evaluate`) names its checks and their
+outcome, never a value, so it can run in either zone.
+
 ## Logs and errors
 
 Log records go to standard error through `structlog`; fields named like identifiers are replaced
