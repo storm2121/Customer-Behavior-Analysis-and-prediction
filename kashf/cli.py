@@ -267,6 +267,23 @@ def dq(ctx: typer.Context) -> None:
         raise typer.Exit(code=1)
 
 
+@app.command(
+    "dbt",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)
+def dbt_command(ctx: typer.Context) -> None:
+    """Run dbt on the zone's warehouse: `kashf dbt build`, `kashf dbt docs generate`, ..."""
+    from kashf.dbt_runner import run_dbt
+
+    state = _state(ctx)
+    if not ctx.args:
+        err_console.print("kashf dbt: give a dbt command, for example `kashf dbt build`")
+        raise typer.Exit(code=2)
+    result = run_dbt(state.settings, state.zone, list(ctx.args))
+    if not result.success:
+        raise typer.Exit(code=1)
+
+
 def _report_failure(error: BaseException) -> None:
     """Print a sanitised error; keep the full traceback in the private log on private runs."""
     message = mask_identifiers(str(error))[:500]

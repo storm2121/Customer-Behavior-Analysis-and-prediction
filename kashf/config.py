@@ -172,8 +172,8 @@ class Settings(BaseSettings):
             ledger_dir=work / "ledger",
             reports_dir=work / "reports",
             figures_dir=work / "figures",
-            dbt_target_dir=self.repo_root / "dbt" / "target",
-            dbt_log_dir=self.repo_root / "dbt" / "logs",
+            dbt_target_dir=work / "dbt" / "target",
+            dbt_log_dir=work / "dbt" / "logs",
         )
 
     def assert_private_output(self, path: Path) -> Path:
