@@ -5,6 +5,8 @@ description = "Retail-banking behaviour analytics with an evidence ledger, a rob
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "dbt-core>=1.8",
+    "dbt-duckdb>=1.8",
     "duckdb>=1.1",
     "numpy>=1.26",
     "pandas>=2.2",
