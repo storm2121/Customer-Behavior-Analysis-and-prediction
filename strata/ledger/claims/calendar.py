@@ -22,7 +22,14 @@ from strata.holidays import (
     is_bank_holiday,
 )
 from strata.ledger.bootstrap import percentile_interval
-from strata.ledger.claims._common import WEEKDAYS, FloatArray, per_client_matrix, require, shares
+from strata.ledger.claims._common import (
+    MONTH_TREND_CAVEAT,
+    WEEKDAYS,
+    FloatArray,
+    per_client_matrix,
+    require,
+    shares,
+)
 from strata.ledger.model import Unit
 from strata.ledger.registry import ClaimContext, ClaimError, ClaimResult, claim
 
@@ -163,6 +170,7 @@ def december_deposit_wave(context: ClaimContext) -> ClaimResult:
         n=len(clients),
         n_events=len(deposits),
         caveats=[
+            MONTH_TREND_CAVEAT,
             "One December in the window: the wave cannot be told apart from a one-off event.",
             "Card deposits are a small category; a few clients move the ratios.",
         ],
@@ -282,6 +290,7 @@ def ramadan_card_effect(context: ClaimContext) -> ClaimResult:
         n=n_clients,
         n_events=len(events),
         caveats=[
+            MONTH_TREND_CAVEAT,
             (
                 "One Ramadan in the window; a ratio close to one means no detectable change, not "
                 "proof of none."
@@ -328,6 +337,7 @@ def pre_eid_branch_deposits(context: ClaimContext) -> ClaimResult:
         n=n_clients,
         n_events=len(deposits),
         caveats=[
+            MONTH_TREND_CAVEAT,
             "One Eid al-Adha in the window; the week before it is five working days.",
             "Large deposits weigh heavily on the amount ratio.",
         ],

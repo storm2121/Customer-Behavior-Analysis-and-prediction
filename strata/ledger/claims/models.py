@@ -9,7 +9,7 @@ from strata.analysis import calendar as cal
 from strata.analysis.calendar_bayes import FULL, QUICK, fit_bayes
 from strata.analysis.seasonality import weekly_strength
 from strata.ledger.bootstrap import percentile_interval
-from strata.ledger.claims._common import require
+from strata.ledger.claims._common import MONTH_TREND_CAVEAT, require
 from strata.ledger.model import Unit
 from strata.ledger.registry import ClaimContext, ClaimResult, claim
 
@@ -31,7 +31,7 @@ EFFECT_LABELS = {
     "eid_al_fitr": "Eid al-Fitr",
     "eid_al_adha": "Eid al-Adha",
     "pre_eid_al_adha_week": "the week before Eid al-Adha",
-    "bank_holiday": "national bank holidays (the Eids have their own terms)",
+    "bank_holiday": "bank holidays other than the Eids (national and religious)",
     "dow_sat": "Saturday against Monday",
     "dow_sun": "Sunday against Monday",
 }
@@ -55,7 +55,7 @@ def _calendar_inputs(context: ClaimContext) -> tuple[pd.DataFrame, pd.DataFrame]
         "Negative-binomial regression of each daily series (daily_counts) on day of week, five-day "
         "bins of the month, calendar month in sum-to-zero coding (one year cannot separate month "
         "from trend), and indicators for Ramadan, the Eids, the week before Eid al-Adha and the "
-        "national holidays; branch series on open days only. Rate ratios with client-bootstrap "
+        "other bank holidays; branch series on open days only. Rate ratios with client-bootstrap "
         "intervals from refits at the fitted dispersion."
     ),
 )
@@ -102,7 +102,7 @@ def calendar_effects(context: ClaimContext) -> ClaimResult:
                 "One year of data: each special period (one Ramadan, one December) is observed "
                 "once, so an effect cannot be told apart from a one-off event in the same weeks."
             ),
-            "Month effects absorb any trend over the year.",
+            MONTH_TREND_CAVEAT,
             "Dates may be posting dates; weekend effects partly reflect posting calendars.",
             "Intervals hold the dispersion at its fitted value across bootstrap refits.",
         ],
@@ -176,6 +176,7 @@ def calendar_bayes(context: ClaimContext) -> ClaimResult:
         n=len(clients),
         meta=meta,
         caveats=[
+            MONTH_TREND_CAVEAT,
             (
                 "Posterior probabilities depend on the priors; with a single December the data "
                 "cannot separate a seasonal wave from a one-off event."

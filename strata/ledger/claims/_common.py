@@ -16,6 +16,12 @@ FloatArray = npt.NDArray[np.float64]
 IntArray = npt.NDArray[np.int64]
 
 WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
+
+MONTH_TREND_CAVEAT = (
+    "One year of data: month and trend cannot be separated, so the effect of a month or of a "
+    "period includes any trend over the year (ADR 0009)."
+)
+"""The limitation every calendar result carries (there is no second year to separate the two)."""
 """ISO weekday order (Monday is 1)."""
 
 
