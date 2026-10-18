@@ -29,7 +29,9 @@ def test_version_flag() -> None:
     assert __version__ in result.output
 
 
-def test_info_in_the_public_zone_shows_repository_paths() -> None:
+def test_info_in_the_public_zone_shows_repository_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("KASHF_DB")  # `info` writes nothing, so the defaults are safe here
+    monkeypatch.delenv("KASHF_WORK_DIR")
     result = runner.invoke(cli.app, ["info"])
     assert result.exit_code == 0
     assert "public" in result.output

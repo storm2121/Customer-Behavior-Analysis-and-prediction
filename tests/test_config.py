@@ -23,7 +23,11 @@ def make(tmp_path: Path, **overrides: object) -> Settings:
     return Settings(_env_file=None, repo_root=repo, **overrides)  # type: ignore[call-arg]
 
 
-def test_relative_paths_resolve_against_the_repository(tmp_path: Path) -> None:
+def test_relative_paths_resolve_against_the_repository(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("KASHF_DB")
+    monkeypatch.delenv("KASHF_WORK_DIR")
     settings = make(tmp_path)
     assert settings.db == settings.repo_root / ".kashf" / "kashf.duckdb"
     assert settings.work_dir == settings.repo_root / ".kashf"

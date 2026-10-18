@@ -13,8 +13,17 @@ import subprocess
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+from kashf.config import Settings, Zone
+
+if TYPE_CHECKING:
+    from kashf.synthetic.parametric import SyntheticExtract
+
+# Fixtures import the pipeline lazily: collecting the suite stays fast, and a test module that
+# needs only the guard or the settings never imports pandas, DuckDB or dbt.
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -53,10 +62,54 @@ def _isolated_environment(
     for key in list(os.environ):
         if key.startswith("KASHF_"):
             monkeypatch.delenv(key, raising=False)
+    # No test may write into the developer's public workspace.
+    monkeypatch.setenv("KASHF_DB", str(tmp_path / "work" / "kashf.duckdb"))
+    monkeypatch.setenv("KASHF_WORK_DIR", str(tmp_path / "work"))
     monkeypatch.chdir(tmp_path)
 
 
 GitRunner = Callable[..., str]
+
+
+@pytest.fixture(scope="session")
+def synthetic_extract() -> SyntheticExtract:
+    """The default public synthetic extract (1,000 clients, seed 42), in memory."""
+    from kashf.synthetic.parametric import ParametricConfig, generate
+
+    return generate(ParametricConfig())
+
+
+@pytest.fixture(scope="session")
+def synthetic_dir(
+    tmp_path_factory: pytest.TempPathFactory, synthetic_extract: SyntheticExtract
+) -> Path:
+    """The default synthetic extract written to disk, exactly as `kashf synth` writes it."""
+    from kashf.synthetic.writer import write_extract
+
+    folder = tmp_path_factory.mktemp("synth")
+    write_extract(synthetic_extract, folder)
+    return folder
+
+
+def public_settings(root: Path) -> Settings:
+    """Settings whose public workspace lives under ``root`` (independent of the environment)."""
+    return Settings(  # type: ignore[call-arg]
+        _env_file=None,
+        db=root / "kashf.duckdb",
+        work_dir=root,
+        data_dir=None,
+        private_dir=None,
+    )
+
+
+@pytest.fixture(scope="session")
+def public_warehouse(tmp_path_factory: pytest.TempPathFactory, synthetic_dir: Path) -> Settings:
+    """A public warehouse ingested from :func:`synthetic_dir`, shared by read-only tests."""
+    from kashf.ingest.load import ingest
+
+    settings = public_settings(tmp_path_factory.mktemp("warehouse"))
+    ingest(settings, Zone.PUBLIC, synthetic_dir)
+    return settings
 
 
 @pytest.fixture
