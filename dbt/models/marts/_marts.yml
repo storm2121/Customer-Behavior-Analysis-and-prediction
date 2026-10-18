@@ -110,7 +110,8 @@ models:
   - name: daily_counts
     description: >
       Dense daily series per channel and kind with calendar columns (day of week, five-day bins of
-      the month, month, trend, bank holidays, Ramadan, the Eids and the week before Eid al-Adha).
+      the month, month, trend, bank holidays (national holidays and the two Eids), Ramadan, the Eids
+      and the week before Eid al-Adha).
     columns:
       - name: day
         data_tests: [not_null, within_window]

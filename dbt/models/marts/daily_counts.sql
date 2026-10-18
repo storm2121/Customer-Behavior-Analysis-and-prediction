@@ -57,7 +57,16 @@ select
     month(days.day) as month,
     strftime(days.day, '%Y-%m') as year_month,
     date_diff('day', {{ window_start() }}, days.day) as trend_day,
-    days.day in (select holiday_date from holidays) as is_bank_holiday,
+    -- A bank holiday is a day branches close: the fixed national holidays and the two Eids, the
+    -- same definition as strata.holidays.is_bank_holiday.
+    (
+        days.day in (select holiday_date from holidays)
+        or exists (
+            select 1 from periods
+            where periods.period_key in ('eid_al_fitr', 'eid_al_adha')
+            and days.day between periods.start_date and periods.end_date
+        )
+    ) as is_bank_holiday,
     exists (
         select 1 from periods
         where periods.period_key = 'ramadan' and days.day between periods.start_date and periods.end_date
