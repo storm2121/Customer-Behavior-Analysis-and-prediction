@@ -12,6 +12,7 @@ from datetime import date
 import numpy as np
 import pandas as pd
 
+from strata.analysis.seasonality import decompose_weighted, weekday_standardised_ratio
 from strata.contracts.specs import WINDOW_END, WINDOW_START
 from strata.holidays import (
     EID_AL_ADHA_2024,
@@ -23,7 +24,7 @@ from strata.holidays import (
 from strata.ledger.bootstrap import percentile_interval
 from strata.ledger.claims._common import WEEKDAYS, FloatArray, per_client_matrix, require, shares
 from strata.ledger.model import Unit
-from strata.ledger.registry import ClaimContext, ClaimResult, claim
+from strata.ledger.registry import ClaimContext, ClaimError, ClaimResult, claim
 
 DAYS = pd.date_range(WINDOW_START, WINDOW_END, freq="D")
 CARD_END = date(2024, 9, 29)
@@ -146,24 +147,8 @@ def december_deposit_wave(context: ClaimContext) -> ClaimResult:
     others = [i for i in range(len(complete)) if i != december]
     boot = context.bootstrap(len(clients))
 
-    def decompose(weights: np.ndarray) -> np.ndarray:
-        """Count, breadth and depth ratios for each row of ``weights``."""
-        count = weights @ counts
-        breadth = weights @ (counts > 0).astype(np.float64)
-        value = weights @ amounts
-        with np.errstate(divide="ignore", invalid="ignore"):
-            depth = value / breadth
-            ratios = np.column_stack(
-                [
-                    count[:, december] / count[:, others].mean(axis=1),
-                    breadth[:, december] / breadth[:, others].mean(axis=1),
-                    depth[:, december] / np.nanmean(depth[:, others], axis=1),
-                ]
-            )
-        return np.asarray(ratios, dtype=np.float64)
-
-    point = decompose(np.ones((1, len(clients))))[0]
-    draws = decompose(boot.weights)
+    point = decompose_weighted(np.ones((1, len(clients))), counts, amounts, december, others)[0]
+    draws = decompose_weighted(boot.weights, counts, amounts, december, others)
     keys = ("count_ratio", "breadth_ratio", "depth_ratio")
     values = {key: float(point[i]) for i, key in enumerate(keys)}
     intervals = {key: percentile_interval(draws[:, i]) for i, key in enumerate(keys)}
@@ -244,24 +229,11 @@ def salary_day_withdrawals(context: ClaimContext) -> ClaimResult:
 
 
 def _ratio_by_weekday(totals: np.ndarray, special: np.ndarray, baseline: np.ndarray) -> np.ndarray:
-    """Day-of-week standardised ratio of mean daily totals, special days against baseline days.
-
-    ``totals`` is ``(resamples, days)``; the weights are the number of special days per weekday.
-    """
-    weekday = DAYS.dayofweek.to_numpy()
-    ratios = []
-    weights = []
-    for day in range(7):
-        on_special = special & (weekday == day)
-        on_baseline = baseline & (weekday == day)
-        if on_special.sum() == 0 or on_baseline.sum() == 0:
-            continue
-        with np.errstate(divide="ignore", invalid="ignore"):
-            ratios.append(totals[:, on_special].mean(axis=1) / totals[:, on_baseline].mean(axis=1))
-        weights.append(on_special.sum())
-    require(bool(ratios), "no comparable weekdays")
-    stacked = np.column_stack(ratios)
-    return np.asarray(stacked @ (np.array(weights) / np.sum(weights)), dtype=np.float64)
+    """The seasonality module's day-of-week standardised ratio, as a claim error when undefined."""
+    try:
+        return weekday_standardised_ratio(totals, DAYS.dayofweek.to_numpy(), special, baseline)
+    except ValueError as error:
+        raise ClaimError(str(error)) from None
 
 
 def _in(period_start: date, period_end: date) -> np.ndarray:
@@ -275,8 +247,8 @@ def _in(period_start: date, period_end: date) -> np.ndarray:
     method=(
         "Daily card events (int_events, repeats excluded) during Ramadan against the other days of "
         "card coverage, Eid days excluded, as a day-of-week standardised ratio of daily means; "
-        "client "
-        "bootstrap interval. The calendar regression of M4 adjusts for trend and month as well."
+        "client bootstrap interval. The calendar regression (calendar_effects) also adjusts for "
+        "month, day of the month and holidays."
     ),
 )
 def ramadan_card_effect(context: ClaimContext) -> ClaimResult:
@@ -312,8 +284,7 @@ def ramadan_card_effect(context: ClaimContext) -> ClaimResult:
         caveats=[
             (
                 "One Ramadan in the window; a ratio close to one means no detectable change, not "
-                "proof "
-                "of none."
+                "proof of none."
             ),
             "Ramadan dates follow the moon sighting and may differ by a day.",
         ],

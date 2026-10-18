@@ -152,10 +152,10 @@ def built_warehouse(tmp_path_factory: pytest.TempPathFactory, synthetic_dir: Pat
 
 @pytest.fixture(scope="session")
 def synthetic_ledger(built_warehouse: Settings) -> Ledger:
-    """Every registered claim computed on the built synthetic warehouse."""
+    """Every registered claim computed on the built synthetic warehouse (model claims quick)."""
     from strata.ledger.build import build_ledger
 
-    result = build_ledger(built_warehouse, Zone.PUBLIC)
+    result = build_ledger(built_warehouse, Zone.PUBLIC, quick=True)
     assert result.skipped == {}
     return result.ledger
 
