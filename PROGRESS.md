@@ -577,3 +577,47 @@ below). Entries above this one use the old names (`kashf`, `KASHF_*`, `.kashf/`)
   stay in the private folder by design.
 - Open questions for the architect: none.
 - Next: M6.
+
+### M6: Anomaly layer and review queue — done — 2026-10-18
+
+- Built:
+  - `strata/models/anomaly/rules.yaml` and `rules.py`: six triage rules (large cash deposit,
+    structuring, deposit velocity, pass-through, dormant-then-burst, cash intensity), each hit with
+    its evidence; families of rules for pseudo-labels (clients hit by two families or more). The
+    thresholds dbt also uses are the dbt project variables, and a test keeps them equal.
+  - `scores.py`: an Isolation Forest on `features_anomaly`, an empirical-Bayes model of each
+    client's log amounts per category (shrinkage toward the category, robust z), per-client Benford
+    tests, a combined score with reasons on every alert, and the alert-budget selector.
+  - `run.py` and `strata anomaly run|queue|feedback`: the ranked queue and its evaluation in the
+    workspace, the budgeted queue in the review store, precision at k against pseudo-labels (for
+    the combined score and for the detectors alone, which never saw the rules) and against analyst
+    feedback. The CLI shows client ids for synthetic data only.
+  - `strata/review/`: SQLAlchemy models (runs, alerts, feedback, annotations) and Alembic
+    migrations; PostgreSQL through `STRATA_PG_URL` in the public zone, a SQLite file otherwise, and
+    always a SQLite file under `STRATA_PRIVATE_DIR` in the private zone (ADR 0011).
+  - `docs/methods/anomaly.md`. The README, changelog, privacy notes, the `anomaly` recipe and the CI
+    step land with the M7 documentation commit, because they share files with it.
+- Commands run and results:
+  - DoD: `uv run strata anomaly run --budget 50` on synthetic data: a ranked queue of fifty alerts
+    stored in the review store, with precision at k against pseudo-labels for the combined score and
+    for the detectors alone; on this synthetic extract the queue also holds most of the planted
+    structuring and pass-through clients.
+  - DoD: feedback round-trips through the database: `strata anomaly feedback <alert> confirmed`,
+    then `strata anomaly queue` shows the label and the precision against feedback;
+    `tests/test_anomaly.py::test_feedback_round_trips_through_the_store` also migrates a fresh store
+    down and up again.
+  - DoD: rules are unit-tested on hand-built cases (structuring, pass-through, velocity, large
+    deposits, dormancy, cash intensity, pseudo-labels), and a test requires the queue to find at
+    least four in five planted scenario clients within its budget.
+  - `uv run strata --private anomaly run --budget 50`: exit 0; the queue and the store are under
+    `STRATA_PRIVATE_DIR` (checked by script without reading the queue).
+  - `just check`: exit 0 (386 passed, 1 skipped, coverage 93.70%).
+- Decisions: ADR 0011 (real alerts never go to a database server). The served alert reasons quote
+  amounts and dates of the client concerned; that is the evidence a reviewer needs, and it stays in
+  the zone of the data.
+- Stubbed or skipped, and why: the dashboard's review screens are M8; until then feedback goes
+  through the CLI or the API.
+- Open questions for the architect: the `cash_intensive` rule fires for many branch-only clients of
+  the synthetic data (no card spend at all); should it require some card spend, or keep a separate
+  rule for branch-only clients?
+- Next: M7.
