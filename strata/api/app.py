@@ -327,7 +327,9 @@ def claims(state: StateDep) -> dict[str, Any]:
             {
                 "id": record.id,
                 "title": record.title,
+                "question": record.question,
                 "values": record.values,
+                "units": {key: unit.value for key, unit in record.units.items()},
                 "ci": record.ci,
                 "interval": record.interval_label,
                 "n": record.n,
