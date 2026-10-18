@@ -1,0 +1,4 @@
+cutoff_date,outcome_start,outcome_end,role
+2024-04-30,2024-05-01,2024-07-31,backtest
+2024-05-31,2024-06-01,2024-08-31,backtest
+2024-06-30,2024-07-01,2024-09-29,primary

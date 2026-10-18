@@ -32,7 +32,7 @@ import pandas as pd
 
 from kashf.contracts.extracts import COLUMN_TYPES, cast_to_contract
 from kashf.contracts.specs import WINDOW_END, WINDOW_START, Extract, spec_for
-from kashf.contracts.vocab import branch_operations, card_label, online_label
+from kashf.contracts.vocab import age_bands, branch_operations, card_label, online_label
 from kashf.holidays import (
     EID_AL_ADHA_2024,
     EID_AL_FITR_2024,
@@ -45,8 +45,8 @@ IntArray = npt.NDArray[np.int64]
 
 GENERATOR_VERSION: Final = "1"
 
-AGE_BANDS: Final = ("<25", "25-34", "35-44", "45-54", "55-64", "65+")
-AGE_BAND_EDGES: Final = (25, 35, 45, 55, 65)
+AGE_BANDS: Final = tuple(band.label for band in age_bands())
+AGE_BAND_EDGES: Final = tuple(band.lower for band in age_bands()[1:])
 PROFILES: Final = ("none", "branch_only", "digital_only", "mixed")
 
 CARD_END: Final = date(2024, 9, 29)

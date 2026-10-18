@@ -14,7 +14,6 @@ from kashf.holidays import (
     RAMADAN_2024,
     SPECIAL_PERIODS,
     Period,
-    day_of_month_bin,
     is_bank_holiday,
 )
 
@@ -76,9 +75,36 @@ def test_bank_holidays_include_fixed_holidays_and_eids() -> None:
     assert not is_bank_holiday(date(2024, 3, 13))
 
 
-@pytest.mark.parametrize(
-    ("day", "expected"),
-    [(1, "01-05"), (5, "01-05"), (6, "06-10"), (25, "21-25"), (26, "26-31"), (31, "26-31")],
-)
-def test_day_of_month_bins(day: int, expected: str) -> None:
-    assert day_of_month_bin(date(2024, 1, day)) == expected
+def test_bands_are_contiguous_and_cover_the_extract_ranges() -> None:
+    ages = vocab.age_bands()
+    assert ages[0].lower == 0
+    assert vocab.band_of(20, ages) == "<25"
+    assert vocab.band_of(64, ages) == "55-64"
+    assert vocab.band_of(99, ages) == "65+"
+    assert vocab.band_of(None, ages) is None
+    assert vocab.band_of(500, ages) is None
+    assert vocab.band_of(2, vocab.tenure_bands()) == "2-3 years"
+    assert "x" not in ages[0]
+
+
+def test_non_contiguous_bands_are_refused(monkeypatch: pytest.MonkeyPatch) -> None:
+    rows = [{"band": "a", "lower": "0", "upper": "5"}, {"band": "b", "lower": "6", "upper": "9"}]
+    monkeypatch.setattr(vocab, "_rows", lambda name: rows)
+    with pytest.raises(ValueError, match="contiguous"):
+        vocab._bands("broken")
+
+
+def test_cutoffs_follow_adr_0003() -> None:
+    cutoffs = vocab.silence_cutoffs()
+    assert [c.role for c in cutoffs].count("primary") == 1
+    primary = vocab.primary_cutoff()
+    assert primary.cutoff == date(2024, 6, 30)
+    assert primary.outcome_start == date(2024, 7, 1)
+    assert primary.outcome_end == date(2024, 9, 29)
+    assert all(c.cutoff < c.outcome_start <= c.outcome_end for c in cutoffs)
+
+
+def test_online_directions_come_from_the_seed() -> None:
+    directions = {s.key: s.direction for s in vocab.online_services()}
+    assert directions["card_service"] == "none"
+    assert directions["bill_pay"] == "debit"
