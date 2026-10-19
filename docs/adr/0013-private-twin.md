@@ -21,9 +21,10 @@ while the behaviour the project studies lives at client level.
 
 `strata --private synth-twin` (module `strata.synthetic.twin`) builds the twin of
 `marts.client_360` in the private warehouse, the table of one row per client that the warehouse
-derives from `STRATA_DATA_DIR`. It reproduces a fixed list of client columns (age, tenure, gender
-and marital codes, channel profile, active months, event counts by channel, amounts and the branch
-share); identifiers and dates are never among them.
+derives from `STRATA_DATA_DIR`. By default it reproduces a reduced set of client columns (age,
+gender code, channel profile, active months and the event counts of the three channels); with
+`--columns full` it adds tenure, the marital code, the total of events, the amounts by channel and
+the branch share. Identifiers and dates are never among them.
 
 - **Privacy accounting.** Neighbouring tables differ in one client's row; the number of clients is
   public (the public claims publish it). The budget `--epsilon` (default one) is split evenly between
@@ -37,6 +38,10 @@ share); identifiers and dates are never among them.
 - **Dependence.** Kendall's tau-a for every pair of columns, which one client's row moves by at most
   four over the number of clients less one, with Laplace noise scaled to all pairs at once, mapped
   to a correlation by the sine rule and projected onto the correlation matrices.
+- **Mechanism.** Laplace noise (pure epsilon-DP) by default. `--mechanism gaussian` calibrates
+  Gaussian noise with the analytic Gaussian mechanism to the L2 sensitivity of all histograms
+  together and of the whole vector of taus, for (epsilon, delta)-DP, with `--delta` (default one in
+  a million) split evenly between the two halves.
 - **Sampling.** Correlated normals through the noisy marginals; post-processing, which costs no
   privacy. A thousand rows by default (`--rows`).
 - **Metrics** (`metrics.json` beside `twin.csv`). The twin is fitted on a random part of the clients;
@@ -52,14 +57,23 @@ share); identifiers and dates are never among them.
   twin carries no synthetic marker, so a public ingest refuses it like any unmarked extract, and the
   command prints file names only, never a metric.
 
-## What the first private runs showed (in words; the values stay in the private folder)
+## What the private runs showed (in words; the values stay in the private folder)
 
-A sweep of the budget on the reference instance, which holds about a thousand clients, kept the
-membership-inference attack at chance and no twin row closer to a training row than holdout rows
-are, at every budget tried. Fidelity is the price: at a budget of one most marginals are visibly
-distorted and the correlations are mostly noise, because fourteen columns share the budget and
-ninety-one pairs share the correlation half of it; marginals become close only at budgets several
-times larger, and the correlations later still. The parametric generator therefore stays the source
+A first sweep of the budget on the reference instance, which holds about a thousand clients, kept
+the membership-inference attack at chance and no twin row closer to a training row than holdout
+rows are, at every budget tried. Fidelity was the price: with all fourteen columns, at a budget of
+one most marginals were visibly distorted and the correlations mostly noise, because the columns
+share the budget and ninety-one pairs share the correlation half of it.
+
+A second, time-boxed experiment (M11) compared, at the same budgets and over five seeds each, the
+Laplace and Gaussian mechanisms on the full and the reduced column set, judged on the reduced
+set's columns so that the four variants are comparable. At a budget of one, the reduced set with
+Laplace noise distorted clearly fewer marginals than the full set, a real-or-twin classifier no
+longer told it from the data, and it never raised a privacy flag; the Gaussian mechanism improved
+the full set somewhat and the reduced set a little more, but on the reduced set it once let the
+membership-inference attack rise above chance. The reduced Laplace twin is therefore the default:
+better fidelity with privacy still at chance. Its correlations remain noisy at a budget of one; at
+a budget of two its marginals and correlations are close. The parametric generator stays the source
 of every public demo, and the twin remains a local tool whose metrics must be read before any use.
 
 ## Alternatives considered
@@ -68,10 +82,12 @@ of every public demo, and the twin remains a local tool whose metrics must be re
   function of the real rows; rejected.
 - **A twin of the five event files.** Keeps the file shapes, but a copula cannot keep a client's
   events together, and the client-level table is what the analyses use.
-- **The Gaussian mechanism with an additive delta for the correlations.** Its noise grows with the
-  square root of the number of pairs instead of the number of pairs, so it would help fidelity; it
-  needs a delta and a less familiar accounting. Left as the first improvement to try, together with
-  fewer columns.
+- **The Gaussian mechanism as the default.** Its noise grows with the square root of the number of
+  pairs rather than with the number, and it helped the full column set; on the reduced set it added
+  little and once raised the membership flag, and it needs a delta. Kept as an option.
+- **All fourteen columns by default.** More of the client table, but at the default budget the
+  noise spread over fourteen marginals and ninety-one pairs leaves too little structure. Kept as an
+  option (`--columns full`) for larger budgets.
 - **Learned generators (CTGAN, PATE-GAN, private-PGM).** Better fidelity on large tables; heavy
   dependencies and harder accounting for a thousand clients.
 

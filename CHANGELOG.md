@@ -152,6 +152,10 @@ instance and the synthetic generator a first-class source.
   the build (`metrics_view`), the renderer, the ledger check and the commit guard. The CV notes'
   modelling lines carry those numbers. The model-quality claims read the zone's trained models, so
   the image, CI and `just demo` now train before they build the ledger.
+- The private twin gains the analytic Gaussian mechanism (`--mechanism gaussian`, `--delta`) and
+  a reduced column set, now the default (`--columns core`; `--columns full` keeps all fourteen):
+  in a five-seed private experiment at the same budget it kept more of the data's structure with
+  membership inference still at chance (ADR 0013, accepted).
 - `docs/CV_NOTES.md`, rendered from `docs/findings/_cv_notes.md.j2` by `strata ledger render`;
   `strata ledger check` fails on drift, on a hand-typed number and on a line whose evidence (a
   published claim, a key of the public model registry or a file of the repository) is missing.
