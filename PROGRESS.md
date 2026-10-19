@@ -927,8 +927,15 @@ below). Entries above this one use the old names (`kashf`, `KASHF_*`, `.kashf/`)
     `STRATA_PG_PORT=15432` set): every host stage passed (synthetic extract, ingest, quality, dbt,
     training, the gate with its nine checks, the ledger with both model-quality claims computed,
     the analysis modules, the queue and the report); `docker compose up` then failed because
-    the shared Docker engine answered every request with an internal server error. I did not
-    restart it; see the next entry for the rerun once it recovered.
+    the shared Docker engine answered every request with an internal server error, and it was
+    still doing so hours later. I did not restart it. In its place, the parts of the stack this
+    leg changed were verified outside Docker: `strata serve` with the dashboard's production
+    build under `vite preview` (the API proxied as in nginx) served the public ledger with the
+    two metrics-only claims, `docker/smoke.py` answered every check including the dashboard
+    and its proxy, and the Playwright smoke passed 24 of 24 (desktop and phone, axe in both
+    themes). The last complete clean-clone `just demo`, Compose included, is the M10 one; the
+    image's only change since is that it trains before it builds the ledger, the order the
+    demo's host stages ran successfully here.
 - Decisions: ADR 0002 gains the `metrics_only` mode; ADR 0013 revised (Gaussian option, reduced
   default). The model-quality claims carry an interval label of their own for the segments
   (the range of refits, not a confidence interval of the mean).
