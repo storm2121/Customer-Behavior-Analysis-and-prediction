@@ -160,8 +160,18 @@ export function SimulatorPage() {
   const months = exact.data?.months ?? [];
   const interval = exact.data?.interval ?? "band";
   const moving = liveShare !== null || liveAge !== null;
-  // Only when nothing computed matches the controls does the frame hold the previous answer, dimmed.
-  const waiting = exact.isFetching && group.length === 0;
+  // The bands are the API's own only when its answer is for exactly the controls on screen and no
+  // thumb is moving; until then they are an interpolation, drawn faded and marked as updating, so
+  // nobody reads one as a computed band.
+  const answered =
+    exact.data !== undefined &&
+    !exact.isPlaceholderData &&
+    !moving &&
+    settled.share === share &&
+    settled.max_age === maxAge &&
+    settled.target === target;
+  const provisional = !answered;
+  const fade = `transition-opacity duration-[var(--duration-fade)] ${provisional ? "opacity-50" : "opacity-100"}`;
 
   const charts = useMemo(() => {
     if (!policy || !baseline || months.length === 0) return null;
@@ -208,9 +218,14 @@ export function SimulatorPage() {
           </div>
         </Panel>
         <div className="flex min-w-0 flex-col gap-5">
-          <p className="text-heading font-title text-ink">
-            Move {formatShare(share, 0)} of branch-only clients under {formatCount(maxAge)} to {targetWords}
-          </p>
+          <div className="flex flex-col gap-1">
+            <p className="text-heading font-title text-ink">
+              Move {formatShare(share, 0)} of branch-only clients under {formatCount(maxAge)} to {targetWords}
+            </p>
+            <p aria-live="polite" className="min-h-5 text-label text-ink-secondary">
+              {charts && provisional ? "Updating: these bands are interpolated until the API answers." : null}
+            </p>
+          </div>
           {exact.error ? <Failure error={exact.error} onRetry={() => void exact.refetch()} /> : null}
           {exact.isPending ? (
             <Loading what="the simulation">
@@ -221,20 +236,24 @@ export function SimulatorPage() {
           ) : null}
           {charts && policy && baseline ? (
             <>
-              <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <dl className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${fade}`}>
                 <Outcome title={`Digital share in month ${horizon}`} unit="share" quantity="digital_share" policy={policy} baseline={baseline} />
                 <Outcome title={`Branch operations in month ${horizon}`} unit="count" quantity="branch_load" policy={policy} baseline={baseline} />
               </dl>
-              <div className={`flex flex-col gap-5 ${waiting ? "opacity-75" : ""}`}>
+              <div className="flex flex-col gap-5">
                 <Panel title="Digital share" subtitle={`Clients using card or online banking in the month: posterior median and ${interval}.`}>
-                  <Chart option={charts.digital} transition={moving ? "immediate" : "smooth"} label="Digital share over the coming months, with the policy against without it, with bands" />
+                  <div className={fade}>
+                    <Chart option={charts.digital} transition={moving ? "immediate" : "smooth"} label="Digital share over the coming months, with the policy against without it, with bands" />
+                  </div>
                 </Panel>
                 <Panel title="Branch operations" subtitle={`Expected branch operations in the month: posterior median and ${interval}.`}>
-                  <Chart option={charts.branch} transition={moving ? "immediate" : "smooth"} label="Branch operations over the coming months, with the policy against without it, with bands" />
+                  <div className={fade}>
+                    <Chart option={charts.branch} transition={moving ? "immediate" : "smooth"} label="Branch operations over the coming months, with the policy against without it, with bands" />
+                  </div>
                 </Panel>
               </div>
               <Notice kind="status">
-                While a slider moves, the bands are interpolated between policies the API has already computed; the bands for the value you stop at are the API's own.
+                While a slider moves, the bands are interpolated between policies the API has already computed, drawn faded and marked as updating; once the API answers for the value you stop at, the bands are its own.
               </Notice>
             </>
           ) : null}

@@ -91,12 +91,16 @@ test("Simulator: dragging the thumb moves the value with the pointer and settles
   await page.mouse.down();
   await page.mouse.move(box.x + box.width * 0.8, y, { steps: 8 });
   await expect(slider).toHaveAttribute("aria-valuenow", "0.8");
+  // While the thumb moves, the bands are an interpolation, marked as such.
+  await expect(page.getByText(/^Updating: these bands are interpolated/)).toBeVisible();
   // Past the end the thumb resists, and the value stays at the end.
   await page.mouse.move(box.x + box.width + 200, y, { steps: 8 });
   await expect(slider).toHaveAttribute("aria-valuenow", "1");
   await page.mouse.up();
   await expect(slider).toHaveAttribute("aria-valuenow", "1");
   await expect(page.getByText("Move 100% of branch-only clients under 45 to mixed use")).toBeVisible();
+  // Once the API has answered for the settled value, the bands are its own again.
+  await expect(page.getByText(/^Updating/)).toHaveCount(0);
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
 

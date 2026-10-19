@@ -37,11 +37,16 @@ describe("the simulator page", () => {
     expect(screen.getByText("Eligible age bands: <25, 25-34, 35-44")).toBeInTheDocument();
     expect(screen.getByText("Move 30% of branch-only clients under 45 to mixed use")).toBeInTheDocument();
 
+    // At rest the bands are the API's own answer: nothing is marked as updating.
+    await waitFor(() => expect(screen.queryByText(/^Updating/)).not.toBeInTheDocument());
     const share = screen.getByRole("slider", { name: "Share of eligible clients who move" });
     share.focus();
     await user.keyboard("{ArrowRight}");
     expect(share).toHaveAttribute("aria-valuenow", "0.35");
+    // Until the API answers for the new value, the interpolated bands are marked as provisional.
+    expect(screen.getByText(/^Updating: these bands are interpolated/)).toBeInTheDocument();
     await waitFor(() => expect(simulations(fixture.calls).some((call) => call.body.share === 0.35 && call.body.max_age === 45)).toBe(true));
+    await waitFor(() => expect(screen.queryByText(/^Updating/)).not.toBeInTheDocument());
 
     await user.keyboard("{Shift>}{ArrowRight}{/Shift}");
     expect(share).toHaveAttribute("aria-valuenow", "0.85");

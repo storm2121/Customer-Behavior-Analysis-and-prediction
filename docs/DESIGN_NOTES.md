@@ -66,8 +66,10 @@ blocks agreeing).
 - **The simulator redraws by interpolation while a slider moves.** The brief asks for continuous
   redraws with the network call debounced. Between policies the API has already computed, the bands
   are interpolated linearly in the share moved: exact for every posterior draw (the projection is
-  linear in the starting counts), close but not exact for the quantiles across draws. The bands of
-  the value a slider settles on are always the API's own, and the page says so. The age limit moves
+  linear in the starting counts), close but not exact for the quantiles across draws. Until the API
+  has answered for the value on screen, the bands and the outcome figures are drawn faded under an
+  "Updating" caption, so nobody reads an interpolation as a computed band; the bands of the value a
+  slider settles on are always the API's own. The age limit moves
   in whole bands, so its bands switch as the thumb crosses each step. Interpolation anchors are
   fetched after the first answer, and for every age limit once the age slider is first touched.
 - **Releasing a slider settles on the nearest step from where it was let go**, with the release
