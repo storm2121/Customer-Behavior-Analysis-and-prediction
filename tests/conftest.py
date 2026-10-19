@@ -152,9 +152,15 @@ def built_warehouse(tmp_path_factory: pytest.TempPathFactory, synthetic_dir: Pat
 
 @pytest.fixture(scope="session")
 def synthetic_ledger(built_warehouse: Settings) -> Ledger:
-    """Every registered claim computed on the built synthetic warehouse (model claims quick)."""
-    from strata.ledger.build import build_ledger
+    """Every registered claim computed on the built synthetic warehouse (model claims quick).
 
+    The model-quality claims read trained models, so the silence and segment models are trained
+    here first, at quick effort, on the same warehouse.
+    """
+    from strata.ledger.build import build_ledger
+    from strata.models.train import train
+
+    train(built_warehouse, Zone.PUBLIC, ["silence", "segments"], quick=True)
     result = build_ledger(built_warehouse, Zone.PUBLIC, quick=True)
     assert result.skipped == {}
     return result.ledger

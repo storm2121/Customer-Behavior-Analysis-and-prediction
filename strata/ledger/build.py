@@ -5,8 +5,9 @@ Where the files go depends on the zone (ADR 0008):
 - public zone (synthetic data): ``.strata/ledger/claims.synthetic.json``; proves the claim
   functions run, feeds the public demo report, and never touches ``docs/``;
 - private zone (real data): ``<STRATA_PRIVATE_DIR>/ledger/claims.private.json`` with every claim;
-  with ``--public``, also ``docs/ledger/claims.public.json`` with the allow-listed claims only,
-  after the publication rules of :mod:`strata.ledger.allowlist` pass.
+  with ``--public``, also ``docs/ledger/claims.public.json`` with the allow-listed claims only
+  (full claims, verdicts and model-quality metrics), after the publication rules of
+  :mod:`strata.ledger.allowlist` pass.
 
 A claim that cannot be computed on the warehouse (for example because a group is empty) is
 reported as skipped rather than silently dropped; ``--public`` refuses to run if an allow-listed
@@ -26,7 +27,10 @@ from strata import __version__
 from strata.config import PrivacyBoundaryError, Settings, Zone
 from strata.ingest.load import load_manifest
 from strata.ledger.allowlist import (
+    METRICS_ONLY_KEYS,
+    METRICS_ONLY_META,
     MIN_PUBLIC_CELL_N,
+    is_metrics_only,
     is_public,
     is_verdict_only,
     ledger_violations,
@@ -195,6 +199,35 @@ def verdict_view(record: ClaimRecord) -> PublishedVerdict:
     )
 
 
+def metrics_view(record: ClaimRecord) -> ClaimRecord:
+    """A model-quality claim as a ``metrics_only`` publication may show it: its allow-listed
+    metrics with their intervals and the clients behind them, and how they were measured; no other
+    value, no robustness result, and only for a model trained at full effort."""
+    allowed = METRICS_ONLY_KEYS.get(record.id)
+    if allowed is None:
+        msg = f"claim {record.id!r} is not allow-listed for metrics-only publication"
+        raise ClaimError(msg)
+    if record.meta.get("model_effort") != "full" or record.meta.get("effort") == "quick":
+        msg = (
+            f"claim {record.id!r} rests on a quick model or build; publish full-effort results only"
+        )
+        raise ClaimError(msg)
+    if record.n < MIN_PUBLIC_CELL_N:
+        msg = f"claim {record.id!r} rests on fewer clients than the publication floor"
+        raise ClaimError(msg)
+    return record.model_copy(
+        update={
+            "values": {key: value for key, value in record.values.items() if key in allowed},
+            "units": {key: unit for key, unit in record.units.items() if key in allowed},
+            "ci": {key: pair for key, pair in record.ci.items() if key in allowed},
+            "value_n": {key: size for key, size in record.value_n.items() if key in allowed},
+            "meta": {key: text for key, text in record.meta.items() if key in METRICS_ONLY_META},
+            "robustness": None,
+            "public": True,
+        }
+    )
+
+
 def _dump(ledger: Ledger, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     payload: dict[str, Any] = ledger.model_dump(mode="json")
@@ -262,7 +295,15 @@ def build_ledger(
     skipped: dict[str, str] = {}
     con = connect(workspace.warehouse, read_only=True)
     try:
-        context = ClaimContext(con, seed=settings.seed, n_resamples=n_resamples, quick=quick)
+        context = ClaimContext(
+            con,
+            seed=settings.seed,
+            n_resamples=n_resamples,
+            quick=quick,
+            models_dir=workspace.root / "models",
+            fingerprint=manifest.fingerprint,
+            mapping_sha256=manifest.mapping_sha256,
+        )
         for spec in selected:
             try:
                 records.append(
@@ -303,10 +344,13 @@ def build_ledger(
 
 
 def _publish(settings: Settings, ledger: Ledger, skipped: dict[str, str]) -> Path:
-    """Write the public ledger: full claims through :func:`public_view`, verdict-only headlines
-    through :func:`verdict_view`, after the publication rules pass."""
+    """Write the public ledger: full claims through :func:`public_view`, model-quality claims
+    through :func:`metrics_view`, verdict-only headlines through :func:`verdict_view`, after the
+    publication rules pass."""
     missing = sorted(
-        claim_id for claim_id in skipped if is_public(claim_id) or is_verdict_only(claim_id)
+        claim_id
+        for claim_id in skipped
+        if is_public(claim_id) or is_verdict_only(claim_id) or is_metrics_only(claim_id)
     )
     if missing:
         msg = f"allow-listed claims could not be computed: {missing}"
@@ -316,7 +360,11 @@ def _publish(settings: Settings, ledger: Ledger, skipped: dict[str, str]) -> Pat
         data_fingerprint=ledger.data_fingerprint,
         mapping_sha256=ledger.mapping_sha256,
         computed_at=ledger.computed_at,
-        claims=[public_view(record) for record in ledger.claims if record.public],
+        claims=[
+            metrics_view(record) if is_metrics_only(record.id) else public_view(record)
+            for record in ledger.claims
+            if record.public or is_metrics_only(record.id)
+        ],
         verdicts=[verdict_view(record) for record in ledger.claims if is_verdict_only(record.id)],
     )
     problems = ledger_violations(shared.model_dump(mode="json"))

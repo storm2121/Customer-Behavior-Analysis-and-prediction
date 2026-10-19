@@ -2,13 +2,18 @@
 
 This mapping is the whole of the public surface. A claim id that is not here can be computed,
 rendered in the private report and discussed in an interview, but nothing of it reaches a tracked
-file. Adding an id is a privacy decision, made by the architect, in one of two modes:
+file. Adding an id is a privacy decision, made by the architect, in one of three modes:
 
 - ``full``: the claim's aggregate values, intervals and robustness result, every value computed on
   at least ``MIN_PUBLIC_CELL_N`` clients and small strata suppressed;
 - ``verdict_only``: what the robustness checker concluded (the verdict, the stratifier names, the
   stratifiers that reverse the effect, and a number-free explanation), never a value, an interval
-  or a group size. It shows the checker working without publishing what it measured.
+  or a group size. It shows the checker working without publishing what it measured;
+- ``metrics_only``: aggregate quality metrics of a model trained on the real extract (the keys of
+  :data:`METRICS_ONLY_KEYS`), each with its interval and computed on at least
+  ``MIN_PUBLIC_CELL_N`` clients, and a few facts about how they were measured
+  (:data:`METRICS_ONLY_META`). Never a per-client value, a score, a feature importance or a
+  robustness result.
 
 :func:`ledger_violations` states the terms once; ``strata ledger build --public`` refuses to write,
 ``strata ledger check`` fails and the privacy guard refuses to commit a public ledger that breaks
@@ -26,6 +31,7 @@ from typing import Any
 class Publication(enum.StrEnum):
     FULL = "full"
     VERDICT_ONLY = "verdict_only"
+    METRICS_ONLY = "metrics_only"
 
 
 PUBLICATION: Mapping[str, Publication] = {
@@ -35,6 +41,8 @@ PUBLICATION: Mapping[str, Publication] = {
     "benford_purchases": Publication.FULL,
     "spend_concentration": Publication.FULL,
     "silence_by_channel": Publication.VERDICT_ONLY,
+    "silence_model_quality": Publication.METRICS_ONLY,
+    "segment_stability": Publication.METRICS_ONLY,
 }
 
 PUBLIC_CLAIM_IDS: frozenset[str] = frozenset(
@@ -46,6 +54,22 @@ VERDICT_ONLY_IDS: frozenset[str] = frozenset(
     claim_id for claim_id, mode in PUBLICATION.items() if mode is Publication.VERDICT_ONLY
 )
 """Headlines published by their robustness verdict only."""
+
+METRICS_ONLY_IDS: frozenset[str] = frozenset(
+    claim_id for claim_id, mode in PUBLICATION.items() if mode is Publication.METRICS_ONLY
+)
+"""Model-quality claims published by their aggregate metrics only."""
+
+METRICS_ONLY_KEYS: Mapping[str, frozenset[str]] = {
+    "silence_model_quality": frozenset({"brier", "calibration_error", "lift_at_10"}),
+    "segment_stability": frozenset({"mean_ari"}),
+}
+"""The only values a metrics-only claim may publish: the served silence score's Brier score,
+calibration error and lift in the top tenth on a later cutoff, and the segments' bootstrap
+stability (mean adjusted Rand index)."""
+
+METRICS_ONLY_META = frozenset({"model", "train_cutoff", "test_cutoff", "model_effort"})
+"""How a metric was measured (which model, which cutoffs, at which effort); nothing else."""
 
 MIN_PUBLIC_CELL_N = 50
 """Smallest number of clients behind any published value or stratum (a k-anonymity style floor)."""
@@ -82,6 +106,11 @@ def is_verdict_only(claim_id: str) -> bool:
     return claim_id in VERDICT_ONLY_IDS
 
 
+def is_metrics_only(claim_id: str) -> bool:
+    """True if ``claim_id`` may be published by its aggregate model-quality metrics only."""
+    return claim_id in METRICS_ONLY_IDS
+
+
 def _small(size: object) -> bool:
     return not isinstance(size, int) or isinstance(size, bool) or size < MIN_PUBLIC_CELL_N
 
@@ -109,6 +138,38 @@ def _stratum_violations(claim_id: str, robustness: object) -> list[str]:
     return problems
 
 
+def _metrics_violations(claim_id: str, record: Mapping[str, Any]) -> list[str]:
+    """A metrics-only record holds its allow-listed metrics, their intervals and sizes, the facts of
+    :data:`METRICS_ONLY_META`, and nothing else: no other value, no robustness result."""
+    allowed = METRICS_ONLY_KEYS.get(claim_id, frozenset())
+    problems = []
+    for field in ("values", "units", "ci", "value_n"):
+        mapping = record.get(field) or {}
+        if not isinstance(mapping, Mapping):
+            problems.append(f"claim '{claim_id}' has a malformed {field}")
+            continue
+        extra = sorted(set(mapping) - allowed)
+        if extra:
+            problems.append(
+                f"claim '{claim_id}' publishes {field} beyond its model-quality metrics: {extra}"
+            )
+    if not record.get("values"):
+        problems.append(f"claim '{claim_id}' publishes no metric")
+    if record.get("robustness") is not None:
+        problems.append(
+            f"claim '{claim_id}' is published for its metrics only but has a robustness result"
+        )
+    meta = record.get("meta") or {}
+    extra_meta = sorted(set(meta) - METRICS_ONLY_META) if isinstance(meta, Mapping) else ["meta"]
+    if extra_meta:
+        problems.append(
+            f"claim '{claim_id}' carries facts beyond how its metrics were measured: {extra_meta}"
+        )
+    elif isinstance(meta, Mapping) and meta.get("model_effort") != "full":
+        problems.append(f"claim '{claim_id}' rests on a model not trained at full effort")
+    return problems
+
+
 def public_violations(records: Iterable[Any]) -> list[str]:
     """Reasons why ``records`` (full claim records as JSON-like mappings) may not be published."""
     problems: list[str] = []
@@ -120,9 +181,11 @@ def public_violations(records: Iterable[Any]) -> list[str]:
         if is_verdict_only(claim_id):
             problems.append(f"claim '{claim_id}' may only be published as a verdict")
             continue
-        if not is_public(claim_id):
+        if not is_public(claim_id) and not is_metrics_only(claim_id):
             problems.append(f"claim '{claim_id}' is not allow-listed")
             continue
+        if is_metrics_only(claim_id):
+            problems.extend(_metrics_violations(claim_id, record))
         sizes: list[object] = [record.get("n")]
         value_n = record.get("value_n")
         if isinstance(value_n, Mapping):

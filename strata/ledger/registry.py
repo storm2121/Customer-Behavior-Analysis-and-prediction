@@ -8,8 +8,11 @@ then adds provenance (fingerprint, time, version) and runs the robustness checke
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
 
 import duckdb
 import pandas as pd
@@ -52,7 +55,7 @@ class ClaimResult:
 
 
 class ClaimContext:
-    """Read-only access to one warehouse, plus seeded bootstraps."""
+    """Read-only access to one warehouse and the zone's trained models, plus seeded bootstraps."""
 
     def __init__(
         self,
@@ -61,13 +64,51 @@ class ClaimContext:
         seed: int = 42,
         n_resamples: int = DEFAULT_RESAMPLES,
         quick: bool = False,
+        models_dir: Path | None = None,
+        fingerprint: str | None = None,
+        mapping_sha256: str | None = None,
     ) -> None:
         self._con = con
         self.seed = seed
         self.n_resamples = n_resamples
         self.quick = quick
+        self.models_dir = models_dir
+        self.fingerprint = fingerprint
+        self.mapping_sha256 = mapping_sha256
         self._cache: dict[str, pd.DataFrame] = {}
         self.claim_id = ""
+
+    def model_results(self, name: str) -> tuple[dict[str, Any], dict[str, Any]]:
+        """The results file and the registry entry of the zone's model ``name``.
+
+        A model claim describes the model trained on the data of this warehouse, so a model that
+        is missing, or was trained on other data or through another mapping, is a skipped claim.
+        """
+        if self.models_dir is None:
+            msg = "no model folder for this build"
+            raise ClaimError(msg)
+        registry_path = self.models_dir / "registry.json"
+        if not registry_path.is_file():
+            msg = f"no trained models: run `strata train {name}` first"
+            raise ClaimError(msg)
+        entries = json.loads(registry_path.read_text(encoding="utf-8")).get("models", [])
+        entry = next((item for item in entries if item.get("name") == name), None)
+        if entry is None:
+            msg = f"the {name} model is not trained: run `strata train {name}` first"
+            raise ClaimError(msg)
+        current = (entry.get("data_fingerprint"), entry.get("mapping_sha256")) == (
+            self.fingerprint,
+            self.mapping_sha256,
+        )
+        if not current:
+            msg = f"the {name} model was trained on other data: retrain it"
+            raise ClaimError(msg)
+        results_path = self.models_dir / str(entry.get("results_file", f"{name}/results.json"))
+        if not results_path.is_file():
+            msg = f"the {name} model has no results file"
+            raise ClaimError(msg)
+        results: dict[str, Any] = json.loads(results_path.read_text(encoding="utf-8"))
+        return results, entry
 
     @property
     def model_resamples(self) -> int:

@@ -19,7 +19,9 @@ placeholder functions:
 
 A claim published in ``verdict_only`` mode answers only ``verdict``, ``mechanism``, ``stratifiers``,
 ``reversed_by``, ``verdict_context`` and ``text`` (title and question); any other placeholder fails,
-so a template cannot render one of its numbers even by mistake.
+so a template cannot render one of its numbers even by mistake. A claim published in
+``metrics_only`` mode answers ``ledger``, ``ci`` and ``raw`` for its allow-listed metrics only, and
+has no table and no robustness result.
 
 In *masked* mode every placeholder renders as a sentinel; :mod:`strata.ledger.check` uses it to find
 numbers that were typed into a template by hand.
@@ -34,6 +36,7 @@ from pathlib import Path
 import jinja2
 
 from strata.contracts.specs import WINDOW_END, WINDOW_START
+from strata.ledger.allowlist import METRICS_ONLY_KEYS
 from strata.ledger.formatting import format_interval, format_value
 from strata.ledger.model import ClaimRecord, Ledger, PublishedVerdict
 from strata.ledger.robustness import STRATIFIER_LABELS
@@ -80,8 +83,24 @@ class Placeholders:
     def _out(self, text: str) -> str:
         return SENTINEL if self.masked else text
 
+    def _measured(self, claim_id: str, key: str) -> ClaimRecord:
+        """The claim, after checking that a metrics-only claim is asked for one of its metrics."""
+        allowed = METRICS_ONLY_KEYS.get(claim_id)
+        if allowed is not None and key not in allowed:
+            msg = (
+                f"claim {claim_id!r} is published for its model-quality metrics only; "
+                f"{key!r} is not one of them"
+            )
+            raise KeyError(msg)
+        return self._claim(claim_id)
+
+    def _no_robustness(self, claim_id: str) -> None:
+        if claim_id in METRICS_ONLY_KEYS:
+            msg = f"claim {claim_id!r} is published for its model-quality metrics only"
+            raise KeyError(msg)
+
     def value(self, claim_id: str, key: str) -> str:
-        record = self._claim(claim_id)
+        record = self._measured(claim_id, key)
         return self._out(format_value(record.value(key), record.units[key]))
 
     def raw(self, claim_id: str, key: str) -> float:
@@ -90,10 +109,10 @@ class Placeholders:
         Templates use it to make interpretive sentences follow the data. It is never printed: an
         expression that outputs it leaves a digit in the masked render and fails the check.
         """
-        return self._claim(claim_id).value(key)
+        return self._measured(claim_id, key).value(key)
 
     def interval(self, claim_id: str, key: str) -> str:
-        record = self._claim(claim_id)
+        record = self._measured(claim_id, key)
         if key not in record.ci:
             msg = f"claim {claim_id!r} has no interval for {key!r}"
             raise KeyError(msg)
@@ -107,6 +126,7 @@ class Placeholders:
         return self._out(f"{events:,}" if events is not None else "not applicable")
 
     def verdict(self, claim_id: str) -> str:
+        self._no_robustness(claim_id)
         published = self._published_verdict(claim_id)
         if published is not None:
             return self._out(published.verdict)
@@ -117,6 +137,7 @@ class Placeholders:
         return self._out(robustness.verdict)
 
     def mechanism(self, claim_id: str) -> str:
+        self._no_robustness(claim_id)
         published = self._published_verdict(claim_id)
         if published is not None:
             return self._out(published.mechanism)
@@ -124,6 +145,7 @@ class Placeholders:
         return self._out(robustness.mechanism if robustness else "")
 
     def _stratifier_names(self, claim_id: str, *, reversing: bool) -> list[str]:
+        self._no_robustness(claim_id)
         published = self._published_verdict(claim_id)
         if published is not None:
             names = published.reversing_stratifiers if reversing else published.stratifiers
@@ -167,6 +189,9 @@ class Placeholders:
         so a table of digits never puts a hand-typed number into a document. Labels are masked in
         masked mode; keys are only ever passed on to other placeholders.
         """
+        if claim_id in METRICS_ONLY_KEYS:
+            msg = f"claim {claim_id!r} is published for its model-quality metrics only; no tables"
+            raise KeyError(msg)
         spec = self._claim(claim_id).meta.get(f"rows_{table}")
         if spec is None:
             msg = f"claim {claim_id!r} defines no table {table!r}"

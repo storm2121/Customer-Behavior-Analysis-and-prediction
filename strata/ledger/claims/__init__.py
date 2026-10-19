@@ -7,6 +7,7 @@ from strata.ledger.claims import (
     concentration,
     digits,
     markov,
+    model_quality,
     models,
     quality,
 )
@@ -18,6 +19,7 @@ __all__ = [
     "concentration",
     "digits",
     "markov",
+    "model_quality",
     "models",
     "quality",
 ]
