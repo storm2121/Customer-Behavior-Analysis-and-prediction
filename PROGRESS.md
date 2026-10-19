@@ -1044,3 +1044,15 @@ below). Entries above this one use the old names (`kashf`, `KASHF_*`, `.kashf/`)
   interpolated bands while dragging are acceptable as described, or should be marked visually as
   provisional.
 - Next: none; stop and report.
+
+### Design pass review: the architect's answers applied — done — 2026-10-19
+
+- The architect accepted the pass: Findings stays out of the pictures and violet stays for
+  "reverses". Polish applied: interpolated simulator bands and their outcome figures are drawn
+  faded under an "Updating" caption until the API answers for the controls on screen (a unit test
+  and the drag smoke test check it appears and clears); the customer profile's section links stay
+  in one row that scrolls sideways with edge fades on a phone; the alert queue shows short review
+  states so a status holds one line. Captures retaken, the design note on interpolation updated.
+  Against `strata serve` and `vite preview` (Docker engine still down): Playwright 26 passed;
+  `just check`: exit 0 (476 passed and 1 skipped, coverage 97.30%; privacy and ledger clean;
+  dashboard: 50 unit tests, build with its bundle check, Storybook).
