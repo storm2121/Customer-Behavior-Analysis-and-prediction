@@ -14,14 +14,7 @@ clean clone on synthetic data.
 
 ![The dashboard's simulator on synthetic data: sliders on the left, the policy in words above its bands](docs/images/dashboard-simulator-light-1440.png)
 
-## Why it exists
 
-Strata replaces a hackathon script from 2024 (and its 2025 repackaging) whose results could not be
-trusted: oversampling before the train/test split, a join that silently matched nothing, recency
-measured from the day the script ran, a target that answered no business question, no time-based
-validation and no uncertainty (the full list is [below](#the-legacy-code-and-its-bugs)). The rebuild
-asks of every number the questions the script never asked: where did it come from, on how many
-clients, with what interval, and does it survive holding the obvious confounders fixed?
 
 ## What the pipeline does
 
