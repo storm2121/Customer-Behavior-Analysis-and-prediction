@@ -818,3 +818,62 @@ below). Entries above this one use the old names (`kashf`, `KASHF_*`, `.kashf/`)
   twin should move to the Gaussian mechanism for the correlations or fewer columns to buy fidelity
   at the same budget.
 - Next: M10.
+
+### M10: Documentation and demo — done — 2026-10-19
+
+- Built:
+  - The README rewritten: what Strata is and why it exists, the stages, a Mermaid architecture
+    diagram with the two zones, how a source plugs in, how it is checked, screenshots of the
+    synthetic demo, the ledger-governed findings section (rendered, unchanged), honesty and
+    limitations, privacy, the legacy bugs, the quick start with `just demo`, the recipes and the
+    layout.
+  - `just demo` (synthetic extract, ingest, quality, dbt, every claim, the analysis modules, the
+    models at quick effort and their gate, the monitoring queue, the demo report, then the stack in
+    the background and `docker/smoke.py --compose`, which asks Compose where the API and the
+    dashboard are published and checks both) and `just down`. The demo neither reads the extract
+    nor changes a tracked file (it does not promote).
+  - `docs/CV_NOTES.md`, rendered from `docs/findings/_cv_notes.md.j2` by `strata ledger render`:
+    every bullet ends with its evidence (a published claim, a key of the public model registry or a
+    file of the repository), and `strata ledger check` now fails on its drift, on a hand-typed
+    number and on evidence that does not exist (`tests/test_cv_notes.py`). Numbers come only from
+    allow-listed claims; the modelling lines carry none, because model metrics on real data are not
+    allow-listed.
+  - The data card is complete (provenance, composition, collection and coverage, biases and
+    limitations, intended and excluded uses, maintenance, and the generated table of assumptions);
+    the model cards gained their training data, ethical considerations and how to reproduce and
+    refresh them (re-published from the synthetic registry); ADRs 0004 and 0012 point at the twin's
+    record and the dashboard image; the changelog covers the leg.
+- Commands run and results:
+  - DoD: a clean clone (`git clone` of the branch into a scratch folder outside the repository; no
+    `.env.local`, no `STRATA_*` variable except `STRATA_PG_PORT=15432`, because a local PostgreSQL
+    service holds 5432 on this machine): `just demo`: exit 0 in about fifteen minutes; the
+    evaluation gate passed its nine checks and `docker/smoke.py --compose` answered every check
+    (fifteen API calls, the dashboard page and the API through the dashboard's proxy); the
+    clone's tracked files were unchanged afterwards.
+    The Playwright smoke then passed against that stack (24 of 24, desktop and phone), and
+    `just down` removed the stack and its volumes; the clone was deleted.
+  - DoD: `strata ledger check`: documents match the ledger; no hand-typed numbers.
+  - DoD, CI green: not verifiable, because nothing is pushed. Every CI job has been run locally in
+    this leg: lint, types and tests (`just check`), the privacy scan, the ledger check, the
+    warehouse chain (in the demo and in the DAG test), the dashboard checks, the Compose stack with
+    the smoke and Playwright tests (M8) and the DAG test (M9).
+  - `just check` (the full recipe, after the last commit of the leg): exit 0. Lint and strict
+    types clean; 459 passed and 1 skipped, coverage 97.35%; privacy scan clean; ledger check
+    clean; dashboard: 24 unit tests passed, production build with the bundle check (no data in
+    the bundle) and the Storybook build. This run is also the green `just check` for M8 and M9.
+- Decisions: the CV notes are a governed document like the findings; the dashboard's CV line says
+  "customer profiles" instead of the digits of "customer 360", which the hand-typed-number rule
+  would refuse in prose; the demo runs at quick effort.
+- Stubbed or skipped, and why: CI has not run (nothing pushed). The Findings page is deliberately
+  absent from the screenshots (real allow-listed values belong in the ledger, not in images).
+- Side effect repaired: running `corepack pnpm --dir apps/dashboard` from the repository root
+  (the first form of the dashboard recipes) made corepack fetch the newest pnpm into its user cache
+  and record it as its default; that release does not start under this machine's corepack, which
+  would have broken any unpinned `corepack pnpm` call on the machine. I removed that cache entry
+  and the default it recorded (both created by this run, by their timestamps); the recipes now run
+  inside `apps/dashboard`, where the pinned pnpm is used.
+- Open questions for the architect: should some real-data model metrics be allow-listed (for
+  example the served silence score's Brier score and lift with their intervals, and the segments'
+  stability), so that the modelling CV line can carry numbers? ADR 0013 is proposed and needs your
+  decision (see M9).
+- Next: stop and report (end of the rebuild's milestones).
