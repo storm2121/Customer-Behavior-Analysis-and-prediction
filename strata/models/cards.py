@@ -28,6 +28,35 @@ LIMITATIONS = (
     "Code meanings marked `assumed` in the seeds (see `docs/data_card.md`) are used as stated.",
     "Synthetic results show that the pipeline works; they are not evidence about clients.",
 )
+TRAINING_DATA = (
+    "The public card describes a model trained on the synthetic generator's extract, read "
+    "through the synthetic mapping into the same marts as the reference instance. On the machine "
+    "that holds the extract the same code trains on the real marts in the private zone; that "
+    "model, its card and its scores stay under `STRATA_PRIVATE_DIR`, and its metrics are not "
+    "published."
+)
+ETHICS = {
+    "silence": (
+        "The score ranks clients for a person's attention, such as a call or a reminder; it must "
+        "never trigger an action on its own, set a price or refuse a service. A quiet client is "
+        "not a departing one, so any outreach it prompts should be easy for the client to decline."
+    ),
+    "survival": (
+        "Hazard ratios describe the gaps between active days in the reference sample; they are "
+        "associations, not effects of a channel or of age, and must not justify treating groups "
+        "differently."
+    ),
+    "adoption": (
+        "The adoption models use age, tenure and professional status. A ranking for digital "
+        "outreach built on them can reproduce or widen an age divide, so any use must check how it "
+        "treats each age band, and the outreach must stay open to anyone who asks for it."
+    ),
+    "segments": (
+        "Segments summarise behaviour for analysis; membership is uncertain at their edges (see "
+        "the stability above), so a segment must not become a label attached to a client outside "
+        "analysis."
+    ),
+}
 
 
 def _defined(value: object) -> bool:
@@ -300,9 +329,27 @@ def render(entry: ModelEntry) -> str:
         "",
         *RENDERERS[entry.name](entry),
         "",
+        "## Training data",
+        "",
+        TRAINING_DATA,
+        "",
+        "## Ethical considerations",
+        "",
+        ETHICS[entry.name],
+        "",
         "## Limitations",
         "",
         *(f"- {text}" for text in LIMITATIONS),
+        "",
+        "## Reproduce and refresh",
+        "",
+        (
+            f"`just dbt`, then `uv run strata train {entry.name}` (`--quick` for the effort of "
+            f"tests and demos; `uv run strata --private train {entry.name}` on the machine that "
+            "holds the extract). The daily DAG retrains it, and its evaluation gate "
+            "(`strata evaluate`) stops the run before the ledger if the model was trained on other "
+            "data or ranks no better than chance."
+        ),
         "",
     ]
     return "\n".join(lines)

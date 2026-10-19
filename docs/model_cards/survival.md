@@ -31,8 +31,20 @@ Cox hazard ratios:
 
 Concordance of the Cox model: 0.748.
 
+## Training data
+
+The public card describes a model trained on the synthetic generator's extract, read through the synthetic mapping into the same marts as the reference instance. On the machine that holds the extract the same code trains on the real marts in the private zone; that model, its card and its scores stay under `STRATA_PRIVATE_DIR`, and its metrics are not published.
+
+## Ethical considerations
+
+Hazard ratios describe the gaps between active days in the reference sample; they are associations, not effects of a channel or of age, and must not justify treating groups differently.
+
 ## Limitations
 
 - One year of data: the outcome windows of consecutive cutoffs overlap, so a backtest's training labels share calendar weeks with its test labels, and seasonal effects cannot be told apart from trend.
 - Code meanings marked `assumed` in the seeds (see `docs/data_card.md`) are used as stated.
 - Synthetic results show that the pipeline works; they are not evidence about clients.
+
+## Reproduce and refresh
+
+`just dbt`, then `uv run strata train survival` (`--quick` for the effort of tests and demos; `uv run strata --private train survival` on the machine that holds the extract). The daily DAG retrains it, and its evaluation gate (`strata evaluate`) stops the run before the ledger if the model was trained on other data or ranks no better than chance.

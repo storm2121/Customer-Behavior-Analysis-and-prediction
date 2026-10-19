@@ -37,8 +37,20 @@ BIC by number of segments (lower is better):
 | 9 | -29,847 | 0.315 |
 | 10 | -30,979 | 0.299 |
 
+## Training data
+
+The public card describes a model trained on the synthetic generator's extract, read through the synthetic mapping into the same marts as the reference instance. On the machine that holds the extract the same code trains on the real marts in the private zone; that model, its card and its scores stay under `STRATA_PRIVATE_DIR`, and its metrics are not published.
+
+## Ethical considerations
+
+Segments summarise behaviour for analysis; membership is uncertain at their edges (see the stability above), so a segment must not become a label attached to a client outside analysis.
+
 ## Limitations
 
 - One year of data: the outcome windows of consecutive cutoffs overlap, so a backtest's training labels share calendar weeks with its test labels, and seasonal effects cannot be told apart from trend.
 - Code meanings marked `assumed` in the seeds (see `docs/data_card.md`) are used as stated.
 - Synthetic results show that the pipeline works; they are not evidence about clients.
+
+## Reproduce and refresh
+
+`just dbt`, then `uv run strata train segments` (`--quick` for the effort of tests and demos; `uv run strata --private train segments` on the machine that holds the extract). The daily DAG retrains it, and its evaluation gate (`strata evaluate`) stops the run before the ledger if the model was trained on other data or ranks no better than chance.
