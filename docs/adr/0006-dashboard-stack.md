@@ -47,6 +47,40 @@ tests, axe accessibility checks. Streamlit was rejected because design is a stat
   sliders; feedback on an alert is stored. Locally they can drive an installed browser
   (`STRATA_E2E_CHANNEL`) instead of downloading one.
 
+### The design pass (docs/DESIGN.md)
+
+The architect's design brief extends this record; where the dashboard departs from the brief, and
+why, is in `docs/DESIGN_NOTES.md`.
+
+- **Tokens.** `src/styles/tokens.css` is the single source of every colour, type size, space, radius,
+  material, elevation and duration, with light and dark values (the system preference, a chosen
+  theme, or a stamped subtree, which is how Storybook shows both themes side by side) and the
+  reduced-transparency and more-contrast preferences. Tailwind's own palette, radii, shadows and
+  type scale are cleared, so a utility can only name a token. `src/styles/tokens.test.ts` keeps the
+  computable promises: the dark blocks agree, every token the chart theme reads exists, text keeps
+  WCAG AA on the surfaces it sits on, and the five categorical hues keep equal lightness and the
+  colour-vision separation they were chosen for.
+- **Charts.** The ECharts theme is generated from the tokens at run time on each chart's own element
+  and merged into the option, so one chart instance lives as long as its page: data changes go
+  through ECharts' transitions (series matched by id), the entrance plays only on a page's first
+  paint, and reduced motion turns animation off. Options name colours by token (`token:<name>`).
+- **Motion and icons.** Motion (`motion/react`) drives every spring: critically damped by default,
+  a little bounce only after a drag release, a short cross-fade under reduced motion. Lucide is the
+  only icon set. Both are new dependencies, locked at releases at least two weeks old.
+- **Primitives.** The Radix slider is replaced by the dashboard's own slider, because the brief's
+  showcase (one-to-one tracking under pointer capture, rubber-banding, the release velocity handed to
+  a spring) is not something a stock slider does; it keeps the slider role, its values and the
+  keyboard steps. Radix Dialog gives the evidence drawer its focus handling; the unused Radix tabs
+  and tooltip are gone.
+- **Context from the API.** The pages' numbers carry their interval, sample and period because the
+  API serves them: the claims' method, caveats, robustness explanation and period, the overview's
+  channel-mix intervals from a ledger of the same data, the segments' embedding, the scored
+  population's size and the description of every interval it serves. All of it is additive.
+- **Tests.** The smoke tests check the new page titles and data label, a pointer drag on the
+  simulator's slider (held at the end, past which it resists), and feedback given in the drawer with
+  axe clean while it is open. `scripts/screenshots.mjs` captures every page but Findings in both
+  themes at a desktop and a phone width, after every chart reports it has finished drawing.
+
 ## Alternatives considered
 
 - **Streamlit or Dash.** Fast to build, but design control, component testing and accessibility are
@@ -57,6 +91,10 @@ tests, axe accessibility checks. Streamlit was rejected because design is a stat
   source of truth and lets the bundle check be absolute: no ledger value in the bundle at all.
 - **The full ECharts build.** Simpler imports, but a much larger bundle for charts the pages never
   draw.
+- **Registering the ECharts theme (`registerTheme`).** The usual route, but ECharts 5 binds a theme
+  when a chart is created, so a theme switch would remount every chart and replay its entrance.
+- **Keeping the Radix slider.** Accessible and small, but it cannot rubber-band, hand off velocity
+  or report its value while it springs back; the simulator's slider needs all three.
 
 ## Consequences
 

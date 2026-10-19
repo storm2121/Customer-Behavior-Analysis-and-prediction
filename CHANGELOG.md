@@ -169,6 +169,20 @@ instance and the synthetic generator a first-class source.
 
 ### Changed
 
+- The dashboard is redesigned to the design brief (`docs/DESIGN.md`; departures in
+  `docs/DESIGN_NOTES.md`): one tokens file with light and dark values, the platform type stack with
+  size-specific tracking and tabular figures, one accent and a validated palette of five
+  equal-lightness hues, a translucent top bar with a soft scroll edge, controls that press on
+  pointer-down and spring back, the simulator's slider (one-to-one tracking, rubber-banding,
+  velocity handed to a spring, keyboard steps) with bands that follow it continuously, an evidence
+  drawer for alerts, skeletons and empty states, and page structures that put every number beside
+  its interval or sample. Lucide icons only; reduced motion, reduced transparency and more contrast
+  are honoured. Storybook shows every component in both themes, and the screenshots cover every page
+  but Findings in both themes at desktop and phone width.
+- The API serves the context the pages show, additively: each public claim's method, caveats,
+  robustness explanation and period, the overview's channel-mix intervals (from a ledger of the same
+  data only), the segments' embedding, the size of the scored population, and the description of
+  every interval it serves.
 - The README is rewritten: what Strata is and why it exists, the stages, an architecture diagram,
   screenshots of the synthetic demo, the honesty and limitations section, privacy, the legacy bugs
   and the one-command quick start.
