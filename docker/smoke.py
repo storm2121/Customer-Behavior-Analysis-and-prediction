@@ -1,21 +1,42 @@
 """Smoke test of a running stack: every API endpoint answers on synthetic data.
 
     python docker/smoke.py [api_url] [dashboard_url]
+    python docker/smoke.py --compose
 
 With a dashboard URL, the dashboard's page and the API behind its same-origin proxy must answer
-too. Exits non-zero on the first check that does not answer as expected.
+too. `--compose` asks Docker Compose where the stack's API and dashboard are published (so host
+ports moved in `.env.local` are followed) and checks both. Exits non-zero on the first check that
+does not answer as expected.
 """
 
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 
-BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
-DASHBOARD = sys.argv[2] if len(sys.argv) > 2 else None
+
+def published(service: str, port: int) -> str:
+    """``http://localhost:<host port>`` of a Compose service's container port."""
+    env_file = ["--env-file", ".env.local"] if Path(".env.local").is_file() else []
+    found = subprocess.run(
+        ["docker", "compose", *env_file, "port", service, str(port)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return "http://localhost:" + found.stdout.strip().rpartition(":")[2]
+
+
+if sys.argv[1:] == ["--compose"]:
+    BASE, DASHBOARD = published("api", 8000), published("dashboard", 80)
+else:
+    BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
+    DASHBOARD = sys.argv[2] if len(sys.argv) > 2 else None
 if not all(url.startswith(("http://", "https://")) for url in (BASE, DASHBOARD or BASE)):
     sys.exit("the URLs must be http or https")
 

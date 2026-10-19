@@ -115,9 +115,6 @@ compose_env := if path_exists(".env.local") == "true" { "--env-file .env.local" 
 up:
     docker compose {{compose_env}} up --build
 
-api_url := "http://localhost:" + env_var_or_default("STRATA_API_PORT", "8000")
-dashboard_url := "http://localhost:" + env_var_or_default("STRATA_DASHBOARD_PORT", "5173")
-
 # The extract, the warehouse, every claim, the analysis modules, the models and their gate, the
 # monitoring queue and the demo report, then the stack in the background and a smoke test of every
 # endpoint and of the dashboard. Nothing in it reads the real extract or changes a tracked file.
@@ -130,7 +127,7 @@ demo: dbt
     uv run --frozen strata anomaly run --budget 50
     uv run --frozen strata report --variant public
     docker compose {{compose_env}} up --build --detach
-    uv run --frozen python docker/smoke.py {{api_url}} {{dashboard_url}}
+    uv run --frozen python docker/smoke.py --compose
 
 # Stop the stack and remove its volumes.
 down:
