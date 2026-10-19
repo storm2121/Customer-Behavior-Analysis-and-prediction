@@ -1,157 +1,245 @@
-import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { keepPreviousData, useQueries, useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 
-import { api, type Bands, type SimulationRequest } from "../api";
+import { api, type Bands, type Simulation, type SimulationRequest } from "../api";
+import { tooltipRow, tooltipTitle } from "../charts/theme";
 import { Chart, type ChartOption } from "../components/Chart";
-import { Slider } from "../components/Controls";
-import { Card, Failure, Loading, PageHeader, Tag } from "../components/ui";
-import { formatCount, formatShare } from "../format";
-import { token, useThemeKey } from "../theme";
+import { Segmented } from "../components/Segmented";
+import { Slider } from "../components/Slider";
+import { Bone, Failure, Loading, Notice, PageHeader, Panel, Tag } from "../components/ui";
+import { formatCount, formatEstimate, formatShare } from "../format";
+import { useDebounced } from "../hooks";
+import { bandsAt, computedPolicies } from "../simulator";
 
+// The policy's controls. Ages are the upper edges of the age bands the simulator moves.
+const SHARE = { min: 0, max: 1, step: 0.05 };
+const AGE = { min: 25, max: 65, step: 10 };
 const AGES = [25, 35, 45, 55, 65];
+const HORIZON = 12;
+const SAMPLES = 600;
+// The network waits for the slider to rest this long; the visual never waits.
+const SETTLE_MS = 250;
 
-function useDebounced<T>(value: T, delay = 250): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setDebounced(value), delay);
-    return () => window.clearTimeout(timer);
-  }, [value, delay]);
-  return debounced;
+type Target = SimulationRequest["target"];
+
+const TARGETS: { value: Target; label: string; words: string }[] = [
+  { value: "mixed", label: "Mixed use", words: "mixed use" },
+  { value: "digital_only", label: "Digital only", words: "digital only" },
+];
+
+function request(share: number, maxAge: number, target: Target): SimulationRequest {
+  return { share, max_age: maxAge, target, horizon: HORIZON, samples: SAMPLES };
+}
+
+function key(body: SimulationRequest): QueryKey {
+  return ["simulate", body];
 }
 
 /**
  * A fan chart: the posterior median of `quantity` for the policy and the baseline, each with its
- * 90% band (drawn as a stacked area from the 5th to the 95th percentile).
+ * band (drawn as a stacked area from the low to the high percentile). The policy is the thing
+ * being discussed, in the accent; the baseline is in the neutral ramp.
  */
-function fan(months: number[], policy: Bands, baseline: Bands, quantity: string, share: boolean): ChartOption {
-  const format = (value: number | undefined) =>
-    value === undefined ? "not defined" : share ? formatShare(value, 1) : formatCount(value);
-  const band = (bands: Bands, name: string, color: string) => {
+function fan(months: number[], policy: Bands, baseline: Bands, quantity: string, unit: "share" | "count", interval: string): ChartOption {
+  const format = (value: number | undefined) => (value === undefined ? "not defined" : unit === "share" ? formatShare(value) : formatCount(value));
+  const band = (bands: Bands, name: string, colour: string) => {
     const q = bands[quantity];
     const low = q?.p05 ?? [];
     return [
-      { type: "line" as const, name: `${name} low`, data: low, stack: name, symbol: "none", lineStyle: { opacity: 0 }, silent: true },
+      { type: "line" as const, id: `${name}-low`, data: low, stack: name, symbol: "none", lineStyle: { opacity: 0 }, silent: true, tooltip: { show: false } },
       {
         type: "line" as const,
-        name: `${name} band`,
+        id: `${name}-band`,
         data: (q?.p95 ?? []).map((high, index) => high - (low[index] ?? high)),
         stack: name,
         symbol: "none",
         lineStyle: { opacity: 0 },
-        areaStyle: { color, opacity: 0.16 },
+        areaStyle: { color: colour, opacity: 0.14 },
         silent: true,
+        tooltip: { show: false },
       },
-      {
-        type: "line" as const,
-        name,
-        data: q?.p50 ?? [],
-        symbol: "none",
-        itemStyle: { color },
-        lineStyle: { color, width: 2.5 },
-      },
+      { type: "line" as const, id: name, name: name === "policy" ? "With the policy" : "Without it", data: q?.p50 ?? [], symbol: "none", itemStyle: { color: colour }, lineStyle: { color: colour, width: 2 } },
     ];
   };
-  const row = (bands: Bands, name: string, index: number) => {
+  const row = (bands: Bands, words: string, index: number, colour: string) => {
     const q = bands[quantity];
-    return `${name}: ${format(q?.p50[index])} (90% band ${format(q?.p05[index])} to ${format(q?.p95[index])})`;
+    const median = q?.p50[index];
+    return tooltipRow(colour, median === undefined ? "not defined" : formatEstimate(median, [q?.p05[index] ?? null, q?.p95[index] ?? null], unit), words);
   };
   return {
     tooltip: {
       trigger: "axis",
       formatter: (params: unknown) => {
-        const first = (Array.isArray(params) ? params[0] : params) as { dataIndex?: number } | undefined;
-        const index = first?.dataIndex ?? 0;
-        return [`month ${months[index] ?? index}`, row(policy, "policy", index), row(baseline, "baseline", index)].join("<br/>");
+        const items = (Array.isArray(params) ? params : [params]) as { dataIndex?: number; seriesId?: string; color?: string }[];
+        const index = items[0]?.dataIndex ?? 0;
+        const colour = (id: string) => items.find((item) => item.seriesId === id)?.color ?? "";
+        return [
+          tooltipTitle(`Month ${months[index] ?? index}, ${interval}`),
+          row(policy, "with the policy", index, colour("policy")),
+          row(baseline, "without it", index, colour("baseline")),
+        ].join("");
       },
     },
-    legend: { top: 0, data: ["baseline", "policy"] },
-    xAxis: { type: "category", data: months.map((month) => `${month}`), name: "months", boundaryGap: false },
+    legend: { top: 0, left: 0, data: ["With the policy", "Without it"] },
+    xAxis: { type: "category", data: months.map((month) => `${month}`), name: "months from now", nameLocation: "middle", nameGap: 28, boundaryGap: false },
     yAxis: { type: "value", scale: true, axisLabel: { formatter: (value: number) => format(value) } },
-    series: [
-      ...band(baseline, "baseline", token("chart-6") || "#586372"),
-      ...band(policy, "policy", token("chart-1") || "#2f6f9f"),
-    ],
+    series: [...band(baseline, "baseline", "token:chart-neutral"), ...band(policy, "policy", "token:accent")],
+  } as ChartOption;
+}
+
+function last(values: number[] | undefined): number | undefined {
+  return values && values.length ? values[values.length - 1] : undefined;
+}
+
+function Outcome({ title, unit, policy, baseline, quantity }: { title: string; unit: "share" | "count"; policy: Bands; baseline: Bands; quantity: string }) {
+  const read = (bands: Bands) => {
+    const q = bands[quantity];
+    const median = last(q?.p50);
+    return median === undefined ? "not defined" : formatEstimate(median, [last(q?.p05) ?? null, last(q?.p95) ?? null], unit);
   };
+  return (
+    <div className="flex flex-col gap-1">
+      <dt className="text-label font-label text-ink-secondary">{title}</dt>
+      <dd className="flex flex-col gap-0.5 text-small">
+        <span className="text-ink">
+          <span className="font-label">{read(policy)}</span> with the policy
+        </span>
+        <span className="text-ink-secondary">{read(baseline)} without it</span>
+      </dd>
+    </div>
+  );
 }
 
 export function SimulatorPage() {
   const [share, setShare] = useState(0.3);
   const [maxAge, setMaxAge] = useState(45);
-  const [target, setTarget] = useState<SimulationRequest["target"]>("mixed");
-  const request = useDebounced<SimulationRequest>({ share, max_age: maxAge, target, horizon: 12, samples: 600 });
-  const simulation = useQuery({
-    queryKey: ["simulate", request],
-    queryFn: () => api.simulate(request),
-    placeholderData: (previous) => previous,
+  const [target, setTarget] = useState<Target>("mixed");
+  const [liveShare, setLiveShare] = useState<number | null>(null);
+  const [liveAge, setLiveAge] = useState<number | null>(null);
+  const [ageIntent, setAgeIntent] = useState(false);
+
+  // What the network computes: the settled policy, debounced.
+  const settled = useDebounced(request(share, maxAge, target), SETTLE_MS);
+  const exact = useQuery({ queryKey: key(settled), queryFn: () => api.simulate(settled), placeholderData: keepPreviousData });
+
+  // What the screen shows: the share thumb's own value at every frame. The age limit moves in
+  // whole bands, so its bands switch as the thumb crosses each step (onChange), not in between.
+  const shownShare = liveShare ?? share;
+  const shownAge = maxAge;
+
+  // Anchors for the interpolation: the whole eligible group moved, at each age limit. The current
+  // age's anchor follows the first answer (so the first request is the policy on screen); the
+  // others load when the age slider is first touched.
+  useQueries({
+    queries: AGES.map((age) => {
+      const body = request(1, age, target);
+      return {
+        queryKey: key(body),
+        queryFn: () => api.simulate(body),
+        enabled: exact.isSuccess && (age === shownAge || ageIntent),
+        staleTime: Number.POSITIVE_INFINITY,
+      };
+    }),
   });
 
-  const theme = useThemeKey();
+  // Every policy computed so far for the age and target on screen: the query cache keeps each
+  // settled answer and each anchor, so the interpolation gets finer as the reader explores.
+  const queryClient = useQueryClient();
+  const group = queryClient
+    .getQueriesData<Simulation>({ queryKey: ["simulate"] })
+    .flatMap(([queryKey, data]) => {
+      const body = queryKey[1] as SimulationRequest | undefined;
+      if (!data || !body || body.max_age !== shownAge || body.target !== target || body.horizon !== HORIZON || body.samples !== SAMPLES) return [];
+      return [{ share: body.share, policy: data.policy_bands, baseline: data.baseline_bands, eligible: data.eligible_bands }];
+    });
+  const points = computedPolicies(group);
+  const interpolated = bandsAt(points, shownShare);
+  const baseline = group[0]?.baseline ?? exact.data?.baseline_bands ?? null;
+  const policy = interpolated ?? exact.data?.policy_bands ?? null;
+  const eligible = group[0]?.eligible ?? exact.data?.eligible_bands ?? [];
+  const months = exact.data?.months ?? [];
+  const interval = exact.data?.interval ?? "band";
+  const moving = liveShare !== null || liveAge !== null;
+  // Only when nothing computed matches the controls does the frame hold the previous answer, dimmed.
+  const waiting = exact.isFetching && group.length === 0;
+
   const charts = useMemo(() => {
-    if (!simulation.data) return null;
-    const { months, policy_bands: policy, baseline_bands: baseline } = simulation.data;
+    if (!policy || !baseline || months.length === 0) return null;
     return {
-      digital: fan(months, policy, baseline, "digital_share", true),
-      branch: fan(months, policy, baseline, "branch_load", false),
+      digital: fan(months, policy, baseline, "digital_share", "share", interval),
+      branch: fan(months, policy, baseline, "branch_load", "count", interval),
     };
-  }, [simulation.data, theme]);
+  }, [policy, baseline, months, interval]);
+
+  const targetWords = TARGETS.find((item) => item.value === target)?.words ?? target;
+  const horizon = months.length ? months[months.length - 1] : HORIZON;
 
   return (
     <>
       <PageHeader
-        title="What-if simulator"
-        lead="A Markov chain of monthly channel states with a Dirichlet posterior. Move a share of the branch-only clients under an age limit to another state this month and watch the next year, with 90% bands from the posterior."
+        title="Simulator"
+        lead="A Markov chain of monthly channel states with a Dirichlet posterior. Move a share of the branch-only clients under an age limit to another state this month, and see the year that follows with bands from the posterior."
       />
-      <Card title="Policy">
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-          <Slider
-            label="Share of eligible clients who move"
-            value={share}
-            min={0}
-            max={1}
-            step={0.05}
-            display={formatShare(share, 0)}
-            onChange={setShare}
-          />
-          <Slider
-            label="Clients younger than"
-            value={maxAge}
-            min={AGES[0] ?? 25}
-            max={AGES[AGES.length - 1] ?? 65}
-            step={10}
-            display={`${maxAge} years`}
-            onChange={setMaxAge}
-          />
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="font-medium">They move to</span>
-            <select
-              className="rounded-md border border-border bg-surface px-3 py-2 text-ink"
-              value={target}
-              onChange={(event) => setTarget(event.target.value as SimulationRequest["target"])}
-            >
-              <option value="mixed">mixed use (branch and digital)</option>
-              <option value="digital_only">digital only</option>
-            </select>
-          </label>
-        </div>
-        {simulation.data ? (
-          <p className="mt-4 flex flex-wrap gap-2">
-            <Tag>Eligible age bands: {simulation.data.eligible_bands.join(", ") || "none"}</Tag>
-            <Tag>A what-if under the fitted chain, not a forecast</Tag>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]">
+        <Panel title="Policy" className="lg:sticky lg:top-[calc(var(--bar-height)+var(--space-unit)*4)]">
+          <div className="flex flex-col gap-5">
+            <Slider
+              label="Share of eligible clients who move"
+              value={share}
+              {...SHARE}
+              format={(value) => formatShare(value, 0)}
+              onChange={setShare}
+              onLive={setLiveShare}
+            />
+            <Slider
+              label="Clients younger than"
+              value={maxAge}
+              {...AGE}
+              format={(value) => `${formatCount(value)} years`}
+              onChange={setMaxAge}
+              onLive={setLiveAge}
+              onIntent={() => setAgeIntent(true)}
+            />
+            <Segmented label="They move to" options={TARGETS.map(({ value, label }) => ({ value, label }))} value={target} onChange={setTarget} />
+            <div className="flex flex-wrap gap-2">
+              <Tag>Eligible age bands: {eligible.join(", ") || "none"}</Tag>
+              <Tag>A what-if under the fitted chain, not a forecast</Tag>
+            </div>
+          </div>
+        </Panel>
+        <div className="flex min-w-0 flex-col gap-5">
+          <p className="text-heading font-title text-ink">
+            Move {formatShare(share, 0)} of branch-only clients under {formatCount(maxAge)} to {targetWords}
           </p>
-        ) : null}
-      </Card>
-      {simulation.isPending ? <Loading what="the simulation" /> : null}
-      {simulation.error ? <Failure error={simulation.error} /> : null}
-      {charts ? (
-        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Card title="Digital share" subtitle="Clients using card or online banking in the month.">
-            <Chart option={charts.digital} label="Digital share over twelve months, policy against baseline, with bands" height={300} />
-          </Card>
-          <Card title="Branch operations" subtitle="Expected branch operations in the month.">
-            <Chart option={charts.branch} label="Branch operations over twelve months, policy against baseline, with bands" height={300} />
-          </Card>
+          {exact.error ? <Failure error={exact.error} onRetry={() => void exact.refetch()} /> : null}
+          {exact.isPending ? (
+            <Loading what="the simulation">
+              <Bone className="h-16 w-full" />
+              <Bone className="h-72 w-full" />
+              <Bone className="h-72 w-full" />
+            </Loading>
+          ) : null}
+          {charts && policy && baseline ? (
+            <>
+              <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Outcome title={`Digital share in month ${horizon}`} unit="share" quantity="digital_share" policy={policy} baseline={baseline} />
+                <Outcome title={`Branch operations in month ${horizon}`} unit="count" quantity="branch_load" policy={policy} baseline={baseline} />
+              </dl>
+              <div className={`flex flex-col gap-5 ${waiting ? "opacity-75" : ""}`}>
+                <Panel title="Digital share" subtitle={`Clients using card or online banking in the month: posterior median and ${interval}.`}>
+                  <Chart option={charts.digital} transition={moving ? "immediate" : "smooth"} label="Digital share over the coming months, with the policy against without it, with bands" />
+                </Panel>
+                <Panel title="Branch operations" subtitle={`Expected branch operations in the month: posterior median and ${interval}.`}>
+                  <Chart option={charts.branch} transition={moving ? "immediate" : "smooth"} label="Branch operations over the coming months, with the policy against without it, with bands" />
+                </Panel>
+              </div>
+              <Notice kind="status">
+                While a slider moves, the bands are interpolated between policies the API has already computed; the bands for the value you stop at are the API's own.
+              </Notice>
+            </>
+          ) : null}
         </div>
-      ) : null}
+      </div>
     </>
   );
 }

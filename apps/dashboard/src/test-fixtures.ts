@@ -23,6 +23,7 @@ export const health: Health = {
 
 export const overview: Overview = {
   source_kind: "synthetic",
+  period: ["2023-10-02", "2024-10-02"],
   clients: 1000,
   events: 50000,
   channel_mix: [
@@ -30,6 +31,15 @@ export const overview: Overview = {
     { channel_profile: "mixed", clients: 500 },
     { channel_profile: "none", clients: 100 },
   ],
+  channel_mix_intervals: {
+    interval: "95% CI",
+    n: 1000,
+    shares: {
+      branch_only: { value: 0.4, ci: [0.37, 0.43] },
+      mixed: { value: 0.5, ci: [0.47, 0.53] },
+      none: { value: 0.1, ci: [0.08, 0.12] },
+    },
+  },
   daily: [
     { day: "2024-01-01T00:00:00.000", channel: "card", events: 100 },
     { day: "2024-01-02T00:00:00.000", channel: "branch", events: 120 },
@@ -38,17 +48,24 @@ export const overview: Overview = {
 
 export const claims: Claims = {
   data_fingerprint: "fixture-fingerprint",
+  source_kind: "synthetic",
   claims: [
     {
       id: "digital_lift",
       title: "Digital clients keep more activity",
       question: "Do clients who use digital channels stay active longer?",
+      method: "Share of clients active in the last quarter, by channel profile; client bootstrap intervals.",
       values: { share_digital: 0.6, share_branch: 0.4, difference: 0.2, n_digital: 300 },
       units: { share_digital: "share", share_branch: "share", difference: "difference", n_digital: "count" },
       ci: { share_digital: [0.55, 0.65], share_branch: [0.35, 0.45], difference: [0.1, 0.3] },
       interval: "95% client bootstrap",
       n: 1000,
+      n_events: 50000,
+      period: ["2023-10-02", "2024-10-02"],
+      source_kind: "synthetic",
+      caveats: ["Activity is counted in the bank's own channels only."],
       verdict: "holds",
+      mechanism: "The difference keeps its sign within every activity level and age band.",
     },
   ],
   verdicts: [
@@ -69,6 +86,7 @@ export const claims: Claims = {
 
 export const silence: SilenceRisk = {
   cutoff: "2024-09-30",
+  n_scored: 900,
   clients: [
     {
       client_id: "fixture_a",
@@ -101,16 +119,19 @@ export const evaluation: SilenceEvaluation = {
     glm: [{ bin_low: 0, bin_high: 0.5, n: 400, predicted: 0.2, observed: 0.25 }],
     lightgbm_platt: [{ bin_low: 0, bin_high: 0.5, n: 400, predicted: 0.2, observed: 0.2 }],
   },
+  interval: "95% client-bootstrap interval",
 };
 
 export const segments: Segments = {
   k: 2,
-  stability: { mean_ari: 0.9, ci_low: 0.85, ci_high: 0.95 },
+  stability: { mean_ari: 0.9, ci_low: 0.85, ci_high: 0.95, interval: "95% range of refits" },
   segments: [
-    { segment: 0, name: "card first", n_clients: 600, share: 0.6, medians: {}, channel_profile: {} },
-    { segment: 1, name: "branch first", n_clients: 400, share: 0.4, medians: {}, channel_profile: {} },
+    { segment: 0, name: "card first", n_clients: 600, share: 0.6, medians: { card_share: 0.7, online_share: 0.1, branch_share: 0.2 }, channel_profile: {} },
+    { segment: 1, name: "branch first", n_clients: 400, share: 0.4, medians: { card_share: 0.2, online_share: 0, branch_share: 0.8 }, channel_profile: {} },
   ],
   tests: {},
+  embedding: "umap",
+  n_clients: 1000,
 };
 
 export const adoption: Adoption = {
@@ -154,6 +175,7 @@ const band = (value: number) => ({ p05: [value - 0.1, value - 0.1], p50: [value,
 
 export const simulation: Simulation = {
   policy: { share: 0.3, max_age: 45, target: "mixed", horizon: 12, samples: 600 },
+  interval: "90% posterior interval",
   eligible_bands: ["<25", "25-34", "35-44"],
   months: [0, 1],
   policy_bands: { digital_share: band(0.6), branch_load: band(500), silent_share: band(0.1) },

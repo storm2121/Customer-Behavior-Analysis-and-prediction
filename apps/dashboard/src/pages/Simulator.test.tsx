@@ -9,16 +9,16 @@ vi.mock("../components/Chart", () => ({
   Chart: ({ label }: { label: string }) => <div role="img" aria-label={label} />,
 }));
 
-function lastSimulation(calls: { url: string; init?: RequestInit }[]) {
-  const posted = calls.filter((call) => call.url.endsWith("/markov/simulate"));
-  const last = posted[posted.length - 1];
-  return last ? { method: last.init?.method, body: JSON.parse(String(last.init?.body)) } : null;
+type Call = { url: string; init?: RequestInit };
+
+function simulations(calls: Call[]) {
+  return calls.filter((call) => call.url.endsWith("/markov/simulate")).map((call) => ({ method: call.init?.method, body: JSON.parse(String(call.init?.body)) }));
 }
 
 describe("the simulator page", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it("posts the slider values to /markov/simulate and redraws on every change", async () => {
+  it("posts the policy on screen first, then each settled change of a slider or the target", async () => {
     const fixture = fixtureFetch();
     vi.stubGlobal("fetch", fixture.fetch);
     const user = userEvent.setup();
@@ -28,23 +28,32 @@ describe("the simulator page", () => {
       </QueryClientProvider>,
     );
 
-    await waitFor(() => expect(lastSimulation(fixture.calls)).not.toBeNull());
-    expect(lastSimulation(fixture.calls)).toEqual({
+    await waitFor(() => expect(simulations(fixture.calls).length).toBeGreaterThan(0));
+    expect(simulations(fixture.calls)[0]).toEqual({
       method: "POST",
       body: { share: 0.3, max_age: 45, target: "mixed", horizon: 12, samples: 600 },
     });
-    expect(await screen.findByRole("img", { name: /Digital share over twelve months/ })).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: /Digital share over the coming months/ })).toBeInTheDocument();
     expect(screen.getByText("Eligible age bands: <25, 25-34, 35-44")).toBeInTheDocument();
+    expect(screen.getByText("Move 30% of branch-only clients under 45 to mixed use")).toBeInTheDocument();
 
-    screen.getByRole("slider", { name: "Share of eligible clients who move" }).focus();
+    const share = screen.getByRole("slider", { name: "Share of eligible clients who move" });
+    share.focus();
     await user.keyboard("{ArrowRight}");
-    await waitFor(() => expect(lastSimulation(fixture.calls)?.body.share).toBeCloseTo(0.35));
+    expect(share).toHaveAttribute("aria-valuenow", "0.35");
+    await waitFor(() => expect(simulations(fixture.calls).some((call) => call.body.share === 0.35 && call.body.max_age === 45)).toBe(true));
 
-    screen.getByRole("slider", { name: "Clients younger than" }).focus();
+    await user.keyboard("{Shift>}{ArrowRight}{/Shift}");
+    expect(share).toHaveAttribute("aria-valuenow", "0.85");
+
+    const age = screen.getByRole("slider", { name: "Clients younger than" });
+    age.focus();
     await user.keyboard("{ArrowRight}");
-    await waitFor(() => expect(lastSimulation(fixture.calls)?.body.max_age).toBe(55));
+    expect(age).toHaveAttribute("aria-valuetext", "55 years");
+    await waitFor(() => expect(simulations(fixture.calls).some((call) => call.body.max_age === 55 && call.body.share === 0.85)).toBe(true));
 
-    await user.selectOptions(screen.getByRole("combobox", { name: "They move to" }), "digital_only");
-    await waitFor(() => expect(lastSimulation(fixture.calls)?.body.target).toBe("digital_only"));
+    await user.click(screen.getByRole("radio", { name: "Digital only" }));
+    await waitFor(() => expect(simulations(fixture.calls).some((call) => call.body.target === "digital_only")).toBe(true));
+    expect(screen.getByText("Move 85% of branch-only clients under 55 to digital only")).toBeInTheDocument();
   });
 });

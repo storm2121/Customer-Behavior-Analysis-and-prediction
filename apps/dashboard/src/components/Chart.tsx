@@ -1,5 +1,4 @@
-import type { EChartsOption } from "echarts";
-import { BarChart, HeatmapChart, LineChart, ScatterChart } from "echarts/charts";
+import { BarChart, CustomChart, HeatmapChart, LineChart, ScatterChart } from "echarts/charts";
 import {
   CalendarComponent,
   GridComponent,
@@ -11,11 +10,14 @@ import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "react";
 
-import { token, useThemeKey } from "../theme";
+import { readChartTokens, themed, type ChartOption } from "../charts/theme";
+import { prefersReducedMotion } from "../motion";
+import { useThemeKey } from "../theme";
 
 // Only what the pages draw, so the bundle carries a fraction of ECharts.
 echarts.use([
   BarChart,
+  CustomChart,
   HeatmapChart,
   LineChart,
   ScatterChart,
@@ -27,110 +29,115 @@ echarts.use([
   CanvasRenderer,
 ]);
 
-export type ChartOption = EChartsOption;
+export type { ChartOption };
 
-type Dict = Record<string, unknown>;
+/** Chart heights, named so a page never types a pixel value. */
+const HEIGHTS = {
+  compact: "h-56",
+  standard: "h-72",
+  tall: "h-96",
+} as const;
 
-const SERIES_TOKENS = ["chart-1", "chart-2", "chart-3", "chart-4", "chart-5", "chart-6"];
+export type ChartHeight = keyof typeof HEIGHTS;
 
-function isDict(value: unknown): value is Dict {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+export type ChartEvents = Partial<Record<"mouseover" | "mouseout" | "click" | "globalout", (params: unknown) => void>>;
 
-/** Colours and text styles from the design tokens, read when called, so they follow the theme. */
-export function baseStyles(): Dict {
-  const ink = token("ink") || "#17202b";
-  const muted = token("ink-muted") || "#556171";
-  const border = token("border") || "#d9dee6";
-  const surface = token("surface") || "#ffffff";
-  const axis = {
-    axisLine: { lineStyle: { color: border } },
-    axisTick: { lineStyle: { color: border } },
-    axisLabel: { color: muted },
-    nameTextStyle: { color: muted },
-    splitLine: { lineStyle: { color: border } },
-  };
-  return {
-    color: SERIES_TOKENS.map((name) => token(name) || "#2f6f9f"),
-    textStyle: { color: ink, fontFamily: "inherit" },
-    tooltip: { backgroundColor: surface, borderColor: border, textStyle: { color: ink } },
-    legend: { textStyle: { color: muted }, pageTextStyle: { color: muted }, inactiveColor: border },
-    grid: { left: 48, right: 16, top: 32, bottom: 40, containLabel: true },
-    xAxis: axis,
-    yAxis: axis,
-    visualMap: { textStyle: { color: muted } },
-    calendar: {
-      dayLabel: { color: muted },
-      monthLabel: { color: muted },
-      yearLabel: { color: muted },
-      itemStyle: { color: surface, borderColor: token("canvas") || "#f7f8fa" },
-      splitLine: { lineStyle: { color: border } },
-    },
-  };
-}
-
-function merge(base: unknown, own: unknown): unknown {
-  if (own === undefined) return base;
-  if (isDict(base) && isDict(own)) {
-    const out: Dict = { ...base };
-    for (const [key, value] of Object.entries(own)) out[key] = merge(base[key], value);
-    return out;
-  }
-  return own;
-}
-
-const ALWAYS = new Set(["color", "textStyle", "tooltip"]);
+// Components replaced (matched by id) rather than merged, so a series or calendar that leaves the
+// option leaves the chart, and one that stays is updated in place and animates from the screen.
+const REPLACED = ["series", "calendar", "visualMap"];
 
 /**
- * A chart's own option over the token styles. Component styles (axes, legend, calendar, ...) are
- * merged into the components the chart declares, one by one when it declares several, and never
- * add a component the chart does not use.
+ * An ECharts canvas that keeps one instance for its whole life. Data changes go through ECharts'
+ * own transitions (series matched by id); the entrance animation plays only on the first paint;
+ * `transition="immediate"` draws without easing, for values that follow a pointer; reduced motion
+ * turns animation off. The chart follows its container's size and the theme in effect on it.
  */
-export function themed(option: ChartOption): ChartOption {
-  const own = option as Dict;
-  const out: Dict = { ...own };
-  for (const [key, style] of Object.entries(baseStyles())) {
-    const value = own[key];
-    if (value === undefined) {
-      if (ALWAYS.has(key) || (key === "grid" && own.xAxis !== undefined)) out[key] = style;
-      continue;
-    }
-    out[key] =
-      Array.isArray(value) && key !== "color" ? value.map((item) => merge(style, item)) : merge(style, value);
-  }
-  return out as ChartOption;
-}
-
-/** An ECharts canvas that follows its container's size and the page's theme. */
 export function Chart({
   option,
-  height = 320,
   label,
+  height = "standard",
+  pixels,
+  transition = "smooth",
+  events,
 }: {
   option: ChartOption;
-  height?: number;
   label: string;
+  height?: ChartHeight;
+  /** A height computed from the chart's own geometry (a calendar's cell size), in CSS pixels. */
+  pixels?: number;
+  transition?: "smooth" | "immediate";
+  events?: ChartEvents;
 }) {
   const element = useRef<HTMLDivElement>(null);
   const chart = useRef<echarts.EChartsType | null>(null);
-  const theme = useThemeKey();
+  const painted = useRef(false);
+  const themeKey = useThemeKey();
 
   useEffect(() => {
     if (!element.current) return;
-    const instance = echarts.init(element.current, undefined, { renderer: "canvas" });
+    const host = element.current;
+    const instance = echarts.init(host, undefined, { renderer: "canvas" });
     chart.current = instance;
-    const observer = new ResizeObserver(() => instance.resize());
+    // The screenshot script waits for every chart to finish drawing, animations included.
+    const finished = () => {
+      host.dataset.settled = "true";
+    };
+    instance.on("finished", finished);
+    const observer = new ResizeObserver(() => instance.resize({ animation: { duration: 0 } }));
     observer.observe(element.current);
     return () => {
       observer.disconnect();
+      instance.off("finished", finished);
       instance.dispose();
       chart.current = null;
+      painted.current = false;
     };
   }, []);
 
   useEffect(() => {
-    chart.current?.setOption(themed(option), { notMerge: true });
-  }, [option, theme]);
+    const instance = chart.current;
+    const host = element.current;
+    if (!instance || !host) return;
+    const tokens = readChartTokens(host);
+    const first = !painted.current;
+    const motion = prefersReducedMotion()
+      ? { animation: false }
+      : {
+          animation: true,
+          animationDuration: first ? tokens.enter : 0,
+          animationEasing: "cubicOut" as const,
+          animationDurationUpdate: transition === "immediate" ? 0 : tokens.update,
+          animationEasingUpdate: "cubicInOut" as const,
+        };
+    host.dataset.settled = "false";
+    instance.setOption({ ...themed(option, tokens), ...motion }, { replaceMerge: REPLACED, lazyUpdate: transition === "immediate" });
+    painted.current = true;
+  }, [option, themeKey, transition]);
 
-  return <div ref={element} role="img" aria-label={label} style={{ height, width: "100%" }} />;
+  useEffect(() => {
+    const instance = chart.current;
+    if (!instance || !events) return;
+    const entries = Object.entries(events) as [keyof ChartEvents, (params: unknown) => void][];
+    for (const [name, handler] of entries) {
+      if (name === "globalout") instance.getZr().on("globalout", handler);
+      else instance.on(name, handler);
+    }
+    return () => {
+      for (const [name, handler] of entries) {
+        if (name === "globalout") instance.getZr().off("globalout", handler);
+        else instance.off(name, handler);
+      }
+    };
+  }, [events]);
+
+  return (
+    <div
+      ref={element}
+      role="img"
+      aria-label={label}
+      data-chart=""
+      className={`w-full ${pixels === undefined ? HEIGHTS[height] : ""}`}
+      style={pixels === undefined ? undefined : { height: pixels }}
+    />
+  );
 }

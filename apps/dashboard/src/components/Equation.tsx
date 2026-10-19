@@ -6,7 +6,7 @@ import { useMemo } from "react";
 /** A display equation rendered by KaTeX (the source is the project's own methods, not data). */
 export function Equation({ tex, label }: { tex: string; label: string }) {
   const html = useMemo(
-    () => katex.renderToString(tex, { displayMode: true, throwOnError: false, output: "htmlAndMathml" }),
+    () => katex.renderToString(tex, { displayMode: true, fleqn: true, throwOnError: false, output: "htmlAndMathml" }),
     [tex],
   );
   // A wide equation scrolls sideways on a phone; the tab stop lets keyboard users scroll it too.
@@ -15,7 +15,7 @@ export function Equation({ tex, label }: { tex: string; label: string }) {
       role="group"
       aria-label={label}
       tabIndex={0}
-      className="overflow-x-auto rounded-md text-ink"
+      className="overflow-x-auto rounded-control text-ink"
       // KaTeX output of a constant string from this file's callers, never of data.
       dangerouslySetInnerHTML={{ __html: html }}
     />

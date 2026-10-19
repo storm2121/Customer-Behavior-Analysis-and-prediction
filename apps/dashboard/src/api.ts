@@ -40,24 +40,40 @@ export interface Health {
   models: Record<string, string>;
 }
 
+export interface ShareWithInterval {
+  value: number;
+  ci: Interval | null;
+}
+
 export interface Overview {
   source_kind: string;
+  /** The analysis window, first and last day. */
+  period: [string, string];
   clients: number;
   events: number;
   channel_mix: { channel_profile: string; clients: number }[];
+  /** The zone ledger's channel-mix shares with their intervals, when that ledger is built. */
+  channel_mix_intervals: { interval: string; n: number; shares: Record<string, ShareWithInterval> } | null;
   daily: { day: string; channel: string; events: number }[];
 }
 
 export interface PublicClaim {
   id: string;
   title: string;
-  question?: string;
+  question: string;
+  method: string;
   values: Record<string, number>;
-  units?: Record<string, string>;
+  units: Record<string, string>;
   ci: Record<string, Interval>;
   interval: string;
   n: number;
+  n_events: number | null;
+  period: [string, string];
+  source_kind: string;
+  caveats: string[];
   verdict: string | null;
+  /** The robustness checker's explanation of the verdict, when the claim has one. */
+  mechanism: string | null;
 }
 
 export interface PublishedVerdict {
@@ -75,6 +91,7 @@ export interface PublishedVerdict {
 
 export interface Claims {
   data_fingerprint: string;
+  source_kind: string;
   claims: PublicClaim[];
   verdicts: PublishedVerdict[];
 }
@@ -98,6 +115,8 @@ export interface ScoredClient {
 
 export interface SilenceRisk {
   cutoff: string | null;
+  /** How many clients were scored at the cutoff (the list is the top of them). */
+  n_scored: number;
   clients: ScoredClient[];
 }
 
@@ -122,6 +141,8 @@ export interface SilenceEvaluation {
   silence_rate_test: number;
   metrics: Record<string, Record<string, MetricValue>>;
   reliability: Record<string, ReliabilityBin[]>;
+  /** What every metric interval is. */
+  interval: string;
 }
 
 export interface Segment {
@@ -135,9 +156,13 @@ export interface Segment {
 
 export interface Segments {
   k: number;
-  stability: { mean_ari: number; ci_low: number; ci_high: number };
+  /** `interval` says what the range is (the API names it beside the percentiles that make it). */
+  stability: { mean_ari: number; ci_low: number; ci_high: number; interval: string };
   segments: Segment[];
   tests: Record<string, Record<string, number>>;
+  /** How the map was drawn: UMAP, or the first two principal components at quick effort. */
+  embedding: "umap" | "pca" | null;
+  n_clients: number | null;
 }
 
 export interface SegmentPoint {
@@ -197,6 +222,8 @@ export type Bands = Record<string, { p05: number[]; p50: number[]; p95: number[]
 
 export interface Simulation {
   policy: SimulationRequest;
+  /** What a band is. */
+  interval: string;
   eligible_bands: string[];
   months: number[];
   policy_bands: Bands;

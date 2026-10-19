@@ -15,3 +15,15 @@ export const Holds: Story = { args: { verdict: "holds" } };
 export const Weakens: Story = { args: { verdict: "weakens" } };
 export const Reverses: Story = { args: { verdict: "reverses" } };
 export const Insufficient: Story = { args: { verdict: "insufficient" } };
+
+/** The three verdicts and the neutral one together: colour, icon and word, so none relies on colour. */
+export const AllFour: Story = {
+  args: { verdict: "holds" },
+  render: () => (
+    <div className="flex flex-wrap gap-2">
+      {["holds", "weakens", "reverses", "insufficient"].map((verdict) => (
+        <VerdictBadge key={verdict} verdict={verdict} />
+      ))}
+    </div>
+  ),
+};
