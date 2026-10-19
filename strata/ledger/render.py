@@ -1,8 +1,9 @@
 """``strata ledger render``: documents are Jinja2 templates over the ledger.
 
 ``docs/findings/<name>.md.j2`` renders to ``docs/findings/<name>.md`` with a "generated, do not
-edit" header, and ``docs/findings/_readme.md.j2`` renders into the README between the
-``<!-- ledger:start -->`` and ``<!-- ledger:end -->`` markers. Templates read numbers only through
+edit" header, ``docs/findings/_readme.md.j2`` renders into the README between the
+``<!-- ledger:start -->`` and ``<!-- ledger:end -->`` markers, and ``docs/findings/_cv_notes.md.j2``
+renders to ``docs/CV_NOTES.md``. Templates read numbers only through
 placeholder functions:
 
 ``ledger(id, key)``    a formatted value          ``ci(id, key)``      its 95% interval
@@ -40,6 +41,8 @@ from strata.ledger.robustness import STRATIFIER_LABELS
 FINDINGS_DIR = Path("docs/findings")
 README = Path("README.md")
 README_TEMPLATE = "_readme.md.j2"
+CV_NOTES = Path("docs/CV_NOTES.md")
+CV_TEMPLATE = "_cv_notes.md.j2"
 START_MARKER = "<!-- ledger:start -->"
 END_MARKER = "<!-- ledger:end -->"
 SENTINEL = "⟦ledger⟧"
@@ -247,6 +250,11 @@ def rendered_document(repo_root: Path, name: str, ledger: Ledger) -> str:
     return generated_header(name) + render_template(repo_root, name, ledger)
 
 
+def cv_notes_document(repo_root: Path, ledger: Ledger) -> str:
+    """The exact content of ``docs/CV_NOTES.md`` (header included)."""
+    return generated_header(CV_TEMPLATE) + render_template(repo_root, CV_TEMPLATE, ledger)
+
+
 def readme_section(repo_root: Path, ledger: Ledger) -> str:
     return render_template(repo_root, README_TEMPLATE, ledger)
 
@@ -286,4 +294,8 @@ def render_all(repo_root: Path, ledger: Ledger) -> list[Path]:
             splice(text, readme_section(repo_root, ledger)), encoding="utf-8", newline="\n"
         )
         written.append(readme)
+    if (repo_root / FINDINGS_DIR / CV_TEMPLATE).is_file():
+        notes = repo_root / CV_NOTES
+        notes.write_text(cv_notes_document(repo_root, ledger), encoding="utf-8", newline="\n")
+        written.append(notes)
     return written

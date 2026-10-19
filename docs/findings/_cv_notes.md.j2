@@ -1,0 +1,88 @@
+# CV notes
+
+Lines to lift into a CV or a cover letter, grouped by skill. Each ends with its evidence: a claim
+of the public ledger (`claim`), a metric of the public model registry (`registry`), or a file of the
+repository. `strata ledger check` fails if a line has no evidence, if its evidence does not exist,
+or if a number in it was typed by hand.
+
+Numbers come only from allow-listed claims, computed on the real extract and published with their
+sample size and period. Model metrics on real data are not allow-listed, so the modelling lines
+carry no number; the public registry holds models trained on synthetic data, which show that a
+method runs, never how well it predicts.
+
+## The project
+
+- Built Strata, an end-to-end analytics pipeline for multi-channel retail-banking event data, from
+  typed contracts to a dashboard, run on an anonymised extract of {{ n("channel_mix") }} bank
+  clients and, for everyone else, on a synthetic generator of the same schema.
+  Evidence: claim `channel_mix`; [the architecture](../ARCHITECTURE.md).
+
+## Data engineering
+
+- Built a typed ingestion layer with schema contracts and reconciliation checks that flags exact
+  repeat rows instead of guessing, and surfaced a silently empty join in the original analysis.
+  Evidence: [the contracts](../strata/contracts/specs.py); [the legacy bugs](../legacy/README.md).
+- Modelled three banking channels into a dbt warehouse on DuckDB, every model and seed tested, with
+  window-function features for recency, rolling sums and monthly channel states, and a test that
+  rebuilds the features after changing every later event to prove that no feature reads past its
+  cutoff.
+  Evidence: [the dbt project](../dbt/dbt_project.yml); [the leakage test](../tests/test_models.py).
+- Made the pipeline source-agnostic: any client-and-events extract plugs in through a mapping file,
+  proven by a property-based test that maps a generated alien schema onto the same marts.
+  Evidence: [the mapping layer](../mappings/README.md); [the alien schema](../tests/alien.py).
+
+## Evidence and statistics
+
+- Designed an evidence ledger where every number in the documentation is generated from a
+  registered, bootstrapped claim and CI fails on drift, plus a stratification check that showed a
+  headline retention finding reversing once activity level was controlled.
+  Evidence: claim `silence_by_channel`; [the ledger check](../strata/ledger/check.py).
+{% set oldest = rows("age_digital_divide", "bands")[-1] %}
+{% set youngest = rows("age_digital_divide", "bands")[0] %}
+- Found that {{ ledger("channel_mix", "share_mixed") }} of the bank's sampled clients combine the
+  branch with a digital channel and {{ ledger("channel_mix", "share_branch_only") }} use only the
+  branch, a share that grows from {{ ledger("age_digital_divide", "branch_only_" ~ youngest[1]) }}
+  in the {{ youngest[0] }} age band to {{ ledger("age_digital_divide", "branch_only_" ~ oldest[1]) }}
+  in the {{ oldest[0] }} band.
+  Evidence: claim `channel_mix`; claim `age_digital_divide`.
+- Measured card spend concentration (Gini {{ ledger("spend_concentration", "gini") }}) and an excess
+  of leading nines in card purchase amounts of {{ ledger("benford_purchases", "digit_9_excess") }}
+  against Benford's law, the mark of psychological pricing.
+  Evidence: claim `spend_concentration`; claim `benford_purchases`.
+- Fitted negative-binomial and Bayesian calendar models of daily transactions with Ramadan, Eid and
+  salary-day effects, and a Dirichlet-posterior channel Markov chain that simulates branch load
+  under migration policies with uncertainty bands.
+  Evidence: [the calendar method](methods/calendar.md); [the Markov method](methods/markov.md).
+
+## Machine learning
+
+- Predicted ninety-day client silence with time-based validation, comparing a logistic GLM against a
+  tuned LightGBM with isotonic and Platt calibration and SHAP reasons, with a client-bootstrap
+  interval on every metric, and profiled behavioural segments selected by BIC with bootstrap
+  stability.
+  Evidence: registry `silence.headline.backtests`; registry `segments.headline.stability`;
+  [the silence model card](model_cards/silence.md).
+- Built a transaction-monitoring triage layer combining configurable rules (structuring, velocity,
+  pass-through) with Isolation Forest and empirical-Bayes amount models, ranked by an alert budget
+  and improved by analyst feedback.
+  Evidence: [the rules](../strata/models/anomaly/rules.yaml); [the monitoring method](methods/anomaly.md).
+- Generated a differentially private synthetic twin of the client table whose fidelity and
+  membership-inference risk are measured before any use.
+  Evidence: [the twin](../strata/synthetic/twin.py); [its decision record](adr/0013-private-twin.md).
+
+## Software and product
+
+- Served risk scores, segments, alerts and a policy simulator through a FastAPI service with
+  PostgreSQL feedback storage, Alembic migrations and Prometheus metrics, packaged with Docker
+  Compose.
+  Evidence: [the API](../strata/api/app.py); [the Compose file](../docker-compose.yml).
+- Designed a nine-page analytics dashboard in React and TypeScript (customer profiles, segments, risk,
+  alerts, what-if simulator) with Storybook-documented components and accessibility checks.
+  Evidence: [the dashboard](../apps/dashboard/src/App.tsx); [the smoke tests](../apps/dashboard/e2e/smoke.spec.ts).
+- Orchestrated ingestion, dbt, training, evaluation and reporting as an Airflow DAG, with a gate that
+  stops the run when a model was trained on other data or does no better than chance.
+  Evidence: [the DAG](../orchestration/airflow/dags/strata_daily.py); [the gate](../strata/models/evaluate.py).
+- Engineered a privacy boundary for confidential bank data: zones, a pre-commit guard that learns
+  the shape of real identifiers without ever echoing one, an allow-list with a minimum group size,
+  and verdict-only publication for findings whose numbers must stay private.
+  Evidence: [the guard](../strata/privacy_guard.py); [the privacy notes](../PRIVACY.md); claim `silence_by_channel`.

@@ -44,7 +44,8 @@ def repo(tmp_path: Path, synthetic_ledger: Ledger) -> Path:
     shutil.copytree(
         Settings().repo_root / "docs" / "findings",
         root / "docs" / "findings",
-        ignore=shutil.ignore_patterns("*.md"),
+        # The CV notes link to files of the whole repository; tests/test_cv_notes.py covers them.
+        ignore=shutil.ignore_patterns("*.md", "_cv_notes.md.j2"),
     )
     (root / "README.md").write_text(README, encoding="utf-8")
     public = Ledger(
