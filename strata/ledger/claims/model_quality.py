@@ -14,6 +14,7 @@ from typing import Any
 from strata.ledger.claims._common import require
 from strata.ledger.model import Unit
 from strata.ledger.registry import ClaimContext, ClaimError, ClaimResult, claim
+from strata.models.intervals import STABILITY_INTERVAL
 
 SERVED_SILENCE_MODEL = "lightgbm_platt"
 SILENCE_METRICS = {
@@ -115,7 +116,7 @@ def segment_stability(context: ClaimContext) -> ClaimResult:
         units={"mean_ari": Unit.NUMBER},
         n=n,
         ci={"mean_ari": (low, high)},
-        interval_label="95% range of refits",
+        interval_label=STABILITY_INTERVAL,
         value_n={"mean_ari": n},
         caveats=[
             (

@@ -215,6 +215,10 @@ def simulate_paths(
     return {name: np.column_stack(values) for name, values in steps.items()}
 
 
+BAND_INTERVAL = "90% posterior interval"
+"""What a band is: the 5th to 95th percentiles of the posterior paths."""
+
+
 def bands(paths: Paths) -> Bands:
     """5th, 50th and 95th percentiles of every quantity at every month."""
     months = next(iter(paths.values())).shape[1]

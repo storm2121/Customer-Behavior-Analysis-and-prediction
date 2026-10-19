@@ -42,6 +42,7 @@ from strata.contracts.specs import WINDOW_END, WINDOW_START
 from strata.ingest.load import load_manifest
 from strata.ledger.build import PUBLIC_LEDGER, load_ledger
 from strata.ledger.model import Ledger
+from strata.models.intervals import METRIC_INTERVAL, STABILITY_INTERVAL
 from strata.review import db
 from strata.warehouse import connect
 
@@ -236,6 +237,7 @@ def segment_list(state: StateDep) -> dict[str, Any]:
     quick effort) so the dashboard names the embedding it shows."""
     results = state.json("models", "segments", "results.json")
     out = {key: results[key] for key in ("k", "stability", "segments", "tests")}
+    out["stability"] = {**results["stability"], "interval": STABILITY_INTERVAL}
     out["embedding"] = results.get("embedding")
     out["n_clients"] = results.get("n_clients")
     return out
@@ -265,7 +267,7 @@ def silence_evaluation(state: StateDep) -> dict[str, Any]:
     """The primary backtest: metrics of every model with intervals, and reliability bins."""
     results = state.json("models", "silence", "results.json")
     primary = results["backtests"][-1]
-    return {
+    out = {
         key: primary[key]
         for key in (
             "train_cutoff",
@@ -277,6 +279,8 @@ def silence_evaluation(state: StateDep) -> dict[str, Any]:
             "reliability",
         )
     }
+    out["interval"] = METRIC_INTERVAL
+    return out
 
 
 @router.get("/risk/silence")
@@ -349,6 +353,7 @@ def simulate(policy: PolicyRequest, state: StateDep) -> dict[str, Any]:
     result = markov.bands(markov.simulate_paths(samples, moved, rates, policy.horizon))
     return {
         "policy": policy.model_dump(),
+        "interval": markov.BAND_INTERVAL,
         "eligible_bands": eligible,
         "months": result.months,
         "policy_bands": result.quantiles,

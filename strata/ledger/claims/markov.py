@@ -18,7 +18,7 @@ SAMPLE_POLICY = markov.younger_than(45, 0.3)
 """The sample policy of ARCHITECTURE section 9, used by the claim and the CLI demonstration."""
 
 HORIZON = 12
-INTERVAL = "90% posterior interval"
+INTERVAL = markov.BAND_INTERVAL
 
 
 def _band(samples: np.ndarray) -> tuple[float, float]:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 
+from strata.analysis import markov
 from strata.analysis.run import run_module
 from strata.api.app import State, _channel_mix_intervals, create_app
 from strata.config import Settings, Zone
@@ -12,6 +13,7 @@ from strata.contracts.specs import WINDOW_END, WINDOW_START
 from strata.ingest.load import load_manifest
 from strata.ledger.build import build_ledger
 from strata.models.anomaly.run import run as run_anomaly
+from strata.models.intervals import METRIC_INTERVAL, STABILITY_INTERVAL
 from strata.models.train import train
 
 
@@ -58,6 +60,7 @@ def test_risk_segments_adoption_and_calendar(client: TestClient) -> None:
     segments = client.get("/segments").json()
     assert segments["k"] == len(segments["segments"])
     assert segments["embedding"] in {"umap", "pca"}
+    assert segments["stability"]["interval"] == STABILITY_INTERVAL
     assert segments["n_clients"] == sum(s["n_clients"] for s in segments["segments"])
     deciles = client.get("/adoption/deciles").json()
     assert {"target_has_online", "target_active_online"} == set(deciles)
@@ -98,6 +101,7 @@ def test_the_simulator_returns_bands_for_a_policy(client: TestClient) -> None:
         "/markov/simulate", json={"share": 0.3, "max_age": 45, "horizon": 6, "samples": 200}
     ).json()
     assert body["eligible_bands"] == ["<25", "25-34", "35-44"]
+    assert body["interval"] == markov.BAND_INTERVAL
     assert body["months"] == list(range(7))
     for bands in (body["policy_bands"], body["baseline_bands"]):
         low, mid, high = (bands["digital_share"][level] for level in ("p05", "p50", "p95"))
@@ -181,6 +185,7 @@ def test_overview_points_and_risk_evaluation_feed_the_dashboard(client: TestClie
     assert {"client_id", "segment", "x", "y"} <= set(points[0])
     evaluation = client.get("/risk/silence/evaluation").json()
     assert "lightgbm_platt" in evaluation["metrics"]
+    assert evaluation["interval"] == METRIC_INTERVAL
     assert evaluation["reliability"]["lightgbm_platt"]
 
 
