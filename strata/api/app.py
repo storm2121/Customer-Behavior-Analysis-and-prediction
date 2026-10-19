@@ -134,12 +134,15 @@ PERIOD = [WINDOW_START.isoformat(), WINDOW_END.isoformat()]
 """The analysis window every claim and every count refers to (the context line of the documents)."""
 
 
-def _channel_mix_intervals(ledger: Ledger | None) -> dict[str, Any] | None:
+def _channel_mix_intervals(ledger: Ledger | None, fingerprint: str) -> dict[str, Any] | None:
     """The zone ledger's channel-mix shares with their intervals, so the overview's shares carry
-    the ledger's own uncertainty rather than one the dashboard would have to compute."""
+    the ledger's own uncertainty rather than one the dashboard would have to compute. Only from a
+    ledger of the data now in the warehouse: a stale one would pair intervals with other counts."""
     if ledger is None or "channel_mix" not in ledger.ids:
         return None
     record = ledger.get("channel_mix")
+    if record.data_fingerprint != fingerprint:
+        return None
     shares = {
         key.removeprefix("share_"): {"value": value, "ci": record.ci.get(key)}
         for key, value in record.values.items()
@@ -220,7 +223,9 @@ def overview(state: StateDep, con: ConnectionDep) -> dict[str, Any]:
         "clients": int(totals["clients"].iloc[0]),
         "events": int(totals["events"].iloc[0]),
         "channel_mix": _records(profiles),
-        "channel_mix_intervals": _channel_mix_intervals(state.optional_ledger()),
+        "channel_mix_intervals": _channel_mix_intervals(
+            state.optional_ledger(), manifest.fingerprint
+        ),
         "daily": _records(daily),
     }
 

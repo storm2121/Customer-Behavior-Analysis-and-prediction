@@ -6,9 +6,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from strata.analysis.run import run_module
-from strata.api.app import create_app
+from strata.api.app import State, _channel_mix_intervals, create_app
 from strata.config import Settings, Zone
 from strata.contracts.specs import WINDOW_END, WINDOW_START
+from strata.ingest.load import load_manifest
 from strata.ledger.build import build_ledger
 from strata.models.anomaly.run import run as run_anomaly
 from strata.models.train import train
@@ -181,6 +182,16 @@ def test_overview_points_and_risk_evaluation_feed_the_dashboard(client: TestClie
     evaluation = client.get("/risk/silence/evaluation").json()
     assert "lightgbm_platt" in evaluation["metrics"]
     assert evaluation["reliability"]["lightgbm_platt"]
+
+
+def test_overview_intervals_come_only_from_a_ledger_of_the_same_data(
+    api_settings: Settings,
+) -> None:
+    ledger = State(api_settings, Zone.PUBLIC).ledger()
+    fingerprint = load_manifest(api_settings.workspace(Zone.PUBLIC)).fingerprint
+    assert _channel_mix_intervals(ledger, fingerprint) is not None
+    assert _channel_mix_intervals(ledger, "another extract") is None
+    assert _channel_mix_intervals(None, fingerprint) is None
 
 
 def test_cors_allows_the_dashboard_origin(client: TestClient) -> None:
