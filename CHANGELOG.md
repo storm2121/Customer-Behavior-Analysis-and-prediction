@@ -141,9 +141,22 @@ instance and the synthetic generator a first-class source.
   (Kolmogorov-Smirnov and total-variation distances, Spearman gaps, a real-or-twin classifier) and
   privacy metrics (distances to the closest record, binned matches, a membership-inference attack),
   written under `STRATA_PRIVATE_DIR` only; refused in CI and anywhere inside the repository.
+- `just demo`: one command from a clean clone on synthetic data (extract, warehouse, claims,
+  analysis, models and their gate, monitoring queue, demo report, then the stack in the
+  background and `docker/smoke.py --compose`, which follows the ports Compose published);
+  `just down` stops it.
+- `docs/CV_NOTES.md`, rendered from `docs/findings/_cv_notes.md.j2` by `strata ledger render`;
+  `strata ledger check` fails on drift, on a hand-typed number and on a line whose evidence (a
+  published claim, a key of the public model registry or a file of the repository) is missing.
+- The data card is complete (provenance, composition, coverage, biases, intended and excluded
+  uses, maintenance), and the model cards state their training data, ethical considerations and
+  how to reproduce and refresh them.
 
 ### Changed
 
+- The README is rewritten: what Strata is and why it exists, the stages, an architecture diagram,
+  screenshots of the synthetic demo, the honesty and limitations section, privacy, the legacy bugs
+  and the one-command quick start.
 - The 2024 script and the 2025 package moved, unchanged, into `legacy/`.
 - The project was renamed from Kashf to Strata: package and CLI `strata`, variables `STRATA_*`,
   workspace `.strata/`, branch `feat/strata-rebuild`. The README and the findings pages now present
