@@ -8,9 +8,10 @@ repository. `strata ledger check` fails if a line has no evidence, if its eviden
 or if a number in it was typed by hand.
 
 Numbers come only from allow-listed claims, computed on the real extract and published with their
-sample size and period. Model metrics on real data are not allow-listed, so the modelling lines
-carry no number; the public registry holds models trained on synthetic data, which show that a
-method runs, never how well it predicts.
+sample size and period. The quality of the models trained on the real extract is published in
+`metrics_only` mode: aggregate metrics with their intervals, never a score, a reason or a feature
+importance. The public registry holds models trained on synthetic data, which show that a method
+runs, never how well it predicts.
 
 ## The project
 
@@ -57,11 +58,18 @@ method runs, never how well it predicts.
 ## Machine learning
 
 - Predicted ninety-day client silence with time-based validation, comparing a logistic GLM against a
-  tuned LightGBM with isotonic and Platt calibration and SHAP reasons, with a client-bootstrap
-  interval on every metric, and profiled behavioural segments selected by BIC with bootstrap
-  stability.
-  Evidence: registry `silence.headline.backtests`; registry `segments.headline.stability`;
+  tuned LightGBM with isotonic and Platt calibration and SHAP reasons: on a later cutoff of the real
+  extract the served score reached a Brier score of 0.099
+  (95% CI 0.089 to 0.11), a calibration error of
+  0.035 and a lift of
+  3.39× in the top tenth of scores, on
+  918 clients.
+  Evidence: claim `silence_model_quality`; registry `silence.headline.backtests`;
   [the silence model card](model_cards/silence.md).
+- Profiled behavioural segments selected by BIC whose assignment reproduces with a bootstrap
+  stability (mean adjusted Rand index) of 0.84
+  (95% range of refits 0.69 to 0.98) on the real extract.
+  Evidence: claim `segment_stability`; [the segments model card](model_cards/segments.md).
 - Built a transaction-monitoring triage layer combining configurable rules (structuring, velocity,
   pass-through) with Isolation Forest and empirical-Bayes amount models, ranked by an alert budget
   and improved by analyst feedback.

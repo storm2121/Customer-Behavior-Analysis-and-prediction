@@ -659,9 +659,101 @@
         "digital_only_65_plus": 0.133333,
         "digital_only_under_25": 0.311881
       }
+    },
+    {
+      "caveats": [
+        "One year of data: the outcome windows of consecutive cutoffs overlap, so the test labels share calendar weeks with the training labels.",
+        "Silence is a quarter without any event, not the closing of an account."
+      ],
+      "ci": {
+        "brier": [
+          0.0885546,
+          0.109298
+        ],
+        "calibration_error": [
+          0.0312018,
+          0.0596859
+        ],
+        "lift_at_10": [
+          2.87311,
+          4.02971
+        ]
+      },
+      "computed_at": "2026-10-19T02:55:43Z",
+      "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
+      "headline": false,
+      "id": "silence_model_quality",
+      "interval_label": "95% CI",
+      "meta": {
+        "model": "lightgbm_platt",
+        "model_effort": "full",
+        "test_cutoff": "2024-06-30",
+        "train_cutoff": "2024-05-31"
+      },
+      "method": "The primary backtest of `strata train silence`: the served score (LightGBM with Platt scaling) is fitted on the clients of one cutoff and scored on those of the next, whose outcome it never saw. Brier score, expected calibration error and lift in the top tenth of scores, each with a client-bootstrap interval.",
+      "n": 918,
+      "n_events": null,
+      "public": true,
+      "question": "Trained on one cutoff and tested on the next, how accurate, how well calibrated and how selective is the served silence-risk score?",
+      "robustness": null,
+      "source_kind": "real",
+      "strata_version": "0.1.0",
+      "title": "How good the served silence score is on a later cutoff",
+      "units": {
+        "brier": "number",
+        "calibration_error": "number",
+        "lift_at_10": "ratio"
+      },
+      "value_n": {
+        "brier": 918,
+        "calibration_error": 918,
+        "lift_at_10": 918
+      },
+      "values": {
+        "brier": 0.0991557,
+        "calibration_error": 0.0351948,
+        "lift_at_10": 3.38656
+      }
+    },
+    {
+      "caveats": [
+        "Stability measures how reproducible the assignment is, not whether the segments are meaningful; the number of segments is chosen on the same clients."
+      ],
+      "ci": {
+        "mean_ari": [
+          0.689916,
+          0.977763
+        ]
+      },
+      "computed_at": "2026-10-19T02:55:43Z",
+      "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
+      "headline": false,
+      "id": "segment_stability",
+      "interval_label": "95% range of refits",
+      "meta": {
+        "model_effort": "full"
+      },
+      "method": "Gaussian mixtures with the number of components chosen by BIC (`strata train segments`); the adjusted Rand index between the original assignment and refits on client bootstrap resamples, its mean with the range of the middle ninety-five per cent of refits.",
+      "n": 947,
+      "n_events": null,
+      "public": true,
+      "question": "Refitted on bootstrap resamples of the clients, how closely do the segments reproduce the original assignment?",
+      "robustness": null,
+      "source_kind": "real",
+      "strata_version": "0.1.0",
+      "title": "How stable the behavioural segments are",
+      "units": {
+        "mean_ari": "number"
+      },
+      "value_n": {
+        "mean_ari": 947
+      },
+      "values": {
+        "mean_ari": 0.838562
+      }
     }
   ],
-  "computed_at": "2026-10-18T15:54:40Z",
+  "computed_at": "2026-10-19T02:55:43Z",
   "data_fingerprint": "85887a44d747a90c02d1be3414fd7dcf9d622829d4d5e82e57070a84a32f42f2",
   "mapping_sha256": "56ebf3c09410d53c8e81f007fe4e8b4ab156d995e9cc9194fc094f88adbd3304",
   "schema_version": 1,

@@ -141,10 +141,17 @@ instance and the synthetic generator a first-class source.
   (Kolmogorov-Smirnov and total-variation distances, Spearman gaps, a real-or-twin classifier) and
   privacy metrics (distances to the closest record, binned matches, a membership-inference attack),
   written under `STRATA_PRIVATE_DIR` only; refused in CI and anywhere inside the repository.
-- `just demo`: one command from a clean clone on synthetic data (extract, warehouse, claims,
-  analysis, models and their gate, monitoring queue, demo report, then the stack in the
-  background and `docker/smoke.py --compose`, which follows the ports Compose published);
-  `just down` stops it.
+- `just demo`: one command from a clean clone on synthetic data (extract, warehouse, models and
+  their gate, claims, analysis, monitoring queue, demo report, then the stack in the background
+  and `docker/smoke.py --compose`, which follows the ports Compose published); `just down` stops
+  it.
+- A third publication mode, `metrics_only` (ADR 0002): `silence_model_quality` (the served silence
+  score's Brier score, calibration error and lift in the top tenth on a later cutoff) and
+  `segment_stability` (the segments' bootstrap adjusted Rand index) are published from the models
+  trained on the real extract, with their intervals and nothing else, enforced by the allowlist,
+  the build (`metrics_view`), the renderer, the ledger check and the commit guard. The CV notes'
+  modelling lines carry those numbers. The model-quality claims read the zone's trained models, so
+  the image, CI and `just demo` now train before they build the ledger.
 - `docs/CV_NOTES.md`, rendered from `docs/findings/_cv_notes.md.j2` by `strata ledger render`;
   `strata ledger check` fails on drift, on a hand-typed number and on a line whose evidence (a
   published claim, a key of the public model registry or a file of the repository) is missing.

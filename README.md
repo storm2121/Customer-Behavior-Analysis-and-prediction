@@ -161,10 +161,11 @@ tables, methods, caveats and robustness checks behind each sentence.
 - **Silence is not attrition.** There is no account closing date, so the models predict a quarter
   without any event, which a dormant but loyal client also produces.
 - **What is public, and what is not.** Only allow-listed aggregates of the real extract are
-  published, each over enough clients; one finding is published as a verdict only, in words. Model
-  metrics on real data stay private: the public registry and model cards describe models trained on
-  synthetic data, which show that a method runs, never how well it predicts. Numbers in the
-  synthetic demo are illustrative by construction.
+  published, each over enough clients; one finding is published as a verdict only, in words, and
+  the quality of the real-data models by a few aggregate metrics only (no score, reason or feature
+  importance). The public registry and model cards describe models trained on synthetic data, which
+  show that a method runs, never how well it predicts. Numbers in the synthetic demo are
+  illustrative by construction.
 - **Monitoring has no ground truth.** On the reference instance nobody labelled an alert; the queue
   is evaluated against planted scenarios on synthetic data and against pseudo-labels (two rule
   families agreeing), and it ranks cases for a person, never decides about one.
@@ -212,7 +213,7 @@ hand (`uv tool install rust-just` provides `just`); Docker runs the stack and th
 `corepack` is needed only to work on the dashboard outside Docker.
 
 ```bash
-just demo      # synthetic extract -> warehouse -> claims -> analysis -> models -> gate -> queue
+just demo      # synthetic extract -> warehouse -> models -> gate -> claims -> analysis -> queue
                # -> report, then the stack in the background and a smoke test of every endpoint
 just down      # stop the stack and remove its volumes
 just check     # lint, types, tests with coverage, privacy scan, ledger check, dashboard checks

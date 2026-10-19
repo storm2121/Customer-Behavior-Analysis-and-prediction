@@ -60,6 +60,15 @@ checker next to the full one. The renderer answers only verdict placeholders for
 a template cannot print one of its numbers, and `ledger_violations` (used by the build, the check
 and the commit guard) refuses any other field or any digit in its words.
 
+A third mode, `metrics_only`, was added in M11 for the quality of the models trained on the real
+extract (`silence_model_quality`: the served silence score's Brier score, calibration error and
+lift in the top tenth on a later cutoff; `segment_stability`: the bootstrap adjusted Rand index of
+the segments). These claims read what `strata train` wrote for the zone; the build publishes them
+through `metrics_view`, which keeps only the allow-listed metrics, their intervals and sizes and how
+they were measured, and only for models trained at full effort on the same data. The renderer
+answers `ledger`, `ci` and `raw` for those metrics only, and `ledger_violations` refuses any other
+value, fact or field.
+
 ## Alternatives considered
 
 - **Numbers in notebooks, copied into documents.** The status quo that produced the drift.
