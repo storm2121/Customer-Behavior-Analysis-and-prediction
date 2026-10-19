@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 from strata.analysis.run import run_module
 from strata.api.app import create_app
 from strata.config import Settings, Zone
+from strata.contracts.specs import WINDOW_END, WINDOW_START
 from strata.ledger.build import build_ledger
 from strata.models.anomaly.run import run as run_anomaly
 from strata.models.train import train
@@ -16,7 +17,7 @@ from strata.models.train import train
 @pytest.fixture(scope="module")
 def api_settings(built_warehouse: Settings) -> Settings:
     """The synthetic workspace with everything the API serves: claims, models, simulator, alerts."""
-    build_ledger(built_warehouse, Zone.PUBLIC, only=["calendar_effects"], quick=True)
+    build_ledger(built_warehouse, Zone.PUBLIC, only=["calendar_effects", "channel_mix"], quick=True)
     run_module(built_warehouse, Zone.PUBLIC, "markov", quick=True)
     train(built_warehouse, Zone.PUBLIC, ["silence", "adoption", "segments"], quick=True)
     run_anomaly(built_warehouse, Zone.PUBLIC, budget=20)
@@ -52,8 +53,11 @@ def test_risk_segments_adoption_and_calendar(client: TestClient) -> None:
     probabilities = [row["probability"] for row in risk["clients"]]
     assert probabilities == sorted(probabilities, reverse=True)
     assert len(probabilities) == 5
+    assert risk["n_scored"] >= len(probabilities)
     segments = client.get("/segments").json()
     assert segments["k"] == len(segments["segments"])
+    assert segments["embedding"] in {"umap", "pca"}
+    assert segments["n_clients"] == sum(s["n_clients"] for s in segments["segments"])
     deciles = client.get("/adoption/deciles").json()
     assert {"target_has_online", "target_active_online"} == set(deciles)
     assert len(deciles["target_has_online"]["deciles"]) == 10
@@ -114,7 +118,12 @@ def test_the_public_claims_are_served(client: TestClient) -> None:
     assert "channel_mix" in ids
     for claim in body["claims"]:
         assert claim["question"]
+        assert claim["method"]
         assert set(claim["units"]) <= set(claim["values"])
+        assert claim["period"] == [WINDOW_START.isoformat(), WINDOW_END.isoformat()]
+        assert claim["source_kind"] == body["source_kind"]
+        assert isinstance(claim["caveats"], list)
+        assert (claim["mechanism"] is None) == (claim["verdict"] is None)
     assert {verdict["id"] for verdict in body["verdicts"]} == {"silence_by_channel"}
     assert all("values" not in verdict for verdict in body["verdicts"])
 
@@ -158,6 +167,14 @@ def test_overview_points_and_risk_evaluation_feed_the_dashboard(client: TestClie
     assert overview["source_kind"] == "synthetic"
     assert sum(row["clients"] for row in overview["channel_mix"]) == overview["clients"]
     assert {row["channel"] for row in overview["daily"]} == {"card", "online", "branch"}
+    assert overview["period"] == [WINDOW_START.isoformat(), WINDOW_END.isoformat()]
+    intervals = overview["channel_mix_intervals"]
+    assert intervals["n"] == overview["clients"]
+    profiles = {row["channel_profile"] for row in overview["channel_mix"]}
+    assert set(intervals["shares"]) == profiles
+    for share in intervals["shares"].values():
+        low, high = share["ci"]
+        assert low <= share["value"] <= high
     points = client.get("/segments/points", params={"limit": 50}).json()["points"]
     assert len(points) == 50
     assert {"client_id", "segment", "x", "y"} <= set(points[0])

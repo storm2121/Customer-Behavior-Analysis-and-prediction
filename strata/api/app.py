@@ -38,6 +38,7 @@ from pydantic import BaseModel, Field
 from strata import __version__
 from strata.analysis import markov
 from strata.config import Settings, Zone
+from strata.contracts.specs import WINDOW_END, WINDOW_START
 from strata.ingest.load import load_manifest
 from strata.ledger.build import PUBLIC_LEDGER, load_ledger
 from strata.ledger.model import Ledger
@@ -96,6 +97,12 @@ class State:
             raise HTTPException(status_code=503, detail="ledger not built yet")
         return load_ledger(path)
 
+    def optional_ledger(self) -> Ledger | None:
+        try:
+            return self.ledger()
+        except HTTPException:
+            return None
+
 
 def get_state(request: Request) -> State:
     state: State = request.app.state.strata
@@ -121,6 +128,24 @@ router = APIRouter()
 def _records(frame: pd.DataFrame) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = json.loads(frame.to_json(orient="records", date_format="iso"))
     return rows
+
+
+PERIOD = [WINDOW_START.isoformat(), WINDOW_END.isoformat()]
+"""The analysis window every claim and every count refers to (the context line of the documents)."""
+
+
+def _channel_mix_intervals(ledger: Ledger | None) -> dict[str, Any] | None:
+    """The zone ledger's channel-mix shares with their intervals, so the overview's shares carry
+    the ledger's own uncertainty rather than one the dashboard would have to compute."""
+    if ledger is None or "channel_mix" not in ledger.ids:
+        return None
+    record = ledger.get("channel_mix")
+    shares = {
+        key.removeprefix("share_"): {"value": value, "ci": record.ci.get(key)}
+        for key, value in record.values.items()
+        if key.startswith("share_")
+    }
+    return {"interval": record.interval_label, "n": record.n, "shares": shares}
 
 
 @router.get("/health")
@@ -191,17 +216,24 @@ def overview(state: StateDep, con: ConnectionDep) -> dict[str, Any]:
     manifest = load_manifest(state.workspace)
     return {
         "source_kind": manifest.source_kind,
+        "period": PERIOD,
         "clients": int(totals["clients"].iloc[0]),
         "events": int(totals["events"].iloc[0]),
         "channel_mix": _records(profiles),
+        "channel_mix_intervals": _channel_mix_intervals(state.optional_ledger()),
         "daily": _records(daily),
     }
 
 
 @router.get("/segments")
 def segment_list(state: StateDep) -> dict[str, Any]:
+    """Segments, their stability, and how the map was drawn (UMAP, or principal components at
+    quick effort) so the dashboard names the embedding it shows."""
     results = state.json("models", "segments", "results.json")
-    return {key: results[key] for key in ("k", "stability", "segments", "tests")}
+    out = {key: results[key] for key in ("k", "stability", "segments", "tests")}
+    out["embedding"] = results.get("embedding")
+    out["n_clients"] = results.get("n_clients")
+    return out
 
 
 @router.get("/segments/points")
@@ -245,7 +277,11 @@ def silence_evaluation(state: StateDep) -> dict[str, Any]:
 @router.get("/risk/silence")
 def silence(state: StateDep, top: Annotated[int, Query(ge=1, le=10_000)] = 50) -> dict[str, Any]:
     scored = state.json("models", "silence", "scored.json")
-    return {"cutoff": scored[0]["cutoff_date"] if scored else None, "clients": scored[:top]}
+    return {
+        "cutoff": scored[0]["cutoff_date"] if scored else None,
+        "n_scored": len(scored),
+        "clients": scored[:top],
+    }
 
 
 @router.get("/adoption/deciles")
@@ -321,19 +357,28 @@ def claims(state: StateDep) -> dict[str, Any]:
     if not path.is_file():
         raise HTTPException(status_code=503, detail="no public ledger")
     public = load_ledger(path)
+    # Everything a claim card shows comes from the public ledger itself: the method, the caveats,
+    # the robustness explanation, the period and the source travel with every number.
     return {
         "data_fingerprint": public.data_fingerprint,
+        "source_kind": public.source_kind,
         "claims": [
             {
                 "id": record.id,
                 "title": record.title,
                 "question": record.question,
+                "method": record.method,
                 "values": record.values,
                 "units": {key: unit.value for key, unit in record.units.items()},
                 "ci": record.ci,
                 "interval": record.interval_label,
                 "n": record.n,
+                "n_events": record.n_events,
+                "period": PERIOD,
+                "source_kind": record.source_kind,
+                "caveats": record.caveats,
                 "verdict": record.robustness.verdict if record.robustness else None,
+                "mechanism": record.robustness.mechanism if record.robustness else None,
             }
             for record in public.claims
         ],
