@@ -156,6 +156,10 @@ instance and the synthetic generator a first-class source.
   a reduced column set, now the default (`--columns core`; `--columns full` keeps all fourteen):
   in a five-seed private experiment at the same budget it kept more of the data's structure with
   membership inference still at chance (ADR 0013, accepted).
+- The silence model computes SHAP for every backtest (its card lists the three largest drivers of
+  each) and draws a reliability diagram of the served score and the GLM (`strata.models.plots`),
+  which `strata promote` copies beside the public card; a private run keeps both in the private
+  folder.
 - `docs/CV_NOTES.md`, rendered from `docs/findings/_cv_notes.md.j2` by `strata ledger render`;
   `strata ledger check` fails on drift, on a hand-typed number and on a line whose evidence (a
   published claim, a key of the public model registry or a file of the repository) is missing.
