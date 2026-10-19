@@ -38,9 +38,10 @@ a developer runs, and the DAG can be replaced without touching the pipeline.
   a failed day should be looked at, not repeated.
 - **Switches.** `STRATA_DAG_ZONE` (public by default; private runs add `--private` to every call),
   `STRATA_DAG_EFFORT` (quick in Compose), `STRATA_BIN` and `STRATA_DAG_SYNTH_DIR`.
-- **The image (a deviation from "the official image").** `Dockerfile.airflow` starts from the same
-  Python image as the API and installs Airflow 3 in its own environment, pinned by Airflow's
-  constraints file for that Python version, beside Strata's environment from `uv.lock`. Airflow's
+- **The image (a deviation from "the official image", accepted by the architect).**
+  `Dockerfile.airflow` starts from the same Python image as the API and installs Airflow 3 in its
+  own environment, pinned by Airflow's constraints file for that Python version, beside Strata's
+  environment from `uv.lock`. Airflow's
   pins and Strata's lock disagree (SQLAlchemy among others), so Strata could not live inside the
   official image's environment anyway; two environments in one image keep both exact. The service
   runs only under the Compose profile `orchestration`; `just dag-test` runs

@@ -1,6 +1,6 @@
 # ADR 0013: The private twin is a differentially private copula of the client table
 
-Status: proposed (M9, 2026-10-19), for the architect to accept. Expands the twin of
+Status: accepted (architect, 2026-10-19). Written in M9, revised in M11. Expands the twin of
 [ADR 0004](0004-privacy-boundary.md) and ARCHITECTURE section 5.3.
 
 ## Context

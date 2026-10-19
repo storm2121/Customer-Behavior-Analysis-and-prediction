@@ -113,6 +113,10 @@ The simulator at phone width: [screenshot](docs/images/dashboard-phone-simulator
 page is not pictured: it shows the allow-listed claims of the real extract, which belong in the
 ledger and the documents rendered from it, not in images.
 
+Outside Docker, `pnpm` installs the dashboard's packages through its content store, which it keeps
+at the root of the drive when the repository is not on the drive of the user profile: that is
+pnpm's normal behaviour, and the store is a cache shared by every pnpm project on the drive.
+
 <!-- ledger:start -->
 ## What the reference instance shows
 
