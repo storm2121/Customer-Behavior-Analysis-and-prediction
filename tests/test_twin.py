@@ -7,6 +7,7 @@ Every frame here is generated in the test; the twin of the real clients is built
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -14,6 +15,7 @@ import duckdb
 import numpy as np
 import pandas as pd
 import pytest
+from scipy import stats
 from typer.testing import CliRunner
 
 from strata import cli
@@ -21,6 +23,7 @@ from strata.config import PrivacyBoundaryError, Settings, Zone
 from strata.synthetic import twin
 
 NAMES = [column.name for column in twin.COLUMNS]
+CORE = [column.name for column in twin.column_set("core")]
 
 
 def _settings(tmp_path: Path) -> Settings:
@@ -182,7 +185,7 @@ def test_bins_come_from_public_bounds_and_catch_everything_else() -> None:
 @pytest.fixture(scope="module")
 def built() -> tuple[pd.DataFrame, pd.DataFrame, dict[str, object]]:
     frame = _clients()
-    result, summary = twin.build(frame, twin.TwinConfig(epsilon=1.0, seed=3))
+    result, summary = twin.build(frame, twin.TwinConfig(epsilon=1.0, seed=3, columns="full"))
     return frame, result, summary
 
 
@@ -210,7 +213,7 @@ def test_the_twin_keeps_the_dependence_between_columns_when_the_budget_allows() 
     # With a few thousand clients and fourteen columns, a budget of one drowns the ninety-one
     # pairwise correlations in noise; a large budget shows the copula itself keeps them.
     frame = _clients(seed=7)
-    result, _ = twin.build(frame, twin.TwinConfig(epsilon=50.0, seed=2))
+    result, _ = twin.build(frame, twin.TwinConfig(epsilon=50.0, seed=2, columns="full"))
     real = frame["n_events"].corr(frame["n_card"], method="spearman")
     copy = result["n_events"].astype(float).corr(result["n_card"].astype(float), method="spearman")
     assert real > 0.5
@@ -237,7 +240,7 @@ def test_the_metrics_are_complete_and_in_range(
 
 def test_a_large_budget_reproduces_the_marginals_closely() -> None:
     frame = _clients(seed=5)
-    _, summary = twin.build(frame, twin.TwinConfig(epsilon=100.0, seed=1))
+    _, summary = twin.build(frame, twin.TwinConfig(epsilon=100.0, seed=1, columns="full"))
     distances = summary["fidelity"]["marginal_distance"]  # type: ignore[index]
     assert distances["gender"] < 0.05
     assert distances["age"] < 0.05
@@ -271,8 +274,45 @@ def test_the_command_writes_the_twin_and_its_metrics_under_the_private_folder(
     assert all(path.is_relative_to(tmp_path / "private") for path in written)
     rows = pd.read_csv(written[0])
     assert "client_id" not in rows.columns
-    assert list(rows.columns) == NAMES
+    assert list(rows.columns) == CORE
     summary = json.loads(written[1].read_text(encoding="utf-8"))
     assert summary["data_fingerprint"] == "f" * 64
     assert {"fidelity", "privacy", "epsilon"} <= set(summary)
     assert not (settings.repo_root / twin.TWIN_FILE).exists()
+
+
+def test_the_default_twin_is_the_reduced_laplace_one() -> None:
+    config = twin.TwinConfig()
+    assert (config.mechanism, config.columns) == ("laplace", "core")
+    result, summary = twin.build(_clients(n=800, seed=11), config)
+    assert list(result.columns) == CORE
+    assert set(CORE) < set(NAMES)
+    assert summary["column_set"] == "core"
+    assert summary["delta"] == 0.0
+
+
+def test_the_gaussian_mechanism_is_calibrated_and_runs() -> None:
+    sensitivity, epsilon, delta = 1.0, 0.5, 1e-6
+    sigma = twin.gaussian_sigma(sensitivity, epsilon, delta)
+    classical = sensitivity * math.sqrt(2 * math.log(1.25 / delta)) / epsilon
+    assert 0 < sigma <= classical
+    a, b = sensitivity / (2 * sigma), epsilon * sigma / sensitivity
+    reached = stats.norm.cdf(a - b) - math.exp(epsilon) * stats.norm.cdf(-a - b)
+    assert reached <= delta * 1.000001
+    assert twin.gaussian_sigma(1.0, 4.0, delta) < sigma
+    result, summary = twin.build(
+        _clients(n=800, seed=12), twin.TwinConfig(mechanism="gaussian", columns="full")
+    )
+    assert list(result.columns) == NAMES
+    assert summary["mechanism"] == "gaussian"
+    assert summary["delta"] == pytest.approx(1e-6)
+
+
+@pytest.mark.parametrize(
+    "arguments", [{"mechanism": "exponential"}, {"columns": "some"}, {"delta": 0.01}]
+)
+def test_an_unknown_mechanism_column_set_or_large_delta_is_refused(
+    arguments: dict[str, object],
+) -> None:
+    with pytest.raises(twin.TwinError):
+        twin.TwinConfig(**arguments)  # type: ignore[arg-type]

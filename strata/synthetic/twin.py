@@ -14,10 +14,15 @@ client:
   post-processing, which costs no privacy.
 
 The budget epsilon is split between the marginals and the correlations, each share divided evenly
-among its columns or pairs. The number of clients is treated as public (the public claims publish
-it). Missing values are a bin of their own, placed after the highest values, which the copula
-treats as ordinal; categories are ordered by their public domain. Kendall's tau-a counts ties as
-neither concordant nor discordant, so heavily tied columns come out less dependent than they are.
+among its columns or pairs. With ``--mechanism gaussian`` the noise is Gaussian instead, calibrated
+by the analytic Gaussian mechanism to the L2 sensitivity of all histograms together and of the
+whole vector of taus, for (epsilon, delta)-DP. By default the twin reproduces a reduced set of
+columns (``CORE_COLUMNS``), which at the default budget keeps more of the structure than the full
+set; ``--columns full`` reproduces them all. The number of clients is treated as public (the public
+claims publish it). Missing values are a bin of their own, placed after the highest values, which
+the copula treats as ordinal; categories are ordered by their public domain. Kendall's tau-a counts
+ties as neither concordant nor discordant, so heavily tied columns come out less dependent than
+they are.
 
 The twin is fitted on a random part of the clients; the rest is a holdout that the metrics compare
 against. The metrics read real rows and are not private themselves, which is why they stay in the
@@ -42,6 +47,7 @@ from __future__ import annotations
 import json
 import math
 import os
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -60,6 +66,8 @@ from strata.ingest.load import load_manifest
 from strata.warehouse import connect, read_relation
 
 Kind = Literal["count", "amount", "share", "integer", "category"]
+Mechanism = Literal["laplace", "gaussian"]
+ColumnSet = Literal["full", "core"]
 
 MISSING = "missing"
 OTHER = "other"
@@ -146,6 +154,51 @@ COLUMNS: tuple[Column, ...] = (
 )
 """The client columns the twin reproduces; identifiers and dates are never among them."""
 
+CORE_COLUMNS = (
+    "age",
+    "gender",
+    "channel_profile",
+    "active_months",
+    "n_card",
+    "n_online",
+    "n_branch",
+)
+"""A reduced set: who the client is and how much each channel is used. Fewer columns leave each
+marginal a larger share of the budget and leave far fewer pairs to share the correlation half."""
+
+
+def column_set(name: ColumnSet) -> tuple[Column, ...]:
+    """The columns of the full twin, or of the reduced one."""
+    if name == "full":
+        return COLUMNS
+    return tuple(column for column in COLUMNS if column.name in CORE_COLUMNS)
+
+
+def gaussian_sigma(sensitivity: float, epsilon: float, delta: float) -> float:
+    """The smallest noise scale of the analytic Gaussian mechanism (Balle and Wang, 2018) that
+    makes a query of L2 ``sensitivity`` (epsilon, delta)-differentially private, for any epsilon.
+
+    With ``a = s / (2 sigma)`` and ``b = epsilon sigma / s``, the delta reached by noise ``sigma``
+    is exactly ``Phi(a - b) - exp(epsilon) Phi(-a - b)``, which falls as ``sigma`` grows; the scale
+    is found by bisection on it.
+    """
+
+    def loss(sigma: float) -> float:
+        a = sensitivity / (2 * sigma)
+        b = epsilon * sigma / sensitivity
+        return float(stats.norm.cdf(a - b) - math.exp(epsilon) * stats.norm.cdf(-a - b))
+
+    low, high = 1e-9, sensitivity
+    while loss(high) > delta:
+        high *= 2
+    for _ in range(200):
+        middle = (low + high) / 2
+        if loss(middle) > delta:
+            low = middle
+        else:
+            high = middle
+    return high
+
 
 @dataclass(frozen=True, slots=True)
 class TwinConfig:
@@ -155,6 +208,13 @@ class TwinConfig:
     rows: int = 1000
     seed: int = 42
     min_clients: int = 200
+    mechanism: Mechanism = "laplace"
+    delta: float = 1e-6
+    """With the Gaussian mechanism: the probability allowed for the privacy loss to exceed
+    epsilon, split evenly between the marginals and the correlations."""
+    columns: ColumnSet = "core"
+    """The reduced set by default: at the default budget it keeps more of the data's structure than
+    the full set, with membership inference still at chance (ADR 0013)."""
 
     def __post_init__(self) -> None:
         if not 0 < self.epsilon <= 100:
@@ -162,6 +222,12 @@ class TwinConfig:
             raise TwinError(msg)
         if not 0 < self.marginal_share < 1 or not 0 < self.holdout < 1:
             msg = "marginal_share and holdout must be strictly between 0 and 1"
+            raise TwinError(msg)
+        if self.mechanism not in ("laplace", "gaussian") or self.columns not in ("full", "core"):
+            msg = "mechanism must be laplace or gaussian, columns full or core"
+            raise TwinError(msg)
+        if not 0 < self.delta < 1e-3:
+            msg = "delta must be positive and below one in a thousand"
             raise TwinError(msg)
 
 
@@ -249,28 +315,52 @@ def nearest_correlation(matrix: np.ndarray, floor: float = 1e-6) -> np.ndarray:
 def fit(
     frame: pd.DataFrame, columns: tuple[Column, ...], config: TwinConfig, rng: np.random.Generator
 ) -> Copula:
-    """The copula of ``frame`` with Laplace noise on every histogram count and every tau."""
+    """The copula of ``frame`` with noise on every histogram count and every tau.
+
+    Laplace noise (pure epsilon-DP) is calibrated to the L1 sensitivity of each column's histogram
+    and of every tau, with the budget divided among them. The Gaussian mechanism ((epsilon,
+    delta)-DP) is calibrated to the L2 sensitivity of all the histograms at once and of the whole
+    vector of taus, which grows with the square root of their number rather than with the number.
+    """
     n = len(frame)
     d = len(columns)
     epsilon_marginals = config.epsilon * config.marginal_share
     epsilon_pairs = config.epsilon - epsilon_marginals
-    per_column = epsilon_marginals / d
+    n_pairs = d * (d - 1) // 2
+    gaussian = config.mechanism == "gaussian"
+    if gaussian:
+        histogram_sigma = gaussian_sigma(
+            math.sqrt(d) * math.sqrt(HISTOGRAM_SENSITIVITY), epsilon_marginals, config.delta / 2
+        )
+    else:
+        histogram_scale = HISTOGRAM_SENSITIVITY / (epsilon_marginals / d)
     probabilities = []
     for column in columns:
         counts = np.bincount(bin_index(column, frame[column.name]), minlength=column.n_bins())
-        noise = rng.laplace(0.0, HISTOGRAM_SENSITIVITY / per_column, size=counts.size)
+        if gaussian:
+            noise = rng.normal(0.0, histogram_sigma, size=counts.size)
+        else:
+            noise = rng.laplace(0.0, histogram_scale, size=counts.size)
         noisy = np.maximum(counts + noise, 0.0)
         total = noisy.sum()
         probabilities.append(
             noisy / total if total > 0 else np.full(counts.size, 1.0 / counts.size)
         )
     ranks = [rank_values(column, frame[column.name]) for column in columns]
-    n_pairs = d * (d - 1) // 2
-    scale = n_pairs * tau_sensitivity(n) / epsilon_pairs if n_pairs else 0.0
+    if not n_pairs:
+        tau_noise: Callable[[], float] = lambda: 0.0  # noqa: E731 - one column, no pair
+    elif gaussian:
+        sigma = gaussian_sigma(
+            math.sqrt(n_pairs) * tau_sensitivity(n), epsilon_pairs, config.delta / 2
+        )
+        tau_noise = lambda: float(rng.normal(0.0, sigma))  # noqa: E731
+    else:
+        scale = n_pairs * tau_sensitivity(n) / epsilon_pairs
+        tau_noise = lambda: float(rng.laplace(0.0, scale))  # noqa: E731
     correlation = np.eye(d)
     for i in range(d):
         for j in range(i + 1, d):
-            tau = kendall_tau_a(ranks[i], ranks[j]) + rng.laplace(0.0, scale)
+            tau = kendall_tau_a(ranks[i], ranks[j]) + tau_noise()
             correlation[i, j] = correlation[j, i] = math.sin(
                 math.pi * float(np.clip(tau, -1, 1)) / 2
             )
@@ -473,17 +563,21 @@ def build(frame: pd.DataFrame, config: TwinConfig) -> tuple[pd.DataFrame, dict[s
     cut = round(len(frame) * (1 - config.holdout))
     train = frame.iloc[order[:cut]].reset_index(drop=True)
     holdout = frame.iloc[order[cut:]].reset_index(drop=True)
-    copula = fit(train, COLUMNS, config, rng)
+    columns = column_set(config.columns)
+    copula = fit(train, columns, config, rng)
     twin = sample(copula, config.rows, rng)
-    measured = metrics(COLUMNS, train, holdout, twin, config.seed)
+    measured = metrics(columns, train, holdout, twin, config.seed)
     summary = {
         "epsilon": config.epsilon,
+        "mechanism": config.mechanism,
+        "delta": config.delta if config.mechanism == "gaussian" else 0.0,
+        "column_set": config.columns,
         "epsilon_marginals": config.epsilon * config.marginal_share,
         "epsilon_correlations": config.epsilon * (1 - config.marginal_share),
         "n_train": len(train),
         "n_holdout": len(holdout),
         "n_twin": len(twin),
-        "columns": [asdict(column) for column in COLUMNS],
+        "columns": [asdict(column) for column in columns],
         **measured,
     }
     return twin, summary
@@ -502,7 +596,7 @@ def run(settings: Settings, zone: Zone, out: Path, config: TwinConfig) -> list[P
         clients = read_relation(con, "marts.client_360")
     finally:
         con.close()
-    twin, summary = build(clients[[column.name for column in COLUMNS]], config)
+    twin, summary = build(clients[[column.name for column in column_set(config.columns)]], config)
     target.mkdir(parents=True, exist_ok=True)
     twin_path = target / TWIN_FILE
     metrics_path = target / METRICS_FILE

@@ -214,6 +214,15 @@ def synth_twin(
         float, typer.Option("--epsilon", min=0.01, max=100.0, help="Privacy budget of the fit.")
     ] = 1.0,
     rows: Annotated[int, typer.Option("--rows", min=1, help="Twin rows.")] = 1000,
+    mechanism: Annotated[
+        str, typer.Option("--mechanism", help="laplace (pure epsilon) or gaussian (with delta).")
+    ] = "laplace",
+    delta: Annotated[
+        float, typer.Option("--delta", help="Delta of the Gaussian mechanism.")
+    ] = 1e-6,
+    columns: Annotated[
+        str, typer.Option("--columns", help="core (a reduced set, the default) or full.")
+    ] = "core",
     seed: Annotated[int | None, typer.Option("--seed", help="Defaults to STRATA_SEED.")] = None,
 ) -> None:
     """A differentially private twin of the real clients, with fidelity and privacy metrics.
@@ -227,7 +236,12 @@ def synth_twin(
     state = _state(ctx)
     target = out if out is not None else state.settings.resolved_private_dir / "twin"
     config = TwinConfig(
-        epsilon=epsilon, rows=rows, seed=state.settings.seed if seed is None else seed
+        epsilon=epsilon,
+        rows=rows,
+        seed=state.settings.seed if seed is None else seed,
+        mechanism=mechanism,  # type: ignore[arg-type]  # validated by TwinConfig
+        delta=delta,
+        columns=columns,  # type: ignore[arg-type]  # validated by TwinConfig
     )
     for path in build_twin(state.settings, state.zone, target, config):
         console.print(f"wrote {_describe(path, state)}")
