@@ -1,4 +1,5 @@
-// Light, dark or the system's choice, remembered per browser. The tokens in styles.css do the rest.
+// Light, dark or the system's choice, remembered per browser. The tokens in styles/tokens.css do
+// the rest; this module only stamps the choice on the document and tells charts when to re-read.
 
 import { useEffect, useState } from "react";
 
@@ -31,9 +32,9 @@ export function nextTheme(theme: Theme): Theme {
   return theme === "system" ? "light" : theme === "light" ? "dark" : "system";
 }
 
-/** The current value of a design token, for libraries (charts) that need concrete colours. */
-export function token(name: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(`--${name}`).trim();
+/** The current value of a design token on `element` (the document by default). */
+export function token(name: string, element: Element = document.documentElement): string {
+  return getComputedStyle(element).getPropertyValue(`--${name}`).trim();
 }
 
 /** The theme in effect: the chosen one, or the system's when none is chosen. */
@@ -43,19 +44,31 @@ export function effectiveTheme(): "light" | "dark" {
   return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-/** Re-renders when the theme in effect changes, for code that reads tokens (chart colours). */
-export function useThemeKey(): "light" | "dark" {
-  const [theme, setTheme] = useState(effectiveTheme);
+const PREFERENCES = ["(prefers-color-scheme: dark)", "(prefers-contrast: more)"];
+
+function themeKey(): string {
+  const contrast = window.matchMedia?.("(prefers-contrast: more)").matches ? "more" : "normal";
+  return `${effectiveTheme()}|${contrast}`;
+}
+
+/**
+ * Changes whenever the token values in effect change (the chosen theme, the system's colour
+ * scheme, the contrast preference), so code that reads tokens into a canvas can re-read them.
+ */
+export function useThemeKey(): string {
+  const [key, setKey] = useState(themeKey);
   useEffect(() => {
-    const update = () => setTheme(effectiveTheme());
+    const update = () => setKey(themeKey());
     const observer = new MutationObserver(update);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    const media = window.matchMedia?.("(prefers-color-scheme: dark)");
-    media?.addEventListener("change", update);
+    const queries = PREFERENCES.map((query) => window.matchMedia?.(query)).filter(
+      (query): query is MediaQueryList => Boolean(query),
+    );
+    for (const query of queries) query.addEventListener("change", update);
     return () => {
       observer.disconnect();
-      media?.removeEventListener("change", update);
+      for (const query of queries) query.removeEventListener("change", update);
     };
   }, []);
-  return theme;
+  return key;
 }

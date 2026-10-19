@@ -1,0 +1,311 @@
+/*
+ * Strata design tokens (docs/DESIGN.md, section 2). Every colour, type size, space, radius,
+ * material, elevation and duration the dashboard uses is one of these custom properties: Tailwind
+ * utilities, component styles and the chart theme (src/charts/theme.ts) all read them, so a theme
+ * is a set of values for the same names. This file is plain CSS on purpose; src/styles/index.css
+ * maps it onto Tailwind.
+ *
+ * Layers.
+ *   1. Base values, one block per theme. Light sits on :root and on any [data-theme="light"]
+ *      element; dark applies under the system's dark preference (unless the page is stamped
+ *      light) and on any [data-theme="dark"] element, so Storybook can show both themes side by
+ *      side. The two dark blocks must stay identical: src/styles/tokens.test.ts fails if they drift.
+ *   2. Semantic tokens that reference the base values (text, borders, chart chrome, materials).
+ *      They are declared on :root and on every [data-theme] element, so a themed subtree resolves
+ *      them against its own base values.
+ *   3. Preferences that override semantic tokens only: phone width, less transparency, more
+ *      contrast.
+ *
+ * Colour.
+ *   One accent (a restrained blue), one success, one warning, one danger, and nine neutral greys.
+ *   grey-1 sits next to the surface and grey-9 next to the ink in both themes, so a step means the
+ *   same thing in light and dark. Text tokens keep WCAG AA (4.5:1) on every surface and tint they
+ *   are used on; tokens.test.ts computes each pair from the values below.
+ *   accent is for text, strokes and focus rings; accent-fill is the solid behind on-accent text
+ *   (the two differ in dark mode, where a light blue reads as text and a darker one carries white).
+ *
+ * Robustness verdicts.
+ *   Three fixed colours that never stand alone: the badge always carries the verdict's word and its
+ *   icon. holds is a green, weakens an amber, reverses a violet rather than a danger red, because a
+ *   headline that reverses under stratification is a finding the system exists to report, not an
+ *   error (ARCHITECTURE.md, section 2). insufficient uses the neutral ramp.
+ *
+ * Charts.
+ *   The neutral ramp plus the accent for the thing being discussed. Categorical series take
+ *   chart-1 to chart-5: five hues at equal OKLCH lightness (L 0.60 in light, 0.66 in dark, chroma
+ *   0.14, reduced only where a hue leaves the sRGB gamut), in the order blue, magenta, ochre, teal,
+ *   orange. That order was chosen by enumerating the orders of candidate hues with the dataviz
+ *   palette validator: adjacent pairs clear the colour-vision-deficiency target and the
+ *   normal-vision floor in both themes, and the first three slots clear them for every pair, so a
+ *   chart that can put any two of three series side by side (the channel states) uses those three.
+ *   Every slot clears 3:1 against the chart surface in both themes.
+ *   Sequential scales are one hue (the accent's), light to dark (dark to light in the dark theme,
+ *   where more reads brighter). Diverging scales are blue to orange, only where zero means
+ *   something (a SHAP contribution), never red to green.
+ *   Channel states keep one identity on every page: digital only chart-1, mixed chart-2, branch
+ *   only chart-3, none the neutral ramp.
+ *   Chart tokens are plain colour values: the chart theme reads them with getComputedStyle, and a
+ *   canvas cannot resolve color-mix().
+ */
+
+/* 1. Base values: light. */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  --grey-1: #f2f3f6;
+  --grey-2: #e8e9ec;
+  --grey-3: #dbdcdf;
+  --grey-4: #c9cacd;
+  --grey-5: #a9abad;
+  --grey-6: #858689;
+  --grey-7: #626366;
+  --grey-8: #414244;
+  --grey-9: #232426;
+
+  --canvas: #f5f7f9;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --ink: #17181a;
+
+  --accent: #2368bd;
+  --accent-fill: #2368bd;
+  --on-accent: #ffffff;
+  --success: #1a763f;
+  --warning: #975d04;
+  --danger: #be2f2c;
+
+  --verdict-holds: #0b764d;
+  --verdict-weakens: #975d04;
+  --verdict-reverses: #7444b4;
+
+  --chart-1: #4081d2;
+  --chart-2: #bc598c;
+  --chart-3: #9a7d03;
+  --chart-4: #04938e;
+  --chart-5: #bf6420;
+  --chart-seq-low: #e4f0ff;
+  --chart-seq-high: #044b97;
+  --chart-div-low: #2f74bb;
+  --chart-div-high: #cc6c13;
+
+  --material-edge: rgb(255 255 255 / 0.7);
+  --scrim: rgb(23 24 26 / 0.18);
+  --elevation-float: 0 0.75rem 2rem rgb(23 24 26 / 0.12), 0 0.125rem 0.375rem rgb(23 24 26 / 0.08);
+  --elevation-thumb: 0 0.0625rem 0.25rem rgb(23 24 26 / 0.22), 0 0 0 0.0625rem rgb(23 24 26 / 0.06);
+}
+
+/* 1. Base values: dark, from the system preference. Keep identical to the block below. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --grey-1: #212224;
+    --grey-2: #2a2b2d;
+    --grey-3: #37383a;
+    --grey-4: #46484a;
+    --grey-5: #626366;
+    --grey-6: #7f8083;
+    --grey-7: #a3a5a7;
+    --grey-8: #c9cacd;
+    --grey-9: #e6e8eb;
+
+    --canvas: #0d0e10;
+    --surface: #161719;
+    --surface-raised: #1f2022;
+    --ink: #edeef1;
+
+    --accent: #77adf5;
+    --accent-fill: #3074ca;
+    --on-accent: #ffffff;
+    --success: #6ecc8a;
+    --warning: #e9b860;
+    --danger: #f87e77;
+
+    --verdict-holds: #70ca9c;
+    --verdict-weakens: #e9b860;
+    --verdict-reverses: #bb9af4;
+
+    --chart-1: #5294e6;
+    --chart-2: #d06b9e;
+    --chart-3: #b08e00;
+    --chart-4: #00a8a2;
+    --chart-5: #d47636;
+    --chart-seq-low: #1e2c3f;
+    --chart-seq-high: #92c1ff;
+    --chart-div-low: #64a2e7;
+    --chart-div-high: #f1944f;
+
+    --material-edge: rgb(255 255 255 / 0.08);
+    --scrim: rgb(0 0 0 / 0.45);
+    --elevation-float: 0 0.75rem 2rem rgb(0 0 0 / 0.5), 0 0 0 0.0625rem rgb(255 255 255 / 0.06);
+    --elevation-thumb: 0 0.0625rem 0.25rem rgb(0 0 0 / 0.5), 0 0 0 0.0625rem rgb(255 255 255 / 0.08);
+  }
+}
+
+/* 1. Base values: dark, chosen in the page or stamped on a subtree. Keep identical to the block above. */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --grey-1: #212224;
+  --grey-2: #2a2b2d;
+  --grey-3: #37383a;
+  --grey-4: #46484a;
+  --grey-5: #626366;
+  --grey-6: #7f8083;
+  --grey-7: #a3a5a7;
+  --grey-8: #c9cacd;
+  --grey-9: #e6e8eb;
+
+  --canvas: #0d0e10;
+  --surface: #161719;
+  --surface-raised: #1f2022;
+  --ink: #edeef1;
+
+  --accent: #77adf5;
+  --accent-fill: #3074ca;
+  --on-accent: #ffffff;
+  --success: #6ecc8a;
+  --warning: #e9b860;
+  --danger: #f87e77;
+
+  --verdict-holds: #70ca9c;
+  --verdict-weakens: #e9b860;
+  --verdict-reverses: #bb9af4;
+
+  --chart-1: #5294e6;
+  --chart-2: #d06b9e;
+  --chart-3: #b08e00;
+  --chart-4: #00a8a2;
+  --chart-5: #d47636;
+  --chart-seq-low: #1e2c3f;
+  --chart-seq-high: #92c1ff;
+  --chart-div-low: #64a2e7;
+  --chart-div-high: #f1944f;
+
+  --material-edge: rgb(255 255 255 / 0.08);
+  --scrim: rgb(0 0 0 / 0.45);
+  --elevation-float: 0 0.75rem 2rem rgb(0 0 0 / 0.5), 0 0 0 0.0625rem rgb(255 255 255 / 0.06);
+  --elevation-thumb: 0 0.0625rem 0.25rem rgb(0 0 0 / 0.5), 0 0 0 0.0625rem rgb(255 255 255 / 0.08);
+}
+
+/* 2. Semantic tokens, resolved against the base values of the element that declares them. */
+:root,
+[data-theme] {
+  /* Type: the platform's system stack, sized in rem, tracked by size (DESIGN.md, section 2). */
+  --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  --font-family-mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
+  --type-label-size: 0.75rem;
+  --type-label-tracking: 0.01em;
+  --type-label-leading: 1.3;
+  --type-small-size: 0.875rem;
+  --type-body-size: 1rem;
+  --type-body-tracking: 0;
+  --type-heading-size: 1.25rem;
+  --type-heading-tracking: -0.01em;
+  --type-heading-leading: 1.25;
+  --type-title-size: 1.75rem;
+  --type-title-tracking: -0.02em;
+  --type-title-leading: 1.1;
+  --type-figure-size: 2rem;
+  --type-figure-tracking: -0.02em;
+  --type-figure-leading: 1.1;
+  --leading-prose: 1.45;
+  --leading-dense: 1.3;
+  --weight-title: 600;
+  --weight-label: 500;
+  --weight-body: 400;
+  --measure: 70ch;
+
+  /* Space: a 4px base; the page gutter narrows at phone width (layer 3 below). */
+  --space-unit: 0.25rem;
+  --gutter: 1.5rem;
+  --row-dense: 2.25rem;
+  --touch-target: 2.75rem;
+  --sidebar-width: 15rem;
+  --bar-height: 3.5rem;
+  --drawer-width: 30rem;
+
+  /* Shape: controls, in-flow panels, floating sheets. */
+  --shape-control: 0.375rem;
+  --shape-panel: 0.625rem;
+  --shape-sheet: 1rem;
+  --shape-round: 9999px;
+  --hairline: 0.0625rem;
+  --focus-ring-width: 0.125rem;
+
+  /* Text, lines and fills. */
+  --ink-secondary: var(--grey-7);
+  --border: var(--grey-3);
+  --border-strong: var(--grey-4);
+  --fill-subtle: var(--grey-1);
+  --fill-control: var(--grey-2);
+  --focus-ring: var(--accent);
+  --accent-tint: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  --success-tint: color-mix(in srgb, var(--success) 10%, var(--surface));
+  --warning-tint: color-mix(in srgb, var(--warning) 10%, var(--surface));
+  --danger-tint: color-mix(in srgb, var(--danger) 10%, var(--surface));
+
+  /* Chart chrome (plain values for the canvas, see the header). */
+  --chart-ink: var(--ink);
+  --chart-label: var(--grey-7);
+  --chart-axis: var(--grey-4);
+  --chart-grid: var(--grey-2);
+  --chart-neutral: var(--grey-6);
+  --chart-neutral-soft: var(--grey-4);
+  --chart-surface: var(--surface);
+  --state-digital-only: var(--chart-1);
+  --state-mixed: var(--chart-2);
+  --state-branch-only: var(--chart-3);
+  --state-none: var(--grey-6);
+
+  /* Materials: one translucent layer at a time (the top bar, or a sheet). */
+  --material-tint: color-mix(in srgb, var(--surface) 60%, transparent);
+  --material-filter: blur(20px) saturate(180%);
+  --material-solid: var(--surface);
+
+  /* Motion, CSS side (the springs live in src/motion.ts). */
+  --duration-fade: 200ms;
+  --duration-chart: 300ms;
+  --duration-chart-enter: 500ms;
+  --duration-breathe: 1.6s;
+  --opacity-breathe: 0.55;
+}
+
+/* 3. Preferences. Below the sidebar breakpoint the top bar carries the page list as a second row. */
+@media (width < 64rem) {
+  :root,
+  [data-theme] {
+    --bar-height: 6.25rem;
+  }
+}
+
+@media (width < 40rem) {
+  :root,
+  [data-theme] {
+    --gutter: 1rem;
+    --drawer-width: 100vw;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  [data-theme] {
+    --material-tint: var(--material-solid);
+    --material-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root,
+  [data-theme] {
+    --ink-secondary: var(--grey-8);
+    --border: var(--grey-6);
+    --border-strong: var(--grey-7);
+    --chart-label: var(--grey-8);
+    --chart-axis: var(--grey-6);
+    --chart-grid: var(--grey-3);
+    --material-tint: var(--material-solid);
+    --material-filter: none;
+  }
+}

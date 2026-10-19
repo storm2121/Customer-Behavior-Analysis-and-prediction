@@ -1,0 +1,337 @@
+@import "tailwindcss";
+@import "./tokens.css";
+
+/*
+ * Tailwind reads the design tokens and nothing else: its default palette, radii, shadows, type
+ * sizes, weights, tracking and leading are cleared, so a utility can only name a token. Spacing
+ * keeps Tailwind's arithmetic on the 4px base unit of the tokens.
+ */
+@theme {
+  --color-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
+  --text-*: initial;
+  --font-weight-*: initial;
+  --tracking-*: initial;
+  --leading-*: initial;
+}
+
+@theme inline {
+  --spacing: var(--space-unit);
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-ink: var(--ink);
+  --color-ink-secondary: var(--ink-secondary);
+  --color-grey-1: var(--grey-1);
+  --color-grey-2: var(--grey-2);
+  --color-grey-3: var(--grey-3);
+  --color-grey-4: var(--grey-4);
+  --color-grey-5: var(--grey-5);
+  --color-grey-6: var(--grey-6);
+  --color-grey-7: var(--grey-7);
+  --color-grey-8: var(--grey-8);
+  --color-grey-9: var(--grey-9);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fill-subtle: var(--fill-subtle);
+  --color-fill-control: var(--fill-control);
+  --color-accent: var(--accent);
+  --color-accent-fill: var(--accent-fill);
+  --color-on-accent: var(--on-accent);
+  --color-accent-tint: var(--accent-tint);
+  --color-success: var(--success);
+  --color-success-tint: var(--success-tint);
+  --color-warning: var(--warning);
+  --color-warning-tint: var(--warning-tint);
+  --color-danger: var(--danger);
+  --color-danger-tint: var(--danger-tint);
+  --color-verdict-holds: var(--verdict-holds);
+  --color-verdict-weakens: var(--verdict-weakens);
+  --color-verdict-reverses: var(--verdict-reverses);
+  --color-scrim: var(--scrim);
+  --color-chart-neutral: var(--chart-neutral);
+  --color-state-digital-only: var(--state-digital-only);
+  --color-state-mixed: var(--state-mixed);
+  --color-state-branch-only: var(--state-branch-only);
+  --color-state-none: var(--state-none);
+  --color-diverging-low: var(--chart-div-low);
+  --color-diverging-high: var(--chart-div-high);
+
+  --font-sans: var(--font-family-sans);
+  --font-mono: var(--font-family-mono);
+
+  --text-label: var(--type-label-size);
+  --text-label--line-height: var(--type-label-leading);
+  --text-label--letter-spacing: var(--type-label-tracking);
+  --text-small: var(--type-small-size);
+  --text-small--line-height: var(--leading-prose);
+  --text-small--letter-spacing: var(--type-body-tracking);
+  --text-body: var(--type-body-size);
+  --text-body--line-height: var(--leading-prose);
+  --text-body--letter-spacing: var(--type-body-tracking);
+  --text-heading: var(--type-heading-size);
+  --text-heading--line-height: var(--type-heading-leading);
+  --text-heading--letter-spacing: var(--type-heading-tracking);
+  --text-title: var(--type-title-size);
+  --text-title--line-height: var(--type-title-leading);
+  --text-title--letter-spacing: var(--type-title-tracking);
+  --text-figure: var(--type-figure-size);
+  --text-figure--line-height: var(--type-figure-leading);
+  --text-figure--letter-spacing: var(--type-figure-tracking);
+
+  --font-weight-title: var(--weight-title);
+  --font-weight-label: var(--weight-label);
+  --font-weight-body: var(--weight-body);
+  --leading-prose: var(--leading-prose);
+  --leading-dense: var(--leading-dense);
+
+  --radius-control: var(--shape-control);
+  --radius-panel: var(--shape-panel);
+  --radius-sheet: var(--shape-sheet);
+
+  --shadow-float: var(--elevation-float);
+  --shadow-thumb: var(--elevation-thumb);
+
+  --container-measure: var(--measure);
+}
+
+/* Element defaults sit in the base layer, under the utilities, so a utility always wins. */
+@layer base {
+  html {
+    background: var(--canvas);
+    color: var(--ink);
+    font-family: var(--font-family-sans);
+    font-optical-sizing: auto;
+    /* Tabular figures wherever a number appears, so columns and changing values never shift. */
+    font-variant-numeric: tabular-nums;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scroll-padding-top: calc(var(--bar-height) + var(--space-unit) * 4);
+  }
+
+  body {
+    margin: 0;
+    min-width: 20rem;
+    background: var(--canvas);
+    font-size: var(--type-body-size);
+    line-height: var(--leading-prose);
+    font-weight: var(--weight-body);
+  }
+
+  /* Links inside text are underlined, so they never depend on colour; navigation links opt out. */
+  a {
+    color: var(--accent);
+    text-decoration-line: underline;
+    text-decoration-thickness: from-font;
+    text-underline-offset: 0.2em;
+  }
+
+  :focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-width);
+  }
+
+  ::selection {
+    background: var(--accent-tint);
+  }
+
+  code,
+  kbd,
+  samp {
+    font-family: var(--font-family-mono);
+    font-size: 0.9em;
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+}
+
+/* A few patterns utilities cannot express on their own. Each reads tokens only. */
+@layer components {
+  /* The one translucent material: the top bar, or a sheet, never both at once. */
+  .material {
+    background: var(--material-tint);
+    -webkit-backdrop-filter: var(--material-filter);
+    backdrop-filter: var(--material-filter);
+    box-shadow: inset 0 var(--hairline) 0 var(--material-edge);
+  }
+
+  /* While a sheet is open, the top bar gives up its translucency (one material at a time). */
+  [data-sheet-open] .material-bar {
+    background: var(--material-solid);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  /* A soft edge where content meets floating chrome, instead of a divider line. It fades in only
+     when something has scrolled under the bar. */
+  .scroll-edge {
+    pointer-events: none;
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    height: calc(var(--space-unit) * 4);
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--canvas) 70%, transparent), transparent);
+    opacity: 0;
+    transition: opacity var(--duration-fade) linear;
+  }
+
+  [data-scrolled] > .scroll-edge {
+    opacity: 1;
+  }
+
+  /* Horizontal scrollers fade at the edge that has more content beyond it. */
+  .scroll-fade-x {
+    --fade: calc(var(--space-unit) * 6);
+    mask-image: linear-gradient(
+      to right,
+      var(--fade-start, black) 0,
+      black var(--fade),
+      black calc(100% - var(--fade)),
+      var(--fade-end, black) 100%
+    );
+  }
+
+  .scroll-fade-x[data-more-before] {
+    --fade-start: transparent;
+  }
+
+  .scroll-fade-x[data-more-after] {
+    --fade-end: transparent;
+  }
+
+  /* Dense tables: rows of the dense height, hairline separators, labels in the header. */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--type-small-size);
+    line-height: var(--leading-dense);
+  }
+
+  .data-table caption {
+    caption-side: top;
+    text-align: start;
+    padding-block-end: calc(var(--space-unit) * 3);
+    color: var(--ink-secondary);
+    font-size: var(--type-small-size);
+    line-height: var(--leading-prose);
+  }
+
+  .data-table th {
+    height: var(--row-dense);
+    padding-inline: calc(var(--space-unit) * 3);
+    text-align: start;
+    vertical-align: bottom;
+    padding-block-end: calc(var(--space-unit) * 2);
+    color: var(--ink-secondary);
+    font-size: var(--type-label-size);
+    font-weight: var(--weight-label);
+    letter-spacing: var(--type-label-tracking);
+    border-block-end: var(--hairline) solid var(--border);
+    white-space: nowrap;
+  }
+
+  .data-table td {
+    height: var(--row-dense);
+    padding-inline: calc(var(--space-unit) * 3);
+    border-block-end: var(--hairline) solid var(--border);
+    vertical-align: middle;
+  }
+
+  .data-table tbody tr:last-child td {
+    border-block-end: 0;
+  }
+
+  .data-table th:first-child,
+  .data-table td:first-child {
+    padding-inline-start: 0;
+  }
+
+  .data-table th:last-child,
+  .data-table td:last-child {
+    padding-inline-end: 0;
+  }
+
+  .data-table .num {
+    text-align: end;
+    white-space: nowrap;
+  }
+
+  /* Narrow panels: half the cell padding, so a table of figures fits beside a chart. */
+  .data-table.compact th,
+  .data-table.compact td {
+    padding-inline: calc(var(--space-unit) * 1.5);
+  }
+
+  /* The chart tooltip is a floating surface: solid and raised; its elevation and radius come with
+     the tooltip option (extraCssText), so the element ECharts keeps hidden draws nothing. */
+  .chart-tooltip {
+    font-variant-numeric: tabular-nums;
+    line-height: var(--leading-prose);
+  }
+
+  .chart-tooltip-title {
+    color: var(--ink-secondary);
+    font-weight: var(--weight-label);
+    margin-block-end: var(--space-unit);
+  }
+
+  .chart-tooltip-row {
+    display: flex;
+    align-items: center;
+    gap: calc(var(--space-unit) * 2);
+  }
+
+  .chart-tooltip-row strong {
+    color: var(--ink);
+    font-weight: var(--weight-title);
+  }
+
+  .chart-tooltip-row span:last-child {
+    color: var(--ink-secondary);
+  }
+
+  .chart-tooltip-key {
+    display: inline-block;
+    inline-size: calc(var(--space-unit) * 3);
+    block-size: calc(var(--space-unit) / 2);
+    border-radius: var(--shape-round);
+  }
+
+  /* Skeletons breathe in opacity only, and hold still when motion is reduced. */
+  .skeleton {
+    background: var(--fill-control);
+    border-radius: var(--shape-control);
+    animation: skeleton-breathe var(--duration-breathe) ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton {
+      animation: none;
+    }
+  }
+}
+
+@keyframes skeleton-breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: var(--opacity-breathe);
+  }
+}
+
+/* Outside the layers: it adjusts KaTeX's own (unlayered) stylesheet. Equations sit at the body
+   size, inside the reading measure, and scroll sideways when wider than a phone. */
+.katex {
+  font-size: 1em;
+}
+
+.katex-display {
+  margin: 0;
+  padding-block: calc(var(--space-unit) * 2);
+}
