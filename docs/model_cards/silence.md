@@ -2,7 +2,7 @@
 
 # Model card: Silence risk in the next three months
 
-- Version `0.1.0+c4418043.20261018164430`, trained 2026-10-18, effort full.
+- Version `0.1.0+c4418043.20261019030828`, trained 2026-10-19, effort full.
 - Data: synthetic data from the public generator (the numbers say nothing about any bank); fingerprint `c4418043910d`.
 - MLflow run: kept in the local workspace's store, not published.
 
@@ -34,20 +34,29 @@ Every backtest (the served score: trees with Platt scaling):
 | 2024-04-30 | 2024-05-31 | 0.928 (0.902 to 0.951) | 5.83 (5.06 to 6.66) |
 | 2024-05-31 | 2024-06-30 | 0.943 (0.925 to 0.960) | 5.61 (4.86 to 6.37) |
 
+![Reliability diagram of the served score and the GLM](silence-reliability.png)
+
 ## What drives the score
 
 Mean absolute SHAP value (log-odds):
 
 | Feature | Mean absolute SHAP |
 |---|---|
+| n_events_90d | 0.509 |
 | active_months | 0.316 |
-| active_span_days | 0.076 |
+| n_events_30d | 0.282 |
+| recency_days | 0.279 |
+| n_events | 0.198 |
 | branch_credit | 0.104 |
 | card_spend | 0.084 |
-| n_events | 0.198 |
-| n_events_30d | 0.282 |
-| n_events_90d | 0.509 |
-| recency_days | 0.279 |
+| active_span_days | 0.076 |
+
+The three largest drivers of every backtest (mean absolute SHAP):
+
+| Train cutoff | Test cutoff | Drivers |
+|---|---|---|
+| 2024-04-30 | 2024-05-31 | recency_days 0.447, active_months 0.446, n_events_30d 0.245 |
+| 2024-05-31 | 2024-06-30 | n_events_90d 0.509, active_months 0.316, n_events_30d 0.282 |
 
 Odds ratios of the GLM (continuous features per standard deviation):
 
