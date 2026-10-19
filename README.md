@@ -45,11 +45,11 @@ clients, with what interval, and does it survive holding the obvious confounders
 
 ```mermaid
 flowchart LR
-  subgraph sources[Sources]
+  subgraph sources [Sources]
     EXT[(Real extract<br/>STRATA_DATA_DIR)]
     SYN[Synthetic generator]
   end
-  subgraph package[strata package]
+  subgraph pkg [strata package]
     ING[Contracts, mapping<br/>and ingest] --> WH[(DuckDB warehouse<br/>dbt models and tests)]
     WH --> LED[Evidence ledger and<br/>robustness checker]
     WH --> AN[Analysis modules]
@@ -66,7 +66,7 @@ flowchart LR
   ML --> API
   REV --> API
   API --> DASH[React dashboard]
-  AF[Airflow DAG] -. one CLI call per task .-> package
+  AF[Airflow DAG] -. one CLI call per task .-> pkg
   WH -. private zone only .-> TWIN[(Private twin<br/>STRATA_PRIVATE_DIR)]
 ```
 
