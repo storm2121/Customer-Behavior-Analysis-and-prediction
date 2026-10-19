@@ -1,8 +1,9 @@
 """Smoke test of a running stack: every API endpoint answers on synthetic data.
 
-    python docker/smoke.py [base_url]
+    python docker/smoke.py [api_url] [dashboard_url]
 
-Exits non-zero on the first endpoint that does not answer as expected.
+With a dashboard URL, the dashboard's page and the API behind its same-origin proxy must answer
+too. Exits non-zero on the first check that does not answer as expected.
 """
 
 from __future__ import annotations
@@ -14,8 +15,9 @@ import urllib.error
 import urllib.request
 
 BASE = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8000"
-if not BASE.startswith(("http://", "https://")):
-    sys.exit("the base URL must be http or https")
+DASHBOARD = sys.argv[2] if len(sys.argv) > 2 else None
+if not all(url.startswith(("http://", "https://")) for url in (BASE, DASHBOARD or BASE)):
+    sys.exit("the URLs must be http or https")
 
 
 def call(method: str, path: str, body: dict[str, object] | None = None) -> tuple[int, object]:
@@ -79,7 +81,22 @@ def main() -> None:
         sys.stdout.write(f"{status} {method} {path}\n")
         if status != expected:
             sys.exit(f"expected {expected} from {method} {path}")
+    if DASHBOARD is not None:
+        dashboard_checks(DASHBOARD.rstrip("/"))
     sys.stdout.write("every endpoint answered\n")
+
+
+def dashboard_checks(dashboard: str) -> None:
+    """The dashboard's page, and the API through the dashboard's same-origin proxy."""
+    for path in ("/", "/api/health"):
+        try:
+            with urllib.request.urlopen(dashboard + path, timeout=60) as response:  # noqa: S310
+                status = response.status
+        except urllib.error.HTTPError as error:
+            status = error.code
+        sys.stdout.write(f"{status} GET {dashboard}{path}\n")
+        if status != 200:
+            sys.exit(f"expected 200 from {dashboard}{path}")
 
 
 if __name__ == "__main__":

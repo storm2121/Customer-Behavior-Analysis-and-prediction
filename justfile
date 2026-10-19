@@ -83,24 +83,30 @@ anomaly: dbt
 serve:
     uv run --frozen strata serve
 
+# The dashboard recipes run inside apps/dashboard, so corepack uses the pnpm that its package.json
+# pins (run from the repository root, it would pick a version of its own).
+
 # The dashboard in development (http://localhost:5173), proxying /api to `just serve`.
+[working-directory: 'apps/dashboard']
 dashboard:
-    corepack pnpm --dir apps/dashboard install --frozen-lockfile
-    corepack pnpm --dir apps/dashboard dev
+    corepack pnpm install --frozen-lockfile
+    corepack pnpm dev
 
 # The dashboard's checks: types, unit tests, the production build with its bundle check, Storybook.
+[working-directory: 'apps/dashboard']
 dashboard-check:
-    corepack pnpm --dir apps/dashboard install --frozen-lockfile
-    corepack pnpm --dir apps/dashboard typecheck
-    corepack pnpm --dir apps/dashboard test
-    corepack pnpm --dir apps/dashboard build
-    corepack pnpm --dir apps/dashboard storybook:build
+    corepack pnpm install --frozen-lockfile
+    corepack pnpm typecheck
+    corepack pnpm test
+    corepack pnpm build
+    corepack pnpm storybook:build
 
-# Playwright smoke tests with axe checks against the running stack (`just up`). Set
-# STRATA_DASHBOARD_URL when the dashboard port is moved and STRATA_E2E_CHANNEL=msedge (or chrome)
-# to drive an installed browser instead of one downloaded by `pnpm exec playwright install`.
+# Set STRATA_DASHBOARD_URL when the dashboard port is moved and STRATA_E2E_CHANNEL=msedge (or
+# chrome) to drive an installed browser instead of one downloaded by `pnpm exec playwright install`.
+# Playwright smoke tests with axe checks against the running stack (`just up`).
+[working-directory: 'apps/dashboard']
 dashboard-e2e:
-    corepack pnpm --dir apps/dashboard e2e
+    corepack pnpm e2e
 
 # The whole stack on synthetic data: API, PostgreSQL, MLflow UI and the dashboard. Port overrides
 # of this machine (STRATA_*_PORT) are read from .env.local when it exists.
@@ -108,6 +114,27 @@ compose_env := if path_exists(".env.local") == "true" { "--env-file .env.local" 
 
 up:
     docker compose {{compose_env}} up --build
+
+api_url := "http://localhost:" + env_var_or_default("STRATA_API_PORT", "8000")
+dashboard_url := "http://localhost:" + env_var_or_default("STRATA_DASHBOARD_PORT", "5173")
+
+# The extract, the warehouse, every claim, the analysis modules, the models and their gate, the
+# monitoring queue and the demo report, then the stack in the background and a smoke test of every
+# endpoint and of the dashboard. Nothing in it reads the real extract or changes a tracked file.
+# One command on synthetic data, from a clean clone; `just down` stops the stack.
+demo: dbt
+    uv run --frozen strata ledger build --quick
+    uv run --frozen strata analyse all --quick
+    uv run --frozen strata train all --quick
+    uv run --frozen strata evaluate
+    uv run --frozen strata anomaly run --budget 50
+    uv run --frozen strata report --variant public
+    docker compose {{compose_env}} up --build --detach
+    uv run --frozen python docker/smoke.py {{api_url}} {{dashboard_url}}
+
+# Stop the stack and remove its volumes.
+down:
+    docker compose {{compose_env}} --profile orchestration down --volumes
 
 # The daily DAG end to end in its Compose image on synthetic data (`airflow dags test`).
 dag-test:
