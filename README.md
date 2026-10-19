@@ -12,7 +12,7 @@ it never enters this repository. A hand-specified synthetic generator is a first
 the whole system runs, and is tested, without the extract: `just demo` builds everything from a
 clean clone on synthetic data.
 
-![The what-if simulator of the dashboard, on synthetic data](docs/images/dashboard-simulator.png)
+![The dashboard's simulator on synthetic data: sliders on the left, the policy in words above its bands](docs/images/dashboard-simulator-light-1440.png)
 
 ## Why it exists
 
@@ -106,12 +106,17 @@ different schema onto the same marts ([ADR 0010](docs/adr/0010-canonical-layer.m
 
 | | |
 |---|---|
-| ![Overview: KPIs, channel mix and the calendar heatmap](docs/images/dashboard-overview.png) | ![Silence risk: models compared with intervals, calibration and lift](docs/images/dashboard-risk.png) |
-| ![Segments: the embedding map in the dark theme](docs/images/dashboard-segments.png) | ![Alerts: the triage queue with reasons and feedback, dark theme](docs/images/dashboard-alerts.png) |
+| ![Overview: numbers with their intervals beside the channel mix and the calendar of daily activity](docs/images/dashboard-overview-light-1440.png) | ![Silence risk in the dark theme: the ranked clients first, with the served score's probability](docs/images/dashboard-risk-dark-1440.png) |
+| ![Segments in the dark theme: the map with one segment in the accent, and the profile table beside it](docs/images/dashboard-segments-dark-1440.png) | ![Alerts: the ranked queue, each alert's evidence one tap away in a drawer](docs/images/dashboard-alerts-light-1440.png) |
 
-The simulator at phone width: [screenshot](docs/images/dashboard-phone-simulator.png). The Findings
-page is not pictured: it shows the allow-listed claims of the real extract, which belong in the
-ledger and the documents rendered from it, not in images.
+At phone width: the [overview](docs/images/dashboard-overview-dark-390.png) and the
+[simulator](docs/images/dashboard-simulator-dark-390.png). Every page is captured in both themes at
+desktop and phone width in [docs/images](docs/images), by `node scripts/screenshots.mjs` in
+`apps/dashboard`, which refuses to run unless the API serves the public synthetic workspace. The
+Findings page is not pictured: it shows the allow-listed claims of the real extract, which belong
+in the ledger and the documents rendered from it, not in images. The design is described in
+[docs/DESIGN.md](docs/DESIGN.md), and where it departs from that brief, in
+[docs/DESIGN_NOTES.md](docs/DESIGN_NOTES.md).
 
 Outside Docker, `pnpm` installs the dashboard's packages through its content store, which it keeps
 at the root of the drive when the repository is not on the drive of the user profile: that is
