@@ -18,7 +18,8 @@ warehouse, ledger, registry and simulator files as every command.
 - `Dockerfile.api` builds the public workspace (synthetic extract, warehouse, claims at quick
   effort, simulator inputs, models) into the image, so `docker compose up` serves at once; its entry
   point stores the alert queue in PostgreSQL and starts the API. `Dockerfile.mlflow` serves the MLflow
-  UI over the runs the image logged. The dashboard of M8 is a static placeholder until then.
+  UI over the runs the image logged. `Dockerfile.dashboard` (M8) builds the dashboard and serves it
+  with nginx, which proxies `/api/` to the API on the same origin ([ADR 0006](0006-dashboard-stack.md)).
 - Ports are Strata's defaults: API 8000, PostgreSQL 5432, dashboard 5173, MLflow 5000. Another
   project on the reference machine uses 8100, 5433, 6380, 3100, 9100 and 5174, and none of those
   is taken.

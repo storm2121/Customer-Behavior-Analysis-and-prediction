@@ -1,7 +1,7 @@
 # ADR 0004: a structural privacy boundary with a public parametric generator and a private twin
 
-Status: accepted (architect, 2026-10-18). Filled in M0; the twin is expanded in M9.
-Refined by [ADR 0008](0008-private-zone-outside-the-working-tree.md).
+Status: accepted (architect, 2026-10-18). Filled in M0; the twin is expanded in M9 by
+[ADR 0013](0013-private-twin.md). Refined by [ADR 0008](0008-private-zone-outside-the-working-tree.md).
 
 ## Context
 
