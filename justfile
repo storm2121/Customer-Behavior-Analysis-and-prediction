@@ -115,15 +115,15 @@ compose_env := if path_exists(".env.local") == "true" { "--env-file .env.local" 
 up:
     docker compose {{compose_env}} up --build
 
-# The extract, the warehouse, every claim, the analysis modules, the models and their gate, the
-# monitoring queue and the demo report, then the stack in the background and a smoke test of every
-# endpoint and of the dashboard. Nothing in it reads the real extract or changes a tracked file.
+# The extract, the warehouse, the models and their gate, every claim (the model-quality claims
+# read the models), the analysis modules, the monitoring queue and the demo report, then the stack
+# in the background and a smoke test of every endpoint and of the dashboard. Nothing in it reads the real extract or changes a tracked file.
 # One command on synthetic data, from a clean clone; `just down` stops the stack.
 demo: dbt
-    uv run --frozen strata ledger build --quick
-    uv run --frozen strata analyse all --quick
     uv run --frozen strata train all --quick
     uv run --frozen strata evaluate
+    uv run --frozen strata ledger build --quick
+    uv run --frozen strata analyse all --quick
     uv run --frozen strata anomaly run --budget 50
     uv run --frozen strata report --variant public
     docker compose {{compose_env}} up --build --detach

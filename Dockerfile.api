@@ -42,9 +42,9 @@ RUN strata synth --out /data/work/synth \
     && strata ingest --data-dir /data/work/synth \
     && strata dq \
     && strata dbt build \
+    && strata train all --quick \
     && strata ledger build --quick \
     && strata analyse markov --quick \
-    && strata train all --quick \
     && mkdir -p /data/work/mlruns/models
 
 COPY --chown=strata docker/api-entrypoint.sh /app/docker/api-entrypoint.sh
