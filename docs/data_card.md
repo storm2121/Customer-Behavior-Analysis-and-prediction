@@ -1,23 +1,90 @@
-# Data card (draft)
+# Data card: the reference instance
 
-Status: a draft started in milestone M4 for one purpose, to keep every assumption about the
-reference extract visible in one place. The full card (provenance, collection, coverage, known
-biases, intended and unintended uses) is completed in milestone M10.
+Status: complete. It describes the extract Strata was built around, what the pipeline assumes about
+it, and what it may and may not be used for. The table of assumed and undocumented codes at the end
+is generated from the seeds, and a test fails if it falls out of date. No figure in this card is
+typed by hand: the sample size, the observation window and the data fingerprint travel with every
+public claim in [`docs/ledger/claims.public.json`](ledger/claims.public.json) and the documents
+rendered from it.
 
-## The reference instance
+## Provenance
 
-The reference instance is the anonymised CIH Bank extract of the data challenge: one file of
-clients, three files of dated channel events (card, online banking, branch) and one aggregate file
-describing a different sample of clients. It reaches the pipeline only through `STRATA_DATA_DIR`
-on the machine that holds it (see [`PRIVACY.md`](../PRIVACY.md)); nothing in this repository is
-read from it except the allow-listed aggregates of `docs/ledger/claims.public.json`.
+The reference instance is an anonymised extract provided by CIH Bank for an academic data
+challenge. It is confidential: it is not redistributed, it is not part of this repository, and it
+reaches the pipeline only through `STRATA_DATA_DIR` on the machine that holds it (see
+[`PRIVACY.md`](../PRIVACY.md)). Nothing in the repository is read from it except the allow-listed
+aggregates of the public ledger.
+
+## Composition
+
+Five files, read through typed contracts and the reference mapping (`mappings/`):
+
+- **clients**: one row per client, with an opaque identifier, age, tenure, gender and marital codes,
+  number of children and professional status;
+- **card events**, **online-banking events** and **branch operations**: one row per event, with the
+  client, a date, an amount where the channel has one, and the channel's own descriptors (merchant
+  category and origin for cards, service for online banking, operation label and direction for the
+  branch);
+- **the aggregate file**: one row per client of a different sample, with yearly totals and flags of
+  online-banking use, used only by the adoption models.
 
 What the extract does not contain, and the pipeline therefore never assumes:
 
 - no transaction identifier and no time of day, so an exact repeat of a row is either a double
   posting or a genuine second operation, and is flagged rather than dropped;
 - no documentation of the code values, so several meanings below are inferred;
-- no closing date of accounts, so silence (a quarter without any event) is not attrition.
+- no closing date of accounts, so silence (a quarter without any event) is not attrition;
+- no balances, products or incomes, so nothing here measures wealth or credit risk.
+
+## Collection and coverage
+
+A sample of the bank's clients, with their activity over a single rolling year. How the sample was
+drawn is not documented. The aggregate file describes clients outside that sample, so it can never
+be joined to the event files (a dbt test asserts that the two samples are disjoint). Amounts are in
+dirhams. Calendar effects rest on one year: each month and holiday is seen once, so seasonality
+cannot be told apart from trend, and every calendar result says so.
+
+## Known biases and limitations
+
+- **Selection.** An unknown sampling design: shares describe the sample, not the bank's clientele.
+- **Channels.** The branch file holds the operations that reach an account; cash handled without an
+  account operation is invisible. Card events mix purchases, withdrawals and service operations,
+  which the code maps separate.
+- **Codes.** Gender and marital codes, the aggregate flags and some branch labels have meanings
+  inferred from their wording or from usual practice (table below); claims that depend on one say
+  so in their caveats.
+- **Quality.** Exact repeats, zero and sub-unit amounts are measured by `strata dq` and reported as
+  counts, never values; the warehouse keeps them flagged so that every analysis decides explicitly.
+- **Size.** The sample is small enough that per-client and small-group numbers would identify
+  people; publication is therefore limited to allow-listed aggregates over enough clients, and the
+  private twin pays for its privacy with fidelity ([the twin's decision record](adr/0013-private-twin.md)).
+
+## Intended uses
+
+- The reference instance of a public, source-agnostic pipeline: contracts, warehouse, ledger,
+  models, monitoring, serving and dashboard are built and tested against its shapes.
+- Aggregate findings, published only through the allow-list, each with its interval, sample size,
+  caveats and robustness verdict.
+- Private analysis on the machine that holds the extract, with outputs under `STRATA_PRIVATE_DIR`.
+
+## Uses it must not serve
+
+- Any decision about an individual client: scores and alerts rank cases for a person to review and
+  are never a verdict on anyone.
+- Credit, pricing or eligibility decisions, for which the extract holds neither the data nor the
+  consent.
+- Re-identification, or publishing any per-client or small-group output.
+- Treating results of the synthetic demo as evidence about the bank: they show that the pipeline
+  runs, nothing more.
+- Using the private twin outside the machine that holds the extract without a review of its
+  metrics and a decision record of its own.
+
+## Maintenance
+
+The assumptions below stand until the challenge's data dictionary confirms or corrects them;
+Mohamed may hold it. Correcting a meaning is a change to its seed, followed by
+`python -m strata.contracts.data_card`, a rebuild and `just publish-claims` on the machine that
+holds the extract.
 
 ## Assumptions and undocumented codes
 
@@ -30,9 +97,6 @@ and a test fails if it falls out of date.
   or from an official calendar; used as stated until confirmed.
 - **undocumented**: no meaning could be inferred; the code is kept as a category and never
   interpreted.
-
-Mohamed may hold the challenge's data dictionary; until it is checked, these assumptions stand, and
-every claim that depends on one of them says so in its caveats.
 
 <!-- assumptions:start (generated from dbt/seeds; do not edit by hand) -->
 | Seed | Field | Code | Meaning used | Status | Evidence |
