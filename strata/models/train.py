@@ -21,7 +21,7 @@ import pandas as pd
 from strata.config import Settings, Workspace, Zone
 from strata.ingest.load import load_manifest
 from strata.ingest.manifest import Manifest
-from strata.models import adoption, cards, churn, registry, segments, survival
+from strata.models import adoption, cards, churn, plots, registry, segments, survival
 from strata.warehouse import connect, read_relation
 
 TITLES = {
@@ -95,6 +95,7 @@ def _silence(context: Context) -> Trained:
                 "test_cutoff": b.test_cutoff,
                 "auc": b.metrics[churn.SERVED]["auc"].as_dict(),
                 "lift_at_10": b.metrics[churn.SERVED]["lift_at_10"].as_dict(),
+                "shap_top": _top(b.shap_global, 3),
             }
             for b in result.backtests
         ],
@@ -210,6 +211,13 @@ def train(
         )
         for table, frame in trained.tables.items():
             _write_table(frame, folder / f"{table}.json")
+        if name == "silence":
+            primary = trained.results["backtests"][-1]
+            plots.reliability_png(
+                primary["reliability"],
+                folder / plots.RELIABILITY_IMAGE,
+                f"Reliability on the cutoff of {primary['test_cutoff']}",
+            )
         headline = _json(trained.headline)
         run_id = registry.log_run(
             workspace.root / "mlruns",
@@ -234,7 +242,7 @@ def train(
     ordered = [entries[name] for name in MODELS if name in entries]
     result = registry.Registry(zone=zone.value, source_kind=manifest.source_kind, models=ordered)
     registry.write(path, result)
-    cards.write_cards(registry.load(path), context.folder / "cards")
+    cards.write_cards(registry.load(path), context.folder / "cards", images=context.folder)
     return result
 
 
@@ -242,4 +250,6 @@ def promote(settings: Settings) -> list[Path]:
     """Publish the public registry and its model cards into the repository."""
     path = registry.promote(settings)
     published = registry.load(path)
-    return [path, *cards.write_cards(published, settings.repo_root / cards.CARDS_DIR)]
+    images = settings.workspace(Zone.PUBLIC).root / "models"
+    folder = settings.repo_root / cards.CARDS_DIR
+    return [path, *cards.write_cards(published, folder, images=images)]

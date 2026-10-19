@@ -220,6 +220,8 @@ class BacktestResult:
     silence_rate_test: float
     metrics: dict[str, dict[str, metrics.Metric]]
     reliability: dict[str, list[dict[str, float]]]
+    shap_global: dict[str, float] = field(default_factory=dict)
+    """Mean absolute SHAP value of each feature for the trees of this backtest, on its test rows."""
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -235,6 +237,7 @@ class BacktestResult:
                 for model, scores in self.metrics.items()
             },
             "reliability": self.reliability,
+            "shap_global": self.shap_global,
         }
 
 
@@ -251,6 +254,13 @@ class ChurnResult:
     @property
     def primary(self) -> BacktestResult:
         return self.backtests[-1]
+
+
+def _mean_abs_shap(contributions: np.ndarray, columns: list[str]) -> dict[str, float]:
+    """Mean absolute SHAP value per feature, largest first."""
+    means = np.abs(contributions).mean(axis=0)
+    pairs = ((column, float(value)) for column, value in zip(columns, means, strict=True))
+    return dict(sorted(pairs, key=lambda item: -item[1]))
 
 
 def run(features: pd.DataFrame, *, effort: Effort = FULL, seed: int = 42) -> ChurnResult:
@@ -274,6 +284,10 @@ def run(features: pd.DataFrame, *, effort: Effort = FULL, seed: int = 42) -> Chu
             name: metrics.evaluate(y_test, p, n_resamples=effort.resamples, seed=seed)
             for name, p in scores.items()
         }
+        x_backtest = splits.design(test)
+        backtest_shap = _mean_abs_shap(
+            shap_values(trees.model, x_backtest), list(x_backtest.columns)
+        )
         results.append(
             BacktestResult(
                 name=backtest.name,
@@ -285,6 +299,7 @@ def run(features: pd.DataFrame, *, effort: Effort = FULL, seed: int = 42) -> Chu
                 silence_rate_test=float(y_test.mean()),
                 metrics=evaluated,
                 reliability={name: metrics.reliability(y_test, p) for name, p in scores.items()},
+                shap_global=backtest_shap,
             )
         )
     # The primary backtest's models, kept for explanation and scoring.
@@ -294,15 +309,7 @@ def run(features: pd.DataFrame, *, effort: Effort = FULL, seed: int = 42) -> Chu
     x_test = splits.design(test)
     contributions = shap_values(trees.model, x_test)
     columns = list(x_test.columns)
-    shap_global = dict(
-        sorted(
-            (
-                (c, float(v))
-                for c, v in zip(columns, np.abs(contributions).mean(axis=0), strict=True)
-            ),
-            key=lambda item: -item[1],
-        )
-    )
+    shap_global = _mean_abs_shap(contributions, columns)
     scored = pd.DataFrame(
         {
             "client_id": test["client_id"],

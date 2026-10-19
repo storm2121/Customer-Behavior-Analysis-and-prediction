@@ -14,7 +14,18 @@ from typer.testing import CliRunner
 from strata.cli import app
 from strata.config import PrivacyBoundaryError, Settings, Zone
 from strata.dbt_runner import run_dbt
-from strata.models import adoption, cards, churn, metrics, registry, segments, splits, survival
+from strata.ledger.model import Ledger
+from strata.models import (
+    adoption,
+    cards,
+    churn,
+    metrics,
+    plots,
+    registry,
+    segments,
+    splits,
+    survival,
+)
 from strata.models.train import train
 from strata.warehouse import connect, read_relation, replace_table
 from tests.conftest import public_settings
@@ -138,6 +149,33 @@ def test_the_silence_models_are_compared_on_later_cutoffs(silence: churn.ChurnRe
     assert scored["probability"].between(0, 1).all()
     assert isinstance(scored["reasons"].iloc[0], list)
     assert list(silence.shap_global.values()) == sorted(silence.shap_global.values(), reverse=True)
+    # SHAP is computed for every backtest, and the last one is the primary's.
+    assert all(backtest.shap_global for backtest in silence.backtests)
+    assert silence.backtests[-1].shap_global == silence.shap_global
+
+
+def test_the_reliability_diagram_is_a_png_of_the_bins(tmp_path: Path) -> None:
+    bins = [
+        {"bin_low": 0.0, "bin_high": 0.1, "n": 400, "predicted": 0.05, "observed": 0.06},
+        {"bin_low": 0.5, "bin_high": 0.6, "n": 40, "predicted": 0.55, "observed": 0.5},
+    ]
+    target = tmp_path / "models" / "silence" / plots.RELIABILITY_IMAGE
+    image = plots.reliability_png({"lightgbm_platt": bins, "glm": bins}, target, "a title")
+    assert image == target
+    assert image.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+def test_training_the_silence_model_draws_its_reliability_and_copies_it_beside_the_card(
+    built_warehouse: Settings, synthetic_ledger: Ledger
+) -> None:
+    # The synthetic ledger fixture trains the silence model on this warehouse first.
+    assert synthetic_ledger.get("silence_model_quality").n > 0
+    folder = built_warehouse.workspace(Zone.PUBLIC).root / "models"
+    assert (folder / "silence" / plots.RELIABILITY_IMAGE).is_file()
+    assert (folder / "cards" / cards.RELIABILITY_CARD_IMAGE).is_file()
+    card = (folder / "cards" / "silence.md").read_text(encoding="utf-8")
+    assert f"]({cards.RELIABILITY_CARD_IMAGE})" in card
+    assert "The three largest drivers of every backtest" in card
 
 
 def test_survival_gaps_and_kaplan_meier() -> None:

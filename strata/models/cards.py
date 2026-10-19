@@ -8,12 +8,15 @@ check`` fails when a public card differs from what its registry entry renders.
 from __future__ import annotations
 
 import math
+import shutil
 from pathlib import Path
 from typing import Any
 
 from strata.models.registry import ModelEntry, Registry
 
 CARDS_DIR = Path("docs/model_cards")
+RELIABILITY_IMAGE = "reliability.png"
+RELIABILITY_CARD_IMAGE = "silence-reliability.png"
 
 INTENDED_USE = (
     "Triage and prioritisation by people who review each case: a ranking of clients to look at "
@@ -99,6 +102,11 @@ def _ordered(scores: dict[str, Any], order: tuple[str, ...]) -> list[tuple[str, 
     return known + [(name, value) for name, value in scores.items() if name not in order]
 
 
+def _largest_first(mapping: dict[str, float]) -> list[tuple[str, float]]:
+    """Items by value, largest first (the registry stores its keys in alphabetical order)."""
+    return sorted(mapping.items(), key=lambda item: -item[1])
+
+
 def _table(header: list[str], rows: list[list[str]]) -> list[str]:
     lines = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
     lines.extend("| " + " | ".join(row) + " |" for row in rows)
@@ -174,10 +182,32 @@ def _silence(entry: ModelEntry) -> list[str]:
             for b in h["backtests"]
         ],
     )
-    lines += ["", "## What drives the score", "", "Mean absolute SHAP value (log-odds):", ""]
+    lines += [
+        "",
+        f"![Reliability diagram of the served score and the GLM]({RELIABILITY_CARD_IMAGE})",
+        "",
+        "## What drives the score",
+        "",
+        "Mean absolute SHAP value (log-odds):",
+        "",
+    ]
     lines += _table(
         ["Feature", "Mean absolute SHAP"],
-        [[name, _number(value)] for name, value in h["shap_top"].items()],
+        [[name, _number(value)] for name, value in _largest_first(h["shap_top"])],
+    )
+    lines += ["", "The three largest drivers of every backtest (mean absolute SHAP):", ""]
+    lines += _table(
+        ["Train cutoff", "Test cutoff", "Drivers"],
+        [
+            [
+                b["train_cutoff"],
+                b["test_cutoff"],
+                ", ".join(
+                    f"{name} {_number(v)}" for name, v in _largest_first(b.get("shap_top", {}))
+                ),
+            ]
+            for b in h["backtests"]
+        ],
     )
     lines += ["", "Odds ratios of the GLM (continuous features per standard deviation):", ""]
     lines += _table(
@@ -355,13 +385,20 @@ def render(entry: ModelEntry) -> str:
     return "\n".join(lines)
 
 
-def write_cards(registry: Registry, folder: Path) -> list[Path]:
+def write_cards(registry: Registry, folder: Path, images: Path | None = None) -> list[Path]:
+    """Write every card; with ``images`` (a zone's model folder), copy the silence model's
+    reliability diagram next to its card."""
     folder.mkdir(parents=True, exist_ok=True)
     paths = []
     for entry in registry.models:
         path = folder / f"{entry.name}.md"
         path.write_text(render(entry), encoding="utf-8", newline="\n")
         paths.append(path)
+        source = images / entry.name / RELIABILITY_IMAGE if images is not None else None
+        if entry.name == "silence" and source is not None and source.is_file():
+            target = folder / RELIABILITY_CARD_IMAGE
+            shutil.copyfile(source, target)
+            paths.append(target)
     return paths
 
 
