@@ -108,10 +108,10 @@ dashboard-check:
 dashboard-e2e:
     corepack pnpm e2e
 
-# The whole stack on synthetic data: API, PostgreSQL, MLflow UI and the dashboard. Port overrides
-# of this machine (STRATA_*_PORT) are read from .env.local when it exists.
+# Port overrides of this machine (STRATA_*_PORT) are read from .env.local when it exists.
 compose_env := if path_exists(".env.local") == "true" { "--env-file .env.local" } else { "" }
 
+# The whole stack on synthetic data in the foreground: API, PostgreSQL, MLflow UI and the dashboard.
 up:
     docker compose {{compose_env}} up --build
 
