@@ -943,3 +943,104 @@ below). Entries above this one use the old names (`kashf`, `KASHF_*`, `.kashf/`)
   pushed).
 - Open questions for the architect: none.
 - Next: none; this was the last leg.
+
+### Design pass: the dashboard redesigned to the brief — done — 2026-10-19
+
+- Built:
+  - `apps/dashboard/src/styles/tokens.css`: every colour, type size, space, radius, material,
+    elevation and duration as a token, with light and dark values (system preference, chosen
+    theme, or a stamped subtree), nine greys, one accent (AA on both themes), success, warning,
+    danger, three verdict colours (holds green, weakens amber, reverses violet), five categorical
+    hues at equal OKLCH lightness whose order was chosen with the dataviz palette validator,
+    sequential and diverging ends, the system type stack with size-specific tracking and tabular
+    figures, the 4px unit, three radii and the translucent material, with
+    `prefers-reduced-transparency` and `prefers-contrast: more` honoured. Tailwind's own palette,
+    radii, shadows and type scale are cleared, so utilities can only name tokens.
+    `src/styles/tokens.test.ts` checks that the two dark blocks agree, that every token the chart
+    theme reads exists, AA contrast for every text pair, and the palette's equal lightness and
+    colour-vision separation.
+  - The ECharts theme generated from the tokens on each chart's own element (`src/charts/theme.ts`),
+    merged into the option so one chart instance lives for its page: updates go through ECharts'
+    transitions with series matched by id, the entrance plays on a page's first paint only,
+    reduced motion turns animation off, options name colours by token. Interval whiskers and
+    reference lines as custom series (`src/charts/marks.ts`).
+  - Motion and interaction: Motion springs (critically damped by default, bounce only after a drag
+    release, a cross-fade under reduced motion); buttons and links press on pointer-down; a
+    segmented control whose selection slides and can be redirected; the evidence drawer (Radix
+    Dialog, slides from the right and returns the same way, the top bar turns solid while it is
+    open, focus returns to the row's button); the simulator's slider (one-to-one tracking under
+    pointer capture with the grab offset kept, rubber-banding past the ends, the release velocity
+    handed to a spring, arrows by one step and Shift by ten), with bands that follow it every frame
+    by interpolating between policies the API has computed (`src/simulator.ts`) while the network
+    call is debounced.
+  - The shell: a sidebar on wide screens and a scrolling page row on narrow ones, a translucent top
+    bar that names the page and its data ("Synthetic demo", plus "Claims: reference extract" on
+    Findings) with a soft edge once content scrolls under it, and Lucide icons only.
+  - Every page to the brief's structure: Overview (five numbers with their intervals or samples in a
+    left column; the channel mix with interval whiskers and the calendar of daily activity on the
+    right); Findings (titled "Findings (n claims)", each card titled with its question, values with
+    intervals in one format, the verdict and its explanation, n, events and period in a caption,
+    the verdict-only card digit-free); Customer profile (search, section anchors, profile,
+    timeline, segment, silence risk with its three reasons, open alerts); Segments (the map in the
+    neutral ramp with the chosen segment in the accent, the profile table beside it, pointing at
+    either chooses the segment, the stability in the table's header); Silence risk (the ranked
+    table first, calibration and lift with intervals, the models compared); Adoption (decile tables
+    with lift, one cumulative-gain chart: the old second y-axis is gone); Alerts (titled "Alerts (n
+    ranked)", evidence and feedback in the drawer); Simulator (sliders left, the policy in words
+    above the bands, the outcome at the horizon with its intervals); Methods (prose and equations
+    at the reading measure, flush left). Errors say what happened and the command that fixes it,
+    loading states are skeletons, empty states name the command that fills them.
+  - The API serves the context those pages need, additively: each public claim's method, caveats,
+    robustness explanation, event count, period and source; the overview's period and channel-mix
+    intervals (only from a ledger built on the data in the warehouse); the segments' embedding and
+    client count; the scored population's size; and the description of every interval it serves,
+    defined once beside the percentiles that make it (`strata/models/intervals.py`,
+    `markov.BAND_INTERVAL`), so dashboard copy never types a coverage level.
+  - Storybook shows every story in both themes side by side (foundations, controls, feedback,
+    layout, findings, charts, drawer). `scripts/screenshots.mjs` captures every page but Findings
+    in both themes at desktop and phone width once every chart reports it has finished drawing;
+    its captures replace `docs/images/`, and the README shows four of them.
+  - `docs/DESIGN_NOTES.md` lists every departure from the brief and why; ADR 0006 records the stack
+    additions (tokens, the merged chart theme, Motion, Lucide, the own slider, Radix Dialog) and the
+    alternatives set aside; the changelog covers the pass.
+- Commands run and results:
+  - `uv run pytest tests/test_api.py tests/test_metrics_only.py tests/test_markov.py`: 38 passed
+    (the new fields, the stale-ledger guard, the served interval descriptions).
+  - `corepack pnpm test`: 9 files, 50 tests passed (tokens, chart theme, formatting, slider
+    arithmetic and keys, band interpolation, claim cards, every page against the fixture API, the
+    drawer's feedback, the simulator's requests, the theme switch).
+  - `corepack pnpm build`: pass; `check-bundle: 78 files, no data in the bundle`.
+  - `corepack pnpm storybook:build`: pass.
+  - The Docker engine still answers every request with an internal server error (`docker info`),
+    so, as in M11, the stack ran outside Docker: `strata serve` on the public synthetic workspace and
+    the production build under `vite preview --host 127.0.0.1` (the API proxied as in nginx). Against
+    it, `STRATA_E2E_CHANNEL=msedge corepack pnpm e2e`: 26 passed (thirteen tests on desktop and on
+    phone: every page renders with no failure, no serious or critical axe violation in either theme
+    and no sideways scroll; the claims and the digit-free verdict; the first simulation is the
+    policy on screen and a key step posts the next; a pointer drag moves the value and holds it at
+    the end; feedback in the drawer is stored and confirmed in place, axe clean with the drawer
+    open, focus back on its button after Escape).
+  - `node scripts/screenshots.mjs` against the same stack (it checked the public zone and the
+    synthetic source first): all captures written, each under the large-file limit.
+  - `strata ledger check`: documents match the ledger; no hand-typed numbers.
+  - `just check` (the full recipe, after the last code commit): exit 0. Lint and strict types
+    clean; 476 passed and 1 skipped, coverage 97.30%; privacy scan clean; ledger check clean;
+    dashboard checks passed (50 unit tests, the production build with its bundle check,
+    Storybook).
+- Decisions (ADR 0006 and `docs/DESIGN_NOTES.md`): Findings stays out of the pictures; the top bar
+  adds the claims' source on Findings; verdicts are green, amber and violet; the segment map is
+  focus and context; the chart theme is merged, not registered; section headings take a looser
+  leading than titles; equations are flush left; the slider thumb and the selected segment carry
+  the smallest elevation; a release settles on the nearest step without momentum projection;
+  feedback is given in the drawer; the top bar turns solid under a sheet; theme changes are
+  instant. New dependencies are locked at releases at least two weeks old (Motion 13.5.1, Lucide
+  1.49.0, Radix Dialog 1.1.23); the Radix slider, tabs and tooltip were removed.
+- Stubbed or skipped, and why: the Compose stack was not run (Docker engine down; not restarted);
+  CI has not run (nothing pushed). `prefers-reduced-transparency` is honoured where the browser
+  supports the query; elsewhere the translucent bar stays translucent. Diverging tokens exist but no
+  current chart needs them (the silence reasons are all positive contributions).
+- Open questions for the architect: whether the Findings page should be pictured after all (with
+  the drift risk the notes describe); whether violet reads right for "reverses"; whether the
+  interpolated bands while dragging are acceptable as described, or should be marked visually as
+  provisional.
+- Next: none; stop and report.
