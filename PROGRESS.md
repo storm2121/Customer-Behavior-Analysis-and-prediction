@@ -666,3 +666,155 @@ below). Entries above this one use the old names (`kashf`, `KASHF_*`, `.kashf/`)
   machine (a native PostgreSQL service and a node process), so the stack needs the port overrides
   here; should the defaults move, or stay as specified?
 - Next: stop and report (end of this leg).
+
+### M7 review: the architect's answers applied — done — 2026-10-18
+
+- Built:
+  - The cash rule is split: `cash_intensive` now requires card spend above zero (deposits at least
+    five times card spend and at least the deposit floor), and `cash_only_high_volume` covers
+    clients with no card spend and branch deposits at or above the large-deposit threshold; both
+    documented in `rules.yaml` and the monitoring method, with hand-built cases and the dbt-variable
+    consistency test.
+  - The README's run section and `PRIVACY.md` say that machine port overrides (`STRATA_*_PORT`)
+    live in `.env.local`, which `just up` passes to Docker Compose; the defaults stay 8000, 5432,
+    5000 and 5173.
+- Commands run and results: the synthetic queue was re-run (both rules fire, on different
+  clients, and the queue's precision against pseudo-labels did not drop); `tests/test_anomaly.py`,
+  with the planted-scenario test, passes. The full `just check` of this leg is recorded under M9.
+- Next: M8.
+
+### M8: Dashboard — done — 2026-10-19
+
+- Built:
+  - `apps/dashboard`: React 19, TypeScript strict, Vite, TanStack Query, ECharts (only the bar,
+    line, scatter and heatmap charts and the components they use), Tailwind with design tokens (CSS
+    variables with a light and a dark set; the system preference or a choice remembered per
+    browser; text tokens at WCAG AA contrast on the surfaces and tints they sit on), Radix sliders,
+    KaTeX, pnpm with a lock file, a hash router and lazy-loaded pages.
+  - Nine pages: Overview (KPIs, channel mix, calendar heatmap of daily events), Findings (each
+    allow-listed claim with its values, intervals, sample size and robustness badge; the
+    verdict-only claim as words only: verdict, stratifier names, mechanism), Customer 360 (profile,
+    monthly channel timeline, segment, silence risk with SHAP reasons, open alerts), Segments
+    (embedding map, profiles, stability), Risk (models compared with client-bootstrap intervals,
+    calibration, lift, the ranked list with reasons), Adoption (deciles and cumulative gain), Alerts
+    (the budgeted queue with reasons and analyst feedback), Simulator (share and age sliders and the
+    target state driving `POST /markov/simulate`, posterior bands for policy and baseline) and
+    Methods (KaTeX equations).
+  - Data only at run time: every figure, the public claims included, is fetched from the API;
+    `scripts/check-bundle.mjs` runs inside `pnpm build` and fails it if a built file holds a value
+    or the fingerprint of the public ledger, an identifier-shaped token, a synthetic client id or a
+    data file.
+  - Tests: Vitest and Testing Library (formatting, themes, claim cards with a check that the
+    verdict-only card holds no digit, every page against a mocked API, the feedback call, the
+    simulator posting each slider change); Storybook with the accessibility addon and illustrative
+    fixtures (badges, KPI tile, claim cards, slider, equation, charts); Playwright smoke tests on a
+    desktop and a phone viewport (each page renders from the API with no failure, has no serious or
+    critical axe violation in either theme and no sideways scroll; the simulator posts its sliders;
+    feedback on an alert is stored).
+  - `Dockerfile.dashboard` (the pnpm build served by nginx, `/api/` proxied on the same origin,
+    content-security and nosniff headers) replaces the Compose placeholder. The API gained
+    `/overview`, `/segments/points` and `/risk/silence/evaluation`, a CORS allowlist for other
+    set-ups, and the question and units of each public claim; `docker/smoke.py` covers them.
+  - CI: a `dashboard` job (types, tests, build with the bundle check, Storybook) and Playwright in
+    the Compose job; `just dashboard`, `just dashboard-check` (part of `just check`) and
+    `just dashboard-e2e`.
+  - `scripts/screenshots.mjs` refuses to capture anything unless the API reports the public zone
+    and a synthetic source; `docs/images/dashboard-*.png` are its captures (the Findings page is
+    deliberately not captured).
+  - Segment names now take their second word from another channel (no more "no branch use / low
+    branch monetary"); the synthetic registry and the segments card were re-published.
+  - ADR 0006 expanded with the decisions above.
+- Commands run and results:
+  - `corepack pnpm build`: pass (type check, Vite build, bundle check: no data in the bundle).
+  - `corepack pnpm test`: 5 files, 24 tests passed.
+  - `corepack pnpm storybook:build`: pass.
+  - DoD, Playwright against Compose: `docker compose --env-file .env.local up --build --detach`
+    (with `STRATA_PG_PORT` in `.env.local`, because a local PostgreSQL service holds 5432; every
+    other port at its default), `python docker/smoke.py http://127.0.0.1:8000` (every check
+    answered), then `STRATA_DASHBOARD_URL=http://127.0.0.1:5173 STRATA_E2E_CHANNEL=msedge pnpm e2e`:
+    24 passed (twelve tests on desktop and on phone). The same suite also passed against
+    `strata serve` with `vite preview` before the image existed. The stack was then taken down with
+    its volumes.
+  - DoD: the Findings page renders the claims with intervals and robustness badges and the
+    verdict-only claim without a digit (unit test and smoke test); the Simulator page drives
+    `/markov/simulate` (unit test and smoke test).
+  - `just check`: see the M9 entry (one run covered both milestones).
+- Decisions: ADR 0006 (runtime data and the bundle check, one origin through nginx, verdict-only
+  claims as words, tokens, weight, tests). Playwright drives the installed Edge locally
+  (`STRATA_E2E_CHANNEL=msedge`) instead of downloading a browser; CI installs Chromium.
+- Stubbed or skipped, and why: nothing in the dashboard. The Docker engine answered with internal
+  server errors for a while again; I waited and did not restart it. CI has not run (nothing pushed).
+- Open questions for the architect: pnpm's default content store was created at the root of the
+  drive that holds the repository (outside the repository, like the uv cache) when the dashboard's
+  packages were first installed, and another project on the machine has used it since, so I left it
+  in place; setting `store-dir` in `apps/dashboard/.npmrc` would keep future installs inside the
+  repository. Your call.
+- Next: M9.
+
+### M9: Orchestration and the private twin — done — 2026-10-19
+
+- Built:
+  - `orchestration/airflow/dags/strata_pipeline.py` (the plan as plain data: tasks, their `strata`
+    arguments, their upstream tasks) and `strata_daily.py` (Airflow 3, one `BashOperator` per task,
+    one task at a time, no retries): `synth` (public zone only), `ingest`, `dq`, `dbt_seed`,
+    `dbt_run` and `dbt_test` (all but the feature marts), `features`, `train_silence`,
+    `train_survival`, `train_adoption`, `train_segments`, `anomaly`, `evaluate`, `ledger_build`,
+    `analyse`, `report`; `STRATA_DAG_ZONE`, `STRATA_DAG_EFFORT`, `STRATA_BIN` and
+    `STRATA_DAG_SYNTH_DIR` switch it.
+  - `strata evaluate` (`strata/models/evaluate.py`): the gate between the models and the ledger;
+    every model trained on the data now in the warehouse (fingerprint and mapping) and better than
+    chance (served silence score and adoption models: the lower end of the AUC interval above one
+    half; survival concordance above one half; segment stability above zero). It prints checks and
+    outcomes, never values.
+  - `Dockerfile.airflow` (Airflow 3 in its own environment, pinned by its constraints file, beside
+    Strata's environment from `uv.lock`), the Compose service `airflow` under the profile
+    `orchestration`, `just dag-test`, and a CI job running `airflow dags test strata_daily`.
+  - `strata --private synth-twin` (`strata/synthetic/twin.py`): a differentially private Gaussian
+    copula of `marts.client_360` (Laplace noise on histograms over public bins and on Kendall's
+    tau-a between every pair of columns, projected to a correlation matrix), sampled at a thousand
+    rows, with fidelity metrics (Kolmogorov-Smirnov and total-variation distances, Spearman gaps,
+    a real-or-twin classifier's AUC) and privacy metrics (distances to the closest training record
+    against a holdout, binned matches, a distance-based membership-inference attack). It refuses CI,
+    any destination inside the repository (before anything is read, whatever the zone), any
+    destination outside `STRATA_PRIVATE_DIR` and the public zone; the twin carries no synthetic
+    marker; the command prints file names only.
+  - ADR 0005 expanded (the plan, the tasks, the gate, one task at a time, the image), ADR 0013 (the
+    twin, proposed); `PRIVACY.md`, the README and the changelog describe all three.
+- Commands run and results:
+  - DoD: `docker compose --env-file .env.local --profile orchestration run --rm airflow dags test
+    strata_daily` in the built image, on a fresh workspace volume: every one of the sixteen tasks
+    succeeded and the DAG run ended `success` (exit 0). The first two attempts failed and were
+    fixed: Airflow 3 does not put the DAG folder on the import path (the DAG file now adds its own
+    folder), and `dbt run` does not load seeds (hence `dbt_seed`).
+  - DoD: `uv run strata --private synth-twin` (through the private-run helper, output in the
+    private log): exit 0; `twin.csv` and `metrics.json` are under `<STRATA_PRIVATE_DIR>/twin`.
+    `tests/test_twin.py` asserts every refusal (inside the repository in both zones, through the CLI
+    too, in CI, outside the private folder, in the public zone), and tests the copula, the sampling
+    and the metrics on generated frames: 19 passed.
+  - The twin's metrics were read privately as yes-or-no flags only: at every budget tried (from a
+    half to sixteen) the membership-inference attack stays at chance and no twin row sits closer to
+    a training row than holdout rows do; fidelity is poor at the default budget of one (most
+    marginals visibly distorted, correlations mostly noise) and improves with the budget. ADR 0013
+    states this in words.
+  - `strata evaluate`: public zone, nine checks passed; `strata --private evaluate`: exit 0, nine
+    passed.
+  - `tests/test_pipeline.py` (the plan, the zones, every task a parsing `strata` command, and the DAG
+    file wired against a stand-in for Airflow) and `tests/test_evaluate.py`: 19 and 13 passed.
+  - `just check` (one run for M8 and M9): lint and types clean, 450 passed and 1 skipped with
+    coverage 97.33%, privacy scan clean, ledger check clean; `dashboard-check` then failed
+    because, run from the repository root, `corepack` picked a pnpm of its own instead of the one
+    `package.json` pins. The dashboard recipes now run inside `apps/dashboard`, and
+    `just dashboard-check` passes; the full `just check` is re-run at the end of M10.
+- Decisions: ADR 0005 (an own image rather than the official one, because Airflow's pins and
+  Strata's lock disagree; `dbt_seed` as a task; the evaluation gate; one task at a time). ADR 0013
+  (the twin reads the client table of the private warehouse rather than the raw files; noise on
+  the correlations as well as the marginals, since a copula learns both; bounded neighbouring
+  tables with the number of clients public; a thousand rows by default).
+- Stubbed or skipped, and why: the DAG has not run in the private zone: Airflow does not run on
+  this Windows machine, and running it in a container would mean mounting the extract into Docker,
+  which I did not do. The private zone runs through the same CLI steps (`just private-*`).
+- Open questions for the architect: accept ADR 0013 (it is marked proposed), including its
+  paragraph describing the private sweep in words, or ask me to remove that paragraph; whether the
+  twin should move to the Gaussian mechanism for the correlations or fewer columns to buy fidelity
+  at the same budget.
+- Next: M10.
