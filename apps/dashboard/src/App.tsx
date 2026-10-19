@@ -7,6 +7,7 @@ import { HashRouter, NavLink, Route, Routes, useLocation } from "react-router";
 import { api } from "./api";
 import { Icon } from "./components/Icon";
 import { PageSkeleton } from "./components/ui";
+import { useScrollEdges } from "./hooks";
 import { PRESS_SCALE, SPRING, useCalmMotion } from "./motion";
 import { applyTheme, nextTheme, storedTheme, type Theme } from "./theme";
 
@@ -96,26 +97,13 @@ function NavItems({ layout }: { layout: "column" | "row" }) {
 
 /** The page list as a row that scrolls sideways, fading at the edge that has more beyond it. */
 function NavRow() {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
-  const [more, setMore] = useState({ before: false, after: false });
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-    const measure = () => {
-      const before = element.scrollLeft > 1;
-      const after = element.scrollLeft + element.clientWidth < element.scrollWidth - 1;
-      setMore((current) => (current.before === before && current.after === after ? current : { before, after }));
-    };
-    measure();
-    element.addEventListener("scroll", measure, { passive: true });
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => {
-      element.removeEventListener("scroll", measure);
-      observer.disconnect();
-    };
-  }, []);
+  const [measure, more] = useScrollEdges<HTMLDivElement>();
+  const attach = (node: HTMLDivElement | null) => {
+    ref.current = node;
+    measure(node);
+  };
   // Keep the current page's link in view when the route changes, scrolling the row only (never
   // the page).
   useEffect(() => {
@@ -132,7 +120,7 @@ function NavRow() {
   return (
     <nav aria-label="Pages" className="lg:hidden">
       <div
-        ref={ref}
+        ref={attach}
         data-more-before={more.before ? "" : undefined}
         data-more-after={more.after ? "" : undefined}
         className="scroll-fade-x overflow-x-auto px-[var(--gutter)] pb-1 [scrollbar-width:none]"

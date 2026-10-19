@@ -12,10 +12,12 @@ import { formatCount, formatDate, formatNumber, formatValue, humanize, label } f
 
 const BUDGETS = [10, 25, 50];
 
-const REVIEWS: { label: string; words: string; done: string; icon: LucideIcon }[] = [
-  { label: "confirmed", words: "Worth escalating", done: "Marked worth escalating", icon: Flag },
-  { label: "dismissed", words: "Dismiss", done: "Dismissed", icon: Ban },
-  { label: "needs_information", words: "Needs information", done: "Marked as needing information", icon: CircleQuestionMark },
+// `words` names a button, `status` a row's review state (short, so it holds one line) and `done` the
+// sentence that confirms a review in the drawer.
+const REVIEWS: { label: string; words: string; status: string; done: string; icon: LucideIcon }[] = [
+  { label: "confirmed", words: "Worth escalating", status: "Worth escalating", done: "Marked worth escalating", icon: Flag },
+  { label: "dismissed", words: "Dismiss", status: "Dismissed", done: "Dismissed", icon: Ban },
+  { label: "needs_information", words: "Needs information", status: "Needs information", done: "Marked as needing information", icon: CircleQuestionMark },
 ];
 
 // The unit of each piece of evidence the triage rules and scores record (strata.models.anomaly).
@@ -62,11 +64,11 @@ function reviewOf(alert: Alert) {
 
 function ReviewState({ alert }: { alert: Alert }) {
   const review = reviewOf(alert);
-  if (!review) return <span className="text-label text-ink-secondary">Not reviewed</span>;
+  if (!review) return <span className="whitespace-nowrap text-label text-ink-secondary">Not reviewed</span>;
   return (
-    <span className="inline-flex items-center gap-1.5 text-label font-label text-ink">
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-label font-label text-ink">
       <Icon icon={review.icon} />
-      {review.done}
+      {review.status}
     </span>
   );
 }

@@ -14,6 +14,7 @@ import {
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { ApiError } from "../api";
+import { useScrollEdges } from "../hooks";
 import { Icon } from "./Icon";
 import { Button } from "./Pressable";
 
@@ -285,25 +286,7 @@ export function VerdictBadge({ verdict }: { verdict: string }) {
  * soft fade on the side that has more beyond it instead of a hard cut.
  */
 export function ScrollArea({ label, children }: { label: string; children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [more, setMore] = useState({ before: false, after: false });
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-    const measure = () => {
-      const before = element.scrollLeft > 1;
-      const after = element.scrollLeft + element.clientWidth < element.scrollWidth - 1;
-      setMore((current) => (current.before === before && current.after === after ? current : { before, after }));
-    };
-    measure();
-    element.addEventListener("scroll", measure, { passive: true });
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
-    return () => {
-      element.removeEventListener("scroll", measure);
-      observer.disconnect();
-    };
-  }, []);
+  const [ref, more] = useScrollEdges<HTMLDivElement>();
   return (
     <div
       ref={ref}
@@ -313,6 +296,24 @@ export function ScrollArea({ label, children }: { label: string; children: React
       data-more-before={more.before ? "" : undefined}
       data-more-after={more.after ? "" : undefined}
       className="scroll-fade-x overflow-x-auto rounded-control"
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * A row of links that stays on one line and scrolls sideways on a narrow screen, fading at the
+ * edge with more beyond it. Its links are focusable themselves, so the row needs no tab stop.
+ */
+export function ScrollRow({ children }: { children: ReactNode }) {
+  const [ref, more] = useScrollEdges<HTMLDivElement>();
+  return (
+    <div
+      ref={ref}
+      data-more-before={more.before ? "" : undefined}
+      data-more-after={more.after ? "" : undefined}
+      className="scroll-fade-x overflow-x-auto [scrollbar-width:none]"
     >
       {children}
     </div>

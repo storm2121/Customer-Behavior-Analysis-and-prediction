@@ -9,7 +9,7 @@ import { CHANNEL_STATES, cssToken, stateColour, stateLabel } from "../channels";
 import { tooltipRow, tooltipTitle } from "../charts/theme";
 import { Chart, type ChartOption } from "../components/Chart";
 import { Button } from "../components/Pressable";
-import { Bone, EmptyState, Failure, Loading, Notice, PageHeader, Panel, Tag } from "../components/ui";
+import { Bone, EmptyState, Failure, Loading, Notice, PageHeader, Panel, ScrollRow, Tag } from "../components/ui";
 import { featureLabel, formatCount, formatDate, formatMonth, formatNumber, formatShare, humanize } from "../format";
 import { CROSS_FADE, SPRING, useCalmMotion } from "../motion";
 
@@ -218,7 +218,8 @@ export function ClientPage() {
       {client.data && timeline ? (
         <div className="flex flex-col gap-5">
           <nav aria-label="Sections of this profile">
-            <ul className="flex flex-wrap gap-1">
+            <ScrollRow>
+              <ul className="flex gap-1 whitespace-nowrap">
               {SECTIONS.map(([id, text]) => (
                 <li key={id}>
                   <a
@@ -233,7 +234,8 @@ export function ClientPage() {
                   </a>
                 </li>
               ))}
-            </ul>
+              </ul>
+            </ScrollRow>
           </nav>
           <Panel id="client-profile" title="Profile">
             <Profile client={client.data} />
