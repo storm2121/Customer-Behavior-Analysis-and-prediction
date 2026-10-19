@@ -877,3 +877,62 @@ below). Entries above this one use the old names (`kashf`, `KASHF_*`, `.kashf/`)
   stability), so that the modelling CV line can carry numbers? ADR 0013 is proposed and needs your
   decision (see M9).
 - Next: stop and report (end of the rebuild's milestones).
+
+### M11: Polish after the final review — done — 2026-10-19
+
+- Built:
+  - The architect's answers: ADR 0013 accepted (with its sweep paragraph, now revised), the Airflow
+    image deviation of ADR 0005 accepted, and one README line on where pnpm keeps its store (no
+    `store-dir` inside the repository).
+  - A third publication mode, `metrics_only`, for the quality of the models trained on the real
+    extract: `silence_model_quality` (the served silence score's Brier score, calibration error and
+    lift in the top tenth on a later cutoff) and `segment_stability` (the segments' bootstrap
+    adjusted Rand index), each with its interval. The claims read what `strata train` wrote for the
+    zone, and only from a model trained on the same data and mapping. Enforced in the allowlist
+    (`METRICS_ONLY_KEYS`, `METRICS_ONLY_META`, `_metrics_violations`), the build (`metrics_view`
+    keeps the allow-listed metrics, their intervals and sizes and how they were measured, refuses a
+    quick model or a sample under the floor), the renderer (only `ledger`, `ci` and `raw` for those
+    metrics; no table, no robustness placeholder), the ledger check and the commit guard (both
+    through `ledger_violations`). Published from the private zone with
+    `strata --private ledger build --public --only silence_model_quality --only segment_stability`;
+    the earlier public claims and the verdict were unchanged. The CV notes' modelling lines now carry
+    those numbers. Because the claims read trained models, the API image, CI and `just demo` now
+    train before they build the ledger (the DAG already did).
+  - The twin, time-boxed: the analytic Gaussian mechanism as an option (`--mechanism gaussian`,
+    `--delta`) and a reduced column set (`--columns core`). In a private experiment over five
+    seeds at the same budgets, judged on the reduced set's columns, the reduced Laplace twin kept
+    clearly more of the structure than the full one at a budget of one, a real-or-twin classifier
+    no longer separated it from the data, and it never raised a privacy flag; the Gaussian mechanism
+    helped the full set, added little on the reduced one and once let the membership-inference
+    attack rise above chance. The reduced Laplace twin is the new default; ADR 0013 records the
+    experiment in words. The private twin was rebuilt with the new default (exit 0; membership
+    inference at chance).
+  - Cheap stubs closed: the silence model computes SHAP for every backtest (its card lists the three
+    largest drivers of each) and draws a reliability diagram of the served score and the GLM
+    (`strata.models.plots`), which `strata promote` copies beside the public card. The synthetic
+    silence model was retrained and the cards re-published; the private silence model was retrained
+    too (its image and per-backtest SHAP stay in the private folder), and rebuilding the published
+    metrics from it gave identical values, so the public ledger was left as it was.
+- Commands run and results:
+  - `tests/test_metrics_only.py`: 9 passed (allowlist, view, rules, guard, renderer, publication,
+    stale and missing models); the synthetic ledger fixture now trains the silence and segment
+    models first, so every registered claim still computes on synthetic data.
+  - `tests/test_twin.py`: 24 passed (the refusals, the Gaussian calibration against the classical
+    bound, the new default); `tests/test_models.py`: 17 passed (per-backtest SHAP, the PNG).
+  - `strata ledger check`: clean, with the CV notes rendered from the new claims.
+  - `just check` (the full recipe, after the last code commit): exit 0. Lint and strict types clean;
+    475 passed and 1 skipped, coverage 97.31%; privacy scan clean; ledger check clean; dashboard
+    checks passed (24 unit tests, the production build with its bundle check, Storybook).
+  - Final clean-clone demo (`git clone` of the branch into a scratch folder, no `.env.local`, only
+    `STRATA_PG_PORT=15432` set): every host stage passed (synthetic extract, ingest, quality, dbt,
+    training, the gate with its nine checks, the ledger with both model-quality claims computed,
+    the analysis modules, the queue and the report); `docker compose up` then failed because
+    the shared Docker engine answered every request with an internal server error. I did not
+    restart it; see the next entry for the rerun once it recovered.
+- Decisions: ADR 0002 gains the `metrics_only` mode; ADR 0013 revised (Gaussian option, reduced
+  default). The model-quality claims carry an interval label of their own for the segments
+  (the range of refits, not a confidence interval of the mean).
+- Stubbed or skipped, and why: none of the listed polish items; CI still has not run (nothing is
+  pushed).
+- Open questions for the architect: none.
+- Next: none; this was the last leg.
