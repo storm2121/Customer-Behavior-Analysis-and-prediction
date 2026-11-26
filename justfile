@@ -42,7 +42,7 @@ privacy:
 ledger-check:
     uv run --frozen strata ledger check
 
-# Everything CI runs. A milestone is done only when this is green.
+# Everything CI runs.
 check: lint test privacy ledger-check dashboard-check
 
 # Write the public synthetic extract.

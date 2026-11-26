@@ -1,6 +1,6 @@
 # ADR 0011: the review store, and where real alerts may live
 
-Status: accepted (executing agent, M6, 2026-10-18). Narrows ARCHITECTURE.md sections 10 and 11.
+Status: accepted (2026-10-18). Narrows ARCHITECTURE.md sections 10 and 11.
 
 ## Context
 
@@ -28,6 +28,6 @@ neither see nor check.
 ## Consequences
 
 - Real alerts can never reach a database server through configuration alone.
-- Analysts working on real data use the private store (and, in M8, a dashboard served from the
+- Analysts working on real data use the private store (and a dashboard served from the
   private machine), not the Compose stack.
 - A schema change is a new Alembic revision; the tests migrate a fresh store up, down and up again.

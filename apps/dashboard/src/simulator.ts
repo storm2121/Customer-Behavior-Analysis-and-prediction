@@ -1,5 +1,5 @@
 // The simulator's bands follow its sliders continuously while the network call waits for the
-// slider to settle (docs/DESIGN.md, section 3: debounce the network, never the visual).
+// slider to settle (debounce the network, never the visual).
 //
 // Between policies the API has computed, the bands are interpolated linearly in the share moved.
 // That is exact for each posterior draw: the projection x_h = x_0 P^h is linear in the starting

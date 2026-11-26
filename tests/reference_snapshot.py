@@ -1,7 +1,7 @@
 """A snapshot of what the pipeline produces from the default synthetic extract.
 
-``tests/fixtures/reference_snapshot.json`` was written by this module from the M1 to M4 pipeline,
-before the source mappings of M4.5 existed. The mapping test rebuilds the warehouse through
+``tests/fixtures/reference_snapshot.json`` was written by this module from the pipeline as it was
+before the source mappings existed. The mapping test rebuilds the warehouse through
 ``mappings/synthetic.yaml`` and compares: the same manifest (files and fingerprint), the same
 data-quality report and the same number of rows in every staging, intermediate and mart model. It
 is synthetic data only: counts, never rows.

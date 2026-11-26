@@ -1,4 +1,4 @@
-"""Static images of the models, drawn with matplotlib for the model cards (M11).
+"""Static images of the models, drawn with matplotlib for the model cards.
 
 Only aggregates are drawn (the reliability bins of a backtest: mean predicted and observed silence
 per bin of the score), never a client. The image of a zone stays in that zone's model folder;

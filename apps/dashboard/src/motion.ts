@@ -1,4 +1,4 @@
-// The motion vocabulary (docs/DESIGN.md, section 3). Springs, not durations, for anything a person
+// The motion vocabulary. Springs, not durations, for anything a person
 // touches: they start from the value on screen and carry its velocity, so every transition can be
 // interrupted and reversed. Bounce appears only after a drag release, when the gesture itself
 // carried momentum. Under reduced motion every spring and slide becomes the same short cross-fade.

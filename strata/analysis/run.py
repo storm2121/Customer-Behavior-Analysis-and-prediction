@@ -2,7 +2,7 @@
 
 A module recomputes the ledger claims it owns (merged into the zone's ledger, so the other claims
 stay), then draws its figures into the zone's figures folder. The Markov module also saves what the
-API will need to serve the simulator (M7): the transition counts, the branch operations per state,
+API will need to serve the simulator: the transition counts, the branch operations per state,
 the starting state counts and the bands of the sample policy. Figures and the simulator file are
 computed from the warehouse, so on a private run they are written under ``STRATA_PRIVATE_DIR`` and
 nowhere else.

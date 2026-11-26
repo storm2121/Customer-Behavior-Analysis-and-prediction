@@ -2,7 +2,7 @@
 
 Daily statistics are bootstrapped by client: each client's events are laid out as a row of daily
 counts, a resample reweights the rows, and the statistic is recomputed from the weighted daily
-totals. The calendar models of M4 refine these simple ratios with a full regression.
+totals. The calendar models refine these simple ratios with a full regression.
 """
 
 from __future__ import annotations

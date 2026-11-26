@@ -8,7 +8,7 @@ uv run strata ingest --data-dir <folder> --mapping <name or path>
 ```
 
 Two mappings ship. `reference_cih.yaml` describes the reference instance and reads its five files
-through the typed contracts of milestone M1. `synthetic.yaml` describes the public generator's
+through the typed contracts. `synthetic.yaml` describes the public generator's
 output, which has exactly the same format. The private zone uses the first by default, the public
 zone the second.
 

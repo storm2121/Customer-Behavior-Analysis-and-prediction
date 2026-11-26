@@ -44,8 +44,7 @@ def repo(tmp_path: Path, synthetic_ledger: Ledger) -> Path:
     shutil.copytree(
         Settings().repo_root / "docs" / "findings",
         root / "docs" / "findings",
-        # The CV notes link to files of the whole repository; tests/test_cv_notes.py covers them.
-        ignore=shutil.ignore_patterns("*.md", "_cv_notes.md.j2"),
+        ignore=shutil.ignore_patterns("*.md"),
     )
     (root / "README.md").write_text(README, encoding="utf-8")
     public = Ledger(
@@ -79,7 +78,7 @@ def test_freshly_rendered_documents_pass_the_check(repo: Path) -> None:
 
 
 def test_a_hand_typed_number_in_a_template_fails_the_check(repo: Path) -> None:
-    """The M3 definition of done: a number typed into a governed document is a CI failure."""
+    """A number typed into a governed document is a CI failure."""
     template = repo / "docs/findings/calendar.md.j2"
     template.write_text(
         template.read_text(encoding="utf-8")

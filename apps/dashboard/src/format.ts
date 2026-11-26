@@ -1,5 +1,5 @@
-// Formatting shared by every page, so a share or an interval reads the same everywhere
-// (docs/DESIGN.md, section 4): a value carries its unit, a percentage has one decimal at most, and
+// Formatting shared by every page, so a share or an interval reads the same everywhere:
+// a value carries its unit, a percentage has one decimal at most, and
 // an interval follows its value in the value's own unit and decimals, without repeating the unit:
 // `48.4% (41.2 to 55.1)`.
 

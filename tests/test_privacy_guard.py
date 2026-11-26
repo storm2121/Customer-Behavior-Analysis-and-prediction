@@ -230,7 +230,7 @@ def test_notebooks_with_outputs_are_blocked() -> None:
 def test_staged_fixture_mimicking_an_extract_header_is_blocked(
     git_repo: Path, git: GitRunner
 ) -> None:
-    """The M0 definition of done: a staged extract-like fixture cannot be committed."""
+    """A staged extract-like fixture cannot be committed."""
     leak = git_repo / "notes" / "sample.csv"
     leak.parent.mkdir()
     leak.write_text(",".join(CARD.columns) + "\r\nX,2024-01-01T00:00,10,WITHDRAWAL,National\r\n")

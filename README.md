@@ -107,9 +107,7 @@ At phone width: the [overview](docs/images/dashboard-overview-dark-390.png) and 
 desktop and phone width in [docs/images](docs/images), by `node scripts/screenshots.mjs` in
 `apps/dashboard`, which refuses to run unless the API serves the public synthetic workspace. The
 Findings page is not pictured: it shows the allow-listed claims of the real extract, which belong
-in the ledger and the documents rendered from it, not in images. The design is described in
-[docs/DESIGN.md](docs/DESIGN.md), and where it departs from that brief, in
-[docs/DESIGN_NOTES.md](docs/DESIGN_NOTES.md).
+in the ledger and the documents rendered from it, not in images.
 
 Outside Docker, `pnpm` installs the dashboard's packages through its content store, which it keeps
 at the root of the drive when the repository is not on the drive of the user profile: that is
@@ -171,9 +169,6 @@ tables, methods, caveats and robustness checks behind each sentence.
   private copula at a small budget keeps membership inference at chance but leaves little of the
   data's structure; the synthetic generator stays the source of every demo
   ([decision record](docs/adr/0013-private-twin.md)).
-- **Not yet run in CI.** The workflow mirrors `just check`, the warehouse build, the dashboard
-  checks, the Compose stack with its smoke and accessibility tests and the DAG test; until the
-  branch is pushed, every one of them has been run locally only.
 
 ## Privacy
 
@@ -248,13 +243,13 @@ with `STRATA_API_PORT`, `STRATA_DASHBOARD_PORT`, `STRATA_MLFLOW_PORT`, `STRATA_P
 | `orchestration/airflow/` | The DAG `strata_daily` and its plan. |
 | `docker/`, `Dockerfile.*`, `docker-compose.yml` | Images, the nginx configuration and the smoke test. |
 | `models/` | The public model registry (synthetic models only). |
-| `docs/` | Decision records, methods, findings and the README section rendered from the ledger, the public claims, model cards, the data card and CV notes. |
+| `docs/` | Decision records, methods, findings and the README section rendered from the ledger, the public claims, model cards and the data card. |
 | `tests/` | `pytest` and `hypothesis` suites; every test runs on synthetic data. |
 | `legacy/` | The 2024 script and the 2025 package, frozen, with a list of their bugs. |
 
 Further reading: [`ARCHITECTURE.md`](ARCHITECTURE.md), [`PRIVACY.md`](PRIVACY.md), [`CHANGELOG.md`](CHANGELOG.md),
 [decision records](docs/adr/README.md), [methods](docs/methods/), [findings](docs/findings/index.md),
-[model cards](docs/model_cards/), [data card](docs/data_card.md) and [CV notes](docs/CV_NOTES.md).
+[model cards](docs/model_cards/) and [data card](docs/data_card.md).
 
 ## Licence and data
 

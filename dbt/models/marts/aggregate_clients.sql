@@ -1,4 +1,4 @@
--- The second sample, ready for the adoption models (M5): the cleaned columns, the shared age bands
+-- The second sample, ready for the adoption models: the cleaned columns, the shared age bands
 -- and the two targets (online access, and active online use over the year).
 with age_bands as (
     select * from {{ ref('bands_age') }}

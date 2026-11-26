@@ -1,6 +1,6 @@
 # ADR 0009: calendar model terms for a single year of data
 
-Status: accepted (executing agent, M4, 2026-10-18). Deviates from ARCHITECTURE.md section 9, which
+Status: accepted (2026-10-18). Deviates from ARCHITECTURE.md section 9, which
 lists a trend term among the regressors of the calendar model.
 
 ## Context
@@ -24,7 +24,7 @@ Eid effect an effect on top of an ordinary holiday.
   part of the month effects. Every calendar claim carries the caveat that month effects absorb any
   trend.
 - **Holidays.** The bank-holiday term covers the bank holidays other than the Eids (the
-  fixed-date national holidays and, since the architect supplied their Moroccan dates, the
+  fixed-date national holidays and, since the seeds carry their Moroccan dates, the
   floating religious ones: Islamic New Year and Mawlid); the Eids have their own terms, so every
   holiday effect is read against ordinary days. The mart's `is_bank_holiday` (all bank holidays
   and the Eids, the definition of `strata.holidays`) still decides which days branches are open.

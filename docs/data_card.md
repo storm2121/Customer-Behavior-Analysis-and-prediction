@@ -81,8 +81,8 @@ cannot be told apart from trend, and every calendar result says so.
 
 ## Maintenance
 
-The assumptions below stand until the challenge's data dictionary confirms or corrects them;
-Mohamed may hold it. Correcting a meaning is a change to its seed, followed by
+The assumptions below stand until the challenge's data dictionary confirms or corrects them.
+Correcting a meaning is a change to its seed, followed by
 `python -m strata.contracts.data_card`, a rebuild and `just publish-claims` on the machine that
 holds the extract.
 
@@ -126,21 +126,21 @@ and a test fails if it falls out of date.
 | `codes_aggregate_flags` | flag_debit_credit | `0` | no documented meaning; kept as a category | undocumented | aggregate file; not documented by the bank |
 | `codes_aggregate_flags` | flag_debit_credit | `1` | no documented meaning; kept as a category | undocumented | aggregate file; not documented by the bank |
 | `codes_aggregate_flags` | flag_debit_credit | `2` | no documented meaning; kept as a category | undocumented | aggregate file; not documented by the bank |
-| `calendar_periods` | calendar period | `ramadan` | Ramadan 1445, 2024-03-12 to 2024-04-09 | assumed | Moroccan moon sighting (architect; Mohamed to confirm) |
-| `calendar_periods` | calendar period | `eid_al_fitr` | Eid al-Fitr, 2024-04-10 to 2024-04-11 | assumed | Moroccan moon sighting (architect; Mohamed to confirm) |
-| `calendar_periods` | calendar period | `eid_al_adha` | Eid al-Adha, 2024-06-17 to 2024-06-18 | assumed | Moroccan moon sighting (architect; Mohamed to confirm) |
+| `calendar_periods` | calendar period | `ramadan` | Ramadan 1445, 2024-03-12 to 2024-04-09 | assumed | Moroccan moon sighting |
+| `calendar_periods` | calendar period | `eid_al_fitr` | Eid al-Fitr, 2024-04-10 to 2024-04-11 | assumed | Moroccan moon sighting |
+| `calendar_periods` | calendar period | `eid_al_adha` | Eid al-Adha, 2024-06-17 to 2024-06-18 | assumed | Moroccan moon sighting |
 | `calendar_periods` | calendar period | `pre_eid_al_adha_week` | Week before Eid al-Adha, 2024-06-10 to 2024-06-16 | assumed | the seven days before Eid al-Adha |
-| `bank_holidays` | bank holiday (national) | `2023-11-06` | Green March | assumed | fixed-date national holiday (architect; Mohamed to confirm) |
-| `bank_holidays` | bank holiday (national) | `2023-11-18` | Independence Day | assumed | fixed-date national holiday (architect; Mohamed to confirm) |
-| `bank_holidays` | bank holiday (national) | `2024-01-01` | New Year | assumed | fixed-date national holiday (architect; Mohamed to confirm) |
-| `bank_holidays` | bank holiday (national) | `2024-01-11` | Proclamation of Independence | assumed | fixed-date national holiday (architect; Mohamed to confirm) |
-| `bank_holidays` | bank holiday (national) | `2024-01-14` | Amazigh New Year | assumed | official since 2024 by royal decision; not in the architect list; Mohamed to confirm |
-| `bank_holidays` | bank holiday (national) | `2024-05-01` | Labour Day | assumed | fixed-date national holiday (architect; Mohamed to confirm) |
-| `bank_holidays` | bank holiday (religious) | `2024-07-08` | Islamic New Year 1446 | assumed | Moroccan moon sighting (architect; Mohamed to confirm) |
-| `bank_holidays` | bank holiday (national) | `2024-07-30` | Throne Day | assumed | fixed-date national holiday (architect; Mohamed to confirm) |
-| `bank_holidays` | bank holiday (national) | `2024-08-14` | Oued Ed-Dahab Day | assumed | fixed-date national holiday (architect; Mohamed to confirm) |
-| `bank_holidays` | bank holiday (national) | `2024-08-20` | Revolution of the King and the People | assumed | fixed-date national holiday (architect; Mohamed to confirm) |
-| `bank_holidays` | bank holiday (national) | `2024-08-21` | Youth Day | assumed | fixed-date national holiday (architect; Mohamed to confirm) |
-| `bank_holidays` | bank holiday (religious) | `2024-09-15` | Mawlid | assumed | Moroccan moon sighting (architect; Mohamed to confirm) |
-| `bank_holidays` | bank holiday (religious) | `2024-09-16` | Mawlid (second day) | assumed | Moroccan moon sighting (architect; Mohamed to confirm) |
+| `bank_holidays` | bank holiday (national) | `2023-11-06` | Green March | assumed | fixed-date national holiday |
+| `bank_holidays` | bank holiday (national) | `2023-11-18` | Independence Day | assumed | fixed-date national holiday |
+| `bank_holidays` | bank holiday (national) | `2024-01-01` | New Year | assumed | fixed-date national holiday |
+| `bank_holidays` | bank holiday (national) | `2024-01-11` | Proclamation of Independence | assumed | fixed-date national holiday |
+| `bank_holidays` | bank holiday (national) | `2024-01-14` | Amazigh New Year | assumed | official since 2024 by royal decision |
+| `bank_holidays` | bank holiday (national) | `2024-05-01` | Labour Day | assumed | fixed-date national holiday |
+| `bank_holidays` | bank holiday (religious) | `2024-07-08` | Islamic New Year 1446 | assumed | Moroccan moon sighting |
+| `bank_holidays` | bank holiday (national) | `2024-07-30` | Throne Day | assumed | fixed-date national holiday |
+| `bank_holidays` | bank holiday (national) | `2024-08-14` | Oued Ed-Dahab Day | assumed | fixed-date national holiday |
+| `bank_holidays` | bank holiday (national) | `2024-08-20` | Revolution of the King and the People | assumed | fixed-date national holiday |
+| `bank_holidays` | bank holiday (national) | `2024-08-21` | Youth Day | assumed | fixed-date national holiday |
+| `bank_holidays` | bank holiday (religious) | `2024-09-15` | Mawlid | assumed | Moroccan moon sighting |
+| `bank_holidays` | bank holiday (religious) | `2024-09-16` | Mawlid (second day) | assumed | Moroccan moon sighting |
 <!-- assumptions:end -->

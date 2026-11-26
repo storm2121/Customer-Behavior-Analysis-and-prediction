@@ -1,7 +1,7 @@
 # ADR 0007: PyMC for the Bayesian calendar model
 
-Status: accepted (executing agent, M4, 2026-10-18). Records the choice that ARCHITECTURE.md section 9
-leaves to this ADR.
+Status: accepted (2026-10-18). Records the choice that ARCHITECTURE.md section 9 leaves to this
+ADR.
 
 ## Context
 

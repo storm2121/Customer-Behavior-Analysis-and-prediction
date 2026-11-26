@@ -1,4 +1,4 @@
--- Behavioural features for segmentation (M5), one row per active client. Transformations that
+-- Behavioural features for segmentation, one row per active client. Transformations that
 -- depend on the fitted population (log1p, standardisation) happen in Python; this model only
 -- defines what each feature means.
 select

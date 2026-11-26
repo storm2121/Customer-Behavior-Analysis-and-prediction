@@ -1,6 +1,6 @@
 # ADR 0001: DuckDB with dbt as the analytical core
 
-Status: accepted (architect, 2026-10-18). Context and consequences expanded in M0 (executing agent).
+Status: accepted (2026-10-18).
 
 ## Context
 

@@ -1,6 +1,6 @@
 # ADR 0005: Airflow for orchestration, running only in Docker Compose
 
-Status: accepted (architect, 2026-10-18). Filled in M0; expanded in M9, when the DAG was built.
+Status: accepted (2026-10-18).
 
 ## Context
 
@@ -16,7 +16,7 @@ recipes without Airflow.
 Because every task is a CLI call, the DAG holds no business logic: what Airflow runs is exactly what
 a developer runs, and the DAG can be replaced without touching the pipeline.
 
-### How it was built (M9)
+### How it was built
 
 - **The plan is data.** `orchestration/airflow/dags/strata_pipeline.py` lists the tasks, their
   `strata` arguments and their upstream tasks, without importing Airflow or the package;
@@ -38,7 +38,7 @@ a developer runs, and the DAG can be replaced without touching the pipeline.
   a failed day should be looked at, not repeated.
 - **Switches.** `STRATA_DAG_ZONE` (public by default; private runs add `--private` to every call),
   `STRATA_DAG_EFFORT` (quick in Compose), `STRATA_BIN` and `STRATA_DAG_SYNTH_DIR`.
-- **The image (a deviation from "the official image", accepted by the architect).**
+- **The image (a deviation from "the official image").**
   `Dockerfile.airflow` starts from the same Python image as the API and installs Airflow 3 in its
   own environment, pinned by Airflow's constraints file for that Python version, beside Strata's
   environment from `uv.lock`. Airflow's

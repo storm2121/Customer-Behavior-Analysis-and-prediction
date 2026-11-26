@@ -3,8 +3,8 @@ import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, ty
 
 import { RELEASE_SPRING, SPRING, useCalmMotion } from "../motion";
 
-// The simulator's sliders are the dashboard's showcase of direct manipulation (docs/DESIGN.md,
-// section 3): the thumb follows the pointer one to one under pointer capture, keeping the offset
+// The simulator's sliders are the dashboard's showcase of direct manipulation: the thumb follows
+// the pointer one to one under pointer capture, keeping the offset
 // at which it was grabbed; past either end it resists progressively instead of stopping dead; on
 // release the pointer's velocity becomes the spring's, so there is no seam between dragging and
 // settling; and whatever the thumb is doing, a new touch or key press takes it from where it is.

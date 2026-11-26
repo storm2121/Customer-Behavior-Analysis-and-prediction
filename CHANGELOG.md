@@ -149,9 +149,9 @@ instance and the synthetic generator a first-class source.
   score's Brier score, calibration error and lift in the top tenth on a later cutoff) and
   `segment_stability` (the segments' bootstrap adjusted Rand index) are published from the models
   trained on the real extract, with their intervals and nothing else, enforced by the allowlist,
-  the build (`metrics_view`), the renderer, the ledger check and the commit guard. The CV notes'
-  modelling lines carry those numbers. The model-quality claims read the zone's trained models, so
-  the image, CI and `just demo` now train before they build the ledger.
+  the build (`metrics_view`), the renderer, the ledger check and the commit guard. The
+  model-quality claims read the zone's trained models, so the image, CI and `just demo` now train
+  before they build the ledger.
 - The private twin gains the analytic Gaussian mechanism (`--mechanism gaussian`, `--delta`) and
   a reduced column set, now the default (`--columns core`; `--columns full` keeps all fourteen):
   in a five-seed private experiment at the same budget it kept more of the data's structure with
@@ -160,18 +160,14 @@ instance and the synthetic generator a first-class source.
   each) and draws a reliability diagram of the served score and the GLM (`strata.models.plots`),
   which `strata promote` copies beside the public card; a private run keeps both in the private
   folder.
-- `docs/CV_NOTES.md`, rendered from `docs/findings/_cv_notes.md.j2` by `strata ledger render`;
-  `strata ledger check` fails on drift, on a hand-typed number and on a line whose evidence (a
-  published claim, a key of the public model registry or a file of the repository) is missing.
 - The data card is complete (provenance, composition, coverage, biases, intended and excluded
   uses, maintenance), and the model cards state their training data, ethical considerations and
   how to reproduce and refresh them.
 
 ### Changed
 
-- The dashboard is redesigned to the design brief (`docs/DESIGN.md`; departures in
-  `docs/DESIGN_NOTES.md`): one tokens file with light and dark values, the platform type stack with
-  size-specific tracking and tabular figures, one accent and a validated palette of five
+- The dashboard is redesigned: one tokens file with light and dark values, the platform type
+  stack with size-specific tracking and tabular figures, one accent and a validated palette of five
   equal-lightness hues, a translucent top bar with a soft scroll edge, controls that press on
   pointer-down and spring back, the simulator's slider (one-to-one tracking, rubber-banding,
   velocity handed to a spring, keyboard steps) with bands that follow it continuously, an evidence

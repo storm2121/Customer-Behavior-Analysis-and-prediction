@@ -2,7 +2,7 @@
 
 This mapping is the whole of the public surface. A claim id that is not here can be computed,
 rendered in the private report and discussed in an interview, but nothing of it reaches a tracked
-file. Adding an id is a privacy decision, made by the architect, in one of three modes:
+file. Adding an id is a privacy decision, made in one of three modes:
 
 - ``full``: the claim's aggregate values, intervals and robustness result, every value computed on
   at least ``MIN_PUBLIC_CELL_N`` clients and small strata suppressed;

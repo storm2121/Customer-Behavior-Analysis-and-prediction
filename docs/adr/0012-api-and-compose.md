@@ -1,11 +1,11 @@
 # ADR 0012: the API inside the package, and a Compose stack built on synthetic data
 
-Status: accepted (executing agent, M7, 2026-10-18). Adjusts the layout of ARCHITECTURE.md section 4.
+Status: accepted (2026-10-18). Adjusts the layout of ARCHITECTURE.md section 4.
 
 ## Context
 
 ARCHITECTURE.md places the FastAPI application, its SQLAlchemy models and its Alembic migrations in
-`services/api/`, next to a `docker-compose.yml` and a `Dockerfile.api` at the root. Since M6 the
+`services/api/`, next to a `docker-compose.yml` and a `Dockerfile.api` at the root. The
 review store (models and migrations) is shared by the CLI and the API, and the API reads the same
 warehouse, ledger, registry and simulator files as every command.
 
@@ -18,7 +18,7 @@ warehouse, ledger, registry and simulator files as every command.
 - `Dockerfile.api` builds the public workspace (synthetic extract, warehouse, claims at quick
   effort, simulator inputs, models) into the image, so `docker compose up` serves at once; its entry
   point stores the alert queue in PostgreSQL and starts the API. `Dockerfile.mlflow` serves the MLflow
-  UI over the runs the image logged. `Dockerfile.dashboard` (M8) builds the dashboard and serves it
+  UI over the runs the image logged. `Dockerfile.dashboard` builds the dashboard and serves it
   with nginx, which proxies `/api/` to the API on the same origin ([ADR 0006](0006-dashboard-stack.md)).
 - Ports are Strata's defaults: API 8000, PostgreSQL 5432, dashboard 5173, MLflow 5000. Another
   project on the reference machine uses 8100, 5433, 6380, 3100, 9100 and 5174, and none of those

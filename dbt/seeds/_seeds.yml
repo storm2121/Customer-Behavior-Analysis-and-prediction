@@ -125,7 +125,7 @@ seeds:
   - name: calendar_periods
     description: >
       Ramadan, the two Eids and the week before Eid al-Adha, in the Moroccan calendar. The dates
-      follow the official moon sighting; they are tagged `assumed` until Mohamed confirms them.
+      follow the official moon sighting; they are tagged `assumed` until confirmed.
     columns:
       - name: period_key
         data_tests: [unique, not_null]
@@ -144,7 +144,7 @@ seeds:
     description: >
       Bank holidays inside the window other than the two Eids (which are periods): the fixed-date
       national holidays and the floating religious ones (Islamic New Year, Mawlid). Branches close
-      on all of them. Tagged `assumed` until Mohamed confirms them.
+      on all of them. Tagged `assumed` until confirmed.
     columns:
       - name: holiday_date
         data_tests: [unique, not_null, within_window]

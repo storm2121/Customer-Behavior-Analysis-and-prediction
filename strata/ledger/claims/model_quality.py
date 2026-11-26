@@ -1,4 +1,4 @@
-"""Claims on the quality of the trained models, published in ``metrics_only`` mode (M11).
+"""Claims on the quality of the trained models, published in ``metrics_only`` mode.
 
 They read what ``strata train`` wrote for the zone (the results file and the registry entry of the
 model trained on this warehouse's data) instead of recomputing anything, so the published metrics

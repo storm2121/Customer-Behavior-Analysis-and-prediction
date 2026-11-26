@@ -153,7 +153,7 @@ def test_generic_reading_parses_the_source_format(tmp_path: Path) -> None:
 def test_the_reference_mapping_reproduces_the_pipeline_before_mappings(
     built_warehouse: Settings,
 ) -> None:
-    """DoD of M4.5: same manifest, same data-quality report, same row count in every model."""
+    """Same manifest, same data-quality report, same row count in every model."""
     expected = json.loads(FIXTURE.read_text(encoding="utf-8"))
     actual = json.loads(json.dumps(snapshot(built_warehouse), default=str))
     assert actual["fingerprint"] == expected["fingerprint"]
@@ -249,7 +249,7 @@ def test_an_alien_schema_maps_onto_the_same_marts(
     synthetic_dir: Path,
     tmp_path_factory: pytest.TempPathFactory,
 ) -> None:
-    """DoD of M4.5: a generated, deliberately different schema gives identical marts."""
+    """A generated, deliberately different schema gives identical marts."""
     reference_tables = _canonical(built_warehouse)
     folder = tmp_path_factory.mktemp("alien")
     base = read_marker(synthetic_dir)

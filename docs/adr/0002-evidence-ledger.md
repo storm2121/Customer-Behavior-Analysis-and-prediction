@@ -1,6 +1,6 @@
 # ADR 0002: an evidence ledger governs every published number
 
-Status: accepted (architect, 2026-10-18). Filled in M0; implementation recorded in M3.
+Status: accepted (2026-10-18).
 
 ## Context
 
@@ -19,10 +19,10 @@ returning value, n, bootstrap CI, method, caveats and a data fingerprint. Docume
 rendered from the claims JSON. CI fails on drift or on an unregistered number inside governed sections.
 Public documents may render only allow-listed claims.
 
-The allowlist (`strata/ledger/allowlist.py`) exists from M0 because the privacy guard enforces it on
-every commit, before the ledger itself is built.
+The allowlist (`strata/ledger/allowlist.py`) exists from the start because the privacy guard
+enforces it on every commit, before the ledger itself is built.
 
-## Implementation (M3)
+## Implementation
 
 - **Registry.** `@claim(id, title=…, question=…, method=…, headline=…, robustness=…)` registers a
   function of a read-only warehouse context. A headline cannot be registered without a robustness
@@ -48,9 +48,9 @@ every commit, before the ledger itself is built.
   public file breaks the publication rules, and when a template rendered with every placeholder
   masked still contains a digit in its prose (comments and link targets excepted).
 
-## Publication modes (after the M4 review)
+## Publication modes
 
-The architect fixed the allowlist after M4 with two modes. `full` claims (channel mix, the age
+The allowlist started with two modes. `full` claims (channel mix, the age
 divide, the week, leading digits of purchases, spend concentration) are published with their
 aggregates, intervals and robustness results; a value computed on fewer clients than the floor is
 withheld, with its table row. `verdict_only` headlines (`silence_by_channel`) are published as a
@@ -60,7 +60,7 @@ checker next to the full one. The renderer answers only verdict placeholders for
 a template cannot print one of its numbers, and `ledger_violations` (used by the build, the check
 and the commit guard) refuses any other field or any digit in its words.
 
-A third mode, `metrics_only`, was added in M11 for the quality of the models trained on the real
+A third mode, `metrics_only`, was added later for the quality of the models trained on the real
 extract (`silence_model_quality`: the served silence score's Brier score, calibration error and
 lift in the top tenth on a later cutoff; `segment_stability`: the bootstrap adjusted Rand index of
 the segments). These claims read what `strata train` wrote for the zone; the build publishes them

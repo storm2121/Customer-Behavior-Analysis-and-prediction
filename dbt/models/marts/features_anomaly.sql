@@ -1,4 +1,4 @@
--- Per-client inputs of the monitoring layer (M6). Thresholds are project variables so that the SQL
+-- Per-client inputs of the monitoring layer. Thresholds are project variables so that the SQL
 -- and the rules engine read the same numbers. These are triage features, not accusations.
 with deposits as (
     select client_id, event_date, amount

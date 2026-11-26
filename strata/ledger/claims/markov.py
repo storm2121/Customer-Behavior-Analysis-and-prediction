@@ -1,4 +1,4 @@
-"""Claims from the Markov chain of monthly channel states (M4)."""
+"""Claims from the Markov chain of monthly channel states."""
 
 from __future__ import annotations
 

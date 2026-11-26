@@ -1,5 +1,5 @@
 /*
- * Strata design tokens (docs/DESIGN.md, section 2). Every colour, type size, space, radius,
+ * Strata design tokens. Every colour, type size, space, radius,
  * material, elevation and duration the dashboard uses is one of these custom properties: Tailwind
  * utilities, component styles and the chart theme (src/charts/theme.ts) all read them, so a theme
  * is a set of values for the same names. This file is plain CSS on purpose; src/styles/index.css
@@ -192,7 +192,7 @@
 /* 2. Semantic tokens, resolved against the base values of the element that declares them. */
 :root,
 [data-theme] {
-  /* Type: the platform's system stack, sized in rem, tracked by size (DESIGN.md, section 2). */
+  /* Type: the platform's system stack, sized in rem, tracked by size. */
   --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
   --font-family-mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
   --type-label-size: 0.75rem;

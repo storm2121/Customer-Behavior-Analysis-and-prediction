@@ -1,7 +1,7 @@
 """The dbt warehouse, built once per session on the default synthetic extract.
 
 dbt's own tests (generic and singular) run inside the build; these pytest checks restate the
-milestone's definition of done from the outside: the build is green, the marts hold the rows the
+warehouse's guarantees from the outside: the build is green, the marts hold the rows the
 manifest says they should, features never read past their cutoff, and a private build writes its
 artefacts only under the private folder.
 """

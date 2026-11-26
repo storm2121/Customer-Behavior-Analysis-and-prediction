@@ -74,7 +74,7 @@ models:
             expression: "silent = (n_events_outcome = 0)"
 
   - name: features_segments
-    description: Behavioural features of every active client for segmentation (M5).
+    description: Behavioural features of every active client for segmentation.
     columns:
       - name: client_id
         data_tests: [unique, not_null]

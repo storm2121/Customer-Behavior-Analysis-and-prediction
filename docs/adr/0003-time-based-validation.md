@@ -1,6 +1,6 @@
 # ADR 0003: time-based validation for every client-level outcome
 
-Status: accepted (architect, 2026-10-18). Filled in M0; expanded with results during M5.
+Status: accepted (2026-10-18).
 
 ## Context
 
@@ -20,7 +20,7 @@ used at all, happens inside the training fold only. A test asserts no feature re
 The cutoffs and their outcome windows live in a dbt seed, so the SQL that builds features and the
 Python that evaluates models read the same definition.
 
-## Implementation (M5)
+## Implementation
 
 - `strata.models.splits` reads the cutoffs from the `silence_cutoffs` seed, as dbt does. Each
   cutoff is one problem: features from `marts.features_silence` (events on or before the cutoff),

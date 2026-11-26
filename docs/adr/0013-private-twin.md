@@ -1,7 +1,7 @@
 # ADR 0013: The private twin is a differentially private copula of the client table
 
-Status: accepted (architect, 2026-10-19). Written in M9, revised in M11. Expands the twin of
-[ADR 0004](0004-privacy-boundary.md) and ARCHITECTURE section 5.3.
+Status: accepted (2026-10-19). Expands the twin of [ADR 0004](0004-privacy-boundary.md) and
+ARCHITECTURE section 5.3.
 
 ## Context
 
@@ -65,7 +65,7 @@ rows are, at every budget tried. Fidelity was the price: with all fourteen colum
 one most marginals were visibly distorted and the correlations mostly noise, because the columns
 share the budget and ninety-one pairs share the correlation half of it.
 
-A second, time-boxed experiment (M11) compared, at the same budgets and over five seeds each, the
+A second, time-boxed experiment compared, at the same budgets and over five seeds each, the
 Laplace and Gaussian mechanisms on the full and the reduced column set, judged on the reduced
 set's columns so that the four variants are comparable. At a budget of one, the reduced set with
 Laplace noise distorted clearly fewer marginals than the full set, a real-or-twin classifier no

@@ -1,4 +1,4 @@
-"""Claims from the calendar models and the seasonal decomposition (M4)."""
+"""Claims from the calendar models and the seasonal decomposition."""
 
 from __future__ import annotations
 

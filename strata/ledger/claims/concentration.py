@@ -1,4 +1,4 @@
-"""Claims about concentration beyond card spend: recency, frequency and value per channel (M4)."""
+"""Claims about concentration beyond card spend: recency, frequency and value per channel."""
 
 from __future__ import annotations
 

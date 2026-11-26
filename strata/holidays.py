@@ -6,8 +6,8 @@ intensities with them and the calendar models use them as regressors, so a perio
 two different things.
 
 Moroccan Islamic dates follow the official sighting of the moon, which usually comes a day after
-Saudi Arabia's; the seeds carry the Moroccan dates given by the architect, tagged ``assumed`` until
-Mohamed confirms them. The models treat each period as a block, which keeps them robust to a
+Saudi Arabia's; the seeds carry the Moroccan dates, tagged ``assumed`` until confirmed. The models
+treat each period as a block, which keeps them robust to a
 one-day shift. Bank holidays are the fixed-date national holidays, the floating religious holidays
 (Islamic New Year, Mawlid) and the two Eids.
 """

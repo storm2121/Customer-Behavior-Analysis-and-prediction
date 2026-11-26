@@ -1,4 +1,4 @@
-"""Claims about leading digits beyond the public first-digit test of purchases (M4)."""
+"""Claims about leading digits beyond the public first-digit test of purchases."""
 
 from __future__ import annotations
 

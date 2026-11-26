@@ -175,7 +175,7 @@ class ParametricConfig:
     implausible_children_rate: float = 0.002
     profession_missing_rate: float = 0.47
 
-    # Monitoring scenarios planted for the anomaly layer (M6), as shares of branch users.
+    # Monitoring scenarios planted for the anomaly layer, as shares of branch users.
     structuring_share: float = 0.015
     pass_through_share: float = 0.01
     structuring_threshold: float = 100_000.0

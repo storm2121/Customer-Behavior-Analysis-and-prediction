@@ -1,4 +1,4 @@
-"""RFM scores, per-client digit matrices and the M4 concentration and Benford claims."""
+"""RFM scores, per-client digit matrices and the concentration and Benford claims."""
 
 from __future__ import annotations
 

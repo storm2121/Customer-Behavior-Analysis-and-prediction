@@ -2,7 +2,7 @@
 
 Working name: **Strata**: the pipeline layers (raw, staging, marts), stratifies (the robustness
 checker, the segments) and checks. Python package `strata`, CLI `strata`, environment variables `STRATA_*`.
-The GitHub repository keeps its current name because CVs link to it.
+The GitHub repository keeps its original name.
 
 Status: architecture v1, 2026-10-18. Deviations are recorded as ADRs in `docs/adr/`.
 
@@ -117,8 +117,7 @@ its own metadata Postgres), `mlflow` (optional, file store). DuckDB is a file, m
 │   ├── ledger/claims.public.json  # the only real-data numbers in the repo (allow-listed aggregates)
 │   ├── findings/*.md.j2 -> *.md   # rendered from the ledger; never hand-edited
 │   ├── methods/                   # equations (KaTeX in dashboard, LaTeX in docs)
-│   ├── model_cards/  data_card.md  c4/
-│   └── CV_NOTES.md                # bullet drafts, every number traced to a claim id
+│   └── model_cards/  data_card.md  c4/
 ├── legacy/                        # the 2024 script and the 2025 package, frozen, with a README of their bugs
 ├── tests/                         # pytest + hypothesis; everything runs on synthetic data
 ├── .github/workflows/ci.yml
@@ -136,10 +135,10 @@ renames, code maps or seed references, and which file plays which role) that `st
 (client_id, attributes), `raw.events` (client_id, ts, channel, kind, amount, direction, origin,
 source_file, source_row) and the optional `raw.client_aggregates`. dbt staging reads only the
 canonical tables, so every mart, claim and model works unchanged on a new source. Two mappings
-ship: `reference_cih.yaml` (the five extracts, reproducing the behaviour of the typed contracts
-built in M1) and `synthetic.yaml` (the generator's output). A portability test builds a third,
+ship: `reference_cih.yaml` (the five extracts, reproducing the behaviour of the typed contracts)
+and `synthetic.yaml` (the generator's output). A portability test builds a third,
 deliberately different schema with hypothesis and proves the marts are identical after mapping.
-This layer is introduced as milestone M4.5 as a thin layer over the existing contracts.
+It is a thin layer over the existing contracts.
 
 ### 5.1 The reference extract (facts measured on 2026-10-18)
 
@@ -358,10 +357,10 @@ cards; data card.
 
 ## 16. Candidate findings (pointer only)
 
-The architect's first-pass findings live outside the repository, in `architect_findings.md` under
-`STRATA_PRIVATE_DIR`. They are hypotheses until they are ledger claims with CIs and robustness
-verdicts, and only allow-listed claims may ever appear in tracked files. Qualitatively, the claims to
-implement in M3 and M4 cover: the channel mix and its relation to age and tenure; the concentration
+The first-pass findings live outside the repository, under `STRATA_PRIVATE_DIR`. They are
+hypotheses until they are ledger claims with CIs and robustness verdicts, and only allow-listed
+claims may ever appear in tracked files. Qualitatively, the claims cover: the channel mix and its
+relation to age and tenure; the concentration
 of the online channel on bill payment; branches as cash-in points; a year-end wave of card deposits;
 start-of-month withdrawals; the international share of e-commerce; concentration of card spend;
 a Benford deviation in purchase amounts; cash-deposit patterns suitable for triage; repeat rows that

@@ -1,6 +1,6 @@
 # ADR 0006: React 19 with TypeScript for the dashboard
 
-Status: accepted (architect, 2026-10-18). Filled in M0; expanded in M8, when the dashboard was built.
+Status: accepted (2026-10-18).
 
 ## Context
 
@@ -17,7 +17,7 @@ React 19, TypeScript strict, Vite, TanStack Query for server state, ECharts for 
 design tokens and Radix primitives, KaTeX for equations, pnpm, Vitest, Storybook, Playwright smoke
 tests, axe accessibility checks. Streamlit was rejected because design is a stated goal.
 
-### How it was built (M8)
+### How it was built
 
 - **Data only at run time.** Every number on every page comes from the API through TanStack Query;
   the public claims arrive from `GET /ledger/claims`, so the bundle holds no claims file at all.
@@ -47,10 +47,7 @@ tests, axe accessibility checks. Streamlit was rejected because design is a stat
   sliders; feedback on an alert is stored. Locally they can drive an installed browser
   (`STRATA_E2E_CHANNEL`) instead of downloading one.
 
-### The design pass (docs/DESIGN.md)
-
-The architect's design brief extends this record; where the dashboard departs from the brief, and
-why, is in `docs/DESIGN_NOTES.md`.
+### The design pass
 
 - **Tokens.** `src/styles/tokens.css` is the single source of every colour, type size, space, radius,
   material, elevation and duration, with light and dark values (the system preference, a chosen
@@ -67,11 +64,11 @@ why, is in `docs/DESIGN_NOTES.md`.
 - **Motion and icons.** Motion (`motion/react`) drives every spring: critically damped by default,
   a little bounce only after a drag release, a short cross-fade under reduced motion. Lucide is the
   only icon set. Both are new dependencies, locked at releases at least two weeks old.
-- **Primitives.** The Radix slider is replaced by the dashboard's own slider, because the brief's
-  showcase (one-to-one tracking under pointer capture, rubber-banding, the release velocity handed to
-  a spring) is not something a stock slider does; it keeps the slider role, its values and the
-  keyboard steps. Radix Dialog gives the evidence drawer its focus handling; the unused Radix tabs
-  and tooltip are gone.
+- **Primitives.** The Radix slider is replaced by the dashboard's own slider, because the
+  simulator's showcase (one-to-one tracking under pointer capture, rubber-banding, the release
+  velocity handed to a spring) is not something a stock slider does; it keeps the slider role, its
+  values and the keyboard steps. Radix Dialog gives the evidence drawer its focus handling; the
+  unused Radix tabs and tooltip are gone.
 - **Context from the API.** The pages' numbers carry their interval, sample and period because the
   API serves them: the claims' method, caveats, robustness explanation and period, the overview's
   channel-mix intervals from a ledger of the same data, the segments' embedding, the scored
@@ -98,6 +95,6 @@ why, is in `docs/DESIGN_NOTES.md`.
 
 ## Consequences
 
-More build tooling and a longer M8, in exchange for a real product surface and a documented component
+More build tooling and more work, in exchange for a real product surface and a documented component
 library. The dashboard never bundles private numbers, nor any data: it reads the public claims and every
 other figure from the API, and its build fails if that ever changes.

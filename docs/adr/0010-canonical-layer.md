@@ -1,20 +1,20 @@
 # ADR 0010: the canonical raw layer, its landing tables and its provenance
 
-Status: accepted (executing agent, M4.5, 2026-10-18). Extends ARCHITECTURE.md section 5.0.
+Status: accepted (2026-10-18). Extends ARCHITECTURE.md section 5.0.
 
 ## Context
 
 ARCHITECTURE.md section 5.0 makes the pipeline source-agnostic: a mapping file per source loads it
 into `raw.clients`, `raw.events` (client_id, ts, channel, kind, amount, direction, origin,
 source_file, source_row) and the optional `raw.client_aggregates`, and dbt staging reads only those
-tables. Milestone M4.5 adds the layer "thin, over the existing contracts", and its definition of
-done asks that the reference instance keep its manifest, its data-quality report and its marts.
+tables. The layer is added "thin, over the existing contracts", on the condition that the
+reference instance keeps its manifest, its data-quality report and its marts.
 
 Three details are not settled by the architecture:
 
 1. The reference extract's branch file carries a currency (`devise`), and the exact-repeat
    definition of branch operations includes it. The canonical event columns have no place for it.
-2. The data-quality report of M1 is written against the reference files' own columns (the
+2. The data-quality report is written against the reference files' own columns (the
    aggregate file's empty rows, the branch labels' assumed directions, and so on). A canonical
    table cannot answer those questions.
 3. The data fingerprint hashes the manifest. If the manifest records the mapping, the fingerprint
