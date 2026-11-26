@@ -8,7 +8,7 @@ ADR 0007, numbered before this one, records the Bayesian backend choice (ARCHITE
 ARCHITECTURE.md places the warehouse at `STRATA_DB` (default `.strata/strata.duckdb`) and the private
 claims at `docs/ledger/claims.private.json`, both gitignored. When the warehouse is built from the
 real extract, both locations would hold data derived from real rows inside the repository's working
-tree. AGENT_RULES.md section 1.3 forbids exactly that: everything derived from real rows, except the
+tree. The privacy boundary forbids exactly that: everything derived from real rows, except the
 allow-listed public claims, goes under `STRATA_PRIVATE_DIR`. A gitignore entry is a second line of
 defence, not the boundary (ADR 0004). The same applies to dbt's `target/` and `logs/` folders, which
 record compiled SQL, row counts and test results of a private run.
@@ -31,7 +31,7 @@ synthetic marker, so a forgotten `--private` fails closed instead of writing rea
 
 ## Consequences
 
-- Private commands take an explicit flag; the documented commands in MILESTONES.md read
+- Private commands take an explicit flag; the documented commands read
   `strata --private ingest` rather than `strata ingest --data-dir "$STRATA_DATA_DIR"`.
 - Public and private dbt artefacts never mix, so a public `dbt docs generate` cannot pick up the
   catalogue of a private run.

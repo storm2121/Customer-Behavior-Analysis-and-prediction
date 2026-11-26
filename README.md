@@ -173,7 +173,7 @@ tables, methods, caveats and robustness checks behind each sentence.
   ([decision record](docs/adr/0013-private-twin.md)).
 - **Not yet run in CI.** The workflow mirrors `just check`, the warehouse build, the dashboard
   checks, the Compose stack with its smoke and accessibility tests and the DAG test; until the
-  branch is pushed, every one of them has been run locally only ([progress log](PROGRESS.md)).
+  branch is pushed, every one of them has been run locally only.
 
 ## Privacy
 
@@ -252,8 +252,7 @@ with `STRATA_API_PORT`, `STRATA_DASHBOARD_PORT`, `STRATA_MLFLOW_PORT`, `STRATA_P
 | `tests/` | `pytest` and `hypothesis` suites; every test runs on synthetic data. |
 | `legacy/` | The 2024 script and the 2025 package, frozen, with a list of their bugs. |
 
-Further reading: [`ARCHITECTURE.md`](ARCHITECTURE.md), [`MILESTONES.md`](MILESTONES.md),
-[`PROGRESS.md`](PROGRESS.md), [`PRIVACY.md`](PRIVACY.md), [`CHANGELOG.md`](CHANGELOG.md),
+Further reading: [`ARCHITECTURE.md`](ARCHITECTURE.md), [`PRIVACY.md`](PRIVACY.md), [`CHANGELOG.md`](CHANGELOG.md),
 [decision records](docs/adr/README.md), [methods](docs/methods/), [findings](docs/findings/index.md),
 [model cards](docs/model_cards/), [data card](docs/data_card.md) and [CV notes](docs/CV_NOTES.md).
 

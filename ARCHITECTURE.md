@@ -4,9 +4,7 @@ Working name: **Strata**: the pipeline layers (raw, staging, marts), stratifies 
 checker, the segments) and checks. Python package `strata`, CLI `strata`, environment variables `STRATA_*`.
 The GitHub repository keeps its current name because CVs link to it.
 
-Status: architecture v1, written 2026-10-18 by the architect session (Fable). The executing agent
-builds against this document and `MILESTONES.md`, under `AGENT_RULES.md`. Deviations are allowed only
-through an ADR in `docs/adr/`.
+Status: architecture v1, 2026-10-18. Deviations are recorded as ADRs in `docs/adr/`.
 
 ## 1. What this is
 
@@ -95,7 +93,7 @@ its own metadata Postgres), `mlflow` (optional, file store). DuckDB is a file, m
 
 ```
 .
-├── ARCHITECTURE.md  AGENT_RULES.md  MILESTONES.md  PROGRESS.md  PRIVACY.md  CHANGELOG.md
+├── ARCHITECTURE.md  PRIVACY.md  CHANGELOG.md
 ├── pyproject.toml  uv.lock  justfile  .pre-commit-config.yaml  .python-version (3.12)
 ├── strata/                         # Python package (typed, tested)
 │   ├── config.py                  # pydantic-settings: STRATA_DATA_DIR, STRATA_PRIVATE_DIR, STRATA_DB, ...

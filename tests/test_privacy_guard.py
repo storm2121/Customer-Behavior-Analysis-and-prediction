@@ -207,15 +207,13 @@ def test_ledger_json_shapes_are_checked() -> None:
     assert "ledger-allowlist" in checks(path, json.dumps("just a string"))
 
 
-def test_private_path_literals_are_blocked_but_architect_documents_are_exempt(
-    tmp_path: Path,
-) -> None:
+def test_private_path_literals_are_blocked_in_every_file(tmp_path: Path) -> None:
     private = tmp_path / "SecretPlace"
     scanner = pg.Scanner.from_environment({"STRATA_DATA_DIR": str(private)})
     spelled = str(private).replace("\\", "/")
     assert "private-path" in checks("strata/x.py", f'PATH = "{spelled}"', scanner)
     assert "private-path" in checks("docs/x.md", str(private).upper(), scanner)
-    assert "private-path" not in checks("ARCHITECTURE.md", spelled, scanner)
+    assert "private-path" in checks("ARCHITECTURE.md", spelled, scanner)
 
 
 def test_notebooks_with_outputs_are_blocked() -> None:
