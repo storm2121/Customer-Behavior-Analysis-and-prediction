@@ -82,10 +82,6 @@ LOCATION_VARIABLES = (
 """Where the private locations may be named; the ``KASHF_`` names predate the rename to Strata."""
 LEDGER_PREFIX = "docs/ledger/"
 
-ARCHITECT_DOCUMENTS = frozenset({"AGENT_RULES.md", "ARCHITECTURE.md", "MILESTONES.md"})
-"""Governance documents owned by the architect session. They predate the guard and describe the
-machine they were written on, so the ``private-path`` rule skips them; every other rule applies."""
-
 HEADER_MIN_MATCHES = 3
 HEADER_MIN_RATIO = 0.6
 MIN_DERIVED_LENGTH = 12
@@ -363,7 +359,7 @@ class Scanner:
             findings.extend(_ledger_findings(rel, text))
         if suffix == ".ipynb":
             findings.extend(_notebook_findings(rel, text))
-        if self.private_literals and posix.name not in ARCHITECT_DOCUMENTS:
+        if self.private_literals:
             findings.extend(self._private_path_findings(rel, text))
         return findings
 

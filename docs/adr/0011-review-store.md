@@ -8,7 +8,7 @@ The monitoring layer stores its runs, alerts, analyst feedback and annotations s
 be recorded against a queue and its precision measured on them. ARCHITECTURE.md specifies SQLAlchemy
 2 with Alembic migrations over PostgreSQL, with a SQLite fallback selected through `STRATA_PG_URL`.
 
-An alert names a client. On the real extract that is a real identifier, which AGENT_RULES.md and
+An alert names a client. On the real extract that is a real identifier, which `PRIVACY.md` and
 ADR 0008 allow only under `STRATA_PRIVATE_DIR`. A PostgreSQL server keeps its data wherever its
 volume lives (in Docker Compose, a named volume managed by Docker), which the privacy boundary can
 neither see nor check.

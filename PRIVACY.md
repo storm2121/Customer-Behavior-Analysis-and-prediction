@@ -136,6 +136,5 @@ skipped unless `--run-private` is passed, and never assert on values.
 
 ## If something slips through
 
-Nothing leaves the machine without the owner's decision: the project rules forbid pushing. If a
-private value is ever committed locally, rewrite the local history to remove it before anything is
-shared, and record what happened (without the value) in `PROGRESS.md`.
+Nothing leaves the machine without the owner's decision. If a private value is ever committed
+locally, rewrite the local history to remove it before anything is shared.
