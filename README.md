@@ -1,38 +1,21 @@
 # Strata
 
-**Strata** is a behaviour-analytics pipeline for multi-channel retail-banking event data: typed
-contracts at the door, a tested warehouse, an evidence ledger in which no published number is typed
-by hand, a robustness checker that re-stratifies every headline before anyone believes it, risk
-models validated on later data, a monitoring queue for people to review, an API, a dashboard and a
-daily DAG.
+**Strata** is a multi-channel retail-banking behaviour-analytics pipeline: typed ingest contracts,
+a tested DuckDB/dbt warehouse, an evidence ledger where no published number is typed by hand, a
+robustness checker that re-stratifies every headline, statistical and Bayesian analysis modules,
+time-validated risk models, a triage monitoring queue, a FastAPI service, a React 19 dashboard, and
+an Airflow daily DAG.
 
-The pipeline is the product. Its reference instance is an anonymised, rolling-year extract of card,
-online and branch activity of a sample of clients, provided by CIH Bank for an academic challenge;
-it never enters this repository. A hand-specified synthetic generator is a first-class source, so
-the whole system runs, and is tested, without the extract: `just demo` builds everything from a
-clean clone on synthetic data.
+Its reference instance is a confidential, anonymised rolling-year extract from CIH Bank (never
+committed to this repository). A deterministic synthetic generator is a first-class source, so the
+entire stack runs and tests cleanly without the extract.
 
-![The dashboard's simulator on synthetic data: sliders on the left, the policy in words above its bands](docs/images/dashboard-simulator-light-1440.png)
-
-
-
-## What the pipeline does
-
-| Stage | What happens | Where |
-|---|---|---|
-| Contracts and ingest | Every file is parsed explicitly and checked against a typed contract; a manifest fingerprints the bytes; the warehouse is reconciled with the files. Any client-and-events source plugs in through a mapping file. | `strata/contracts/`, `strata/ingest/`, `mappings/` |
-| Data quality | Exact repeats, zero and sub-unit amounts, vocabularies, plausibility and join coverage, reported as counts, never values. | `strata dq` |
-| Warehouse | dbt on DuckDB: staging over code-map seeds, one event table for every channel, a dense client-month panel, monthly channel states, and marts for clients, silence features with time cuts, segments, monitoring and daily calendar series; every model and seed tested. | `dbt/` |
-| Evidence ledger | Registered claims with client-bootstrap intervals, sample sizes, caveats and a data fingerprint. Documents are templates over the ledger, and CI fails on drift or on a number typed by hand. | `strata/ledger/` |
-| Robustness checker | Each headline is recomputed inside strata of activity, age and tenure and labelled *holds*, *weakens* or *reverses*. | [method](docs/methods/robustness.md) |
-| Analysis modules | Calendar effects (a negative-binomial regression and a PyMC twin with posterior predictive checks), STL seasonality, Lorenz, Gini and RFM scores per channel, Benford tests per category, and a Dirichlet-posterior Markov chain of channel states with a what-if simulator. | `strata analyse`, [methods](docs/methods/) |
-| Risk models | Silence risk (baselines, a logistic GLM with odds ratios, LightGBM, isotonic and Platt calibration, SHAP), survival of the gaps between active days, online adoption, and behavioural segments; time-based backtests, a leakage test, client-bootstrap intervals on every metric, MLflow runs and generated model cards. | `strata train`, [model cards](docs/model_cards/) |
-| Monitoring | Triage rules in YAML, an Isolation Forest, an empirical-Bayes model of each client's amounts and per-client Benford tests, combined into a ranked queue under an alert budget with reasons on every alert, and analyst feedback in a review store. Triage for people to review, never an accusation. | `strata anomaly`, [method](docs/methods/anomaly.md) |
-| Serving | A FastAPI service over one zone's workspace, with Prometheus metrics by route and OpenAPI docs; Docker Compose with PostgreSQL and the MLflow UI. | `strata serve`, `docker-compose.yml` |
-| Dashboard | Nine pages in React and TypeScript over the API, in light and dark themes and at phone width; every number fetched at run time, and the build fails if the bundle carries data. | `apps/dashboard/`, [decision record](docs/adr/0006-dashboard-stack.md) |
-| Orchestration | The Airflow DAG `strata_daily`, every task one call of the `strata` CLI, with an evaluation gate between the models and the ledger. | `orchestration/airflow/`, [decision record](docs/adr/0005-airflow-orchestration.md) |
-| Private twin | A differentially private copula of the client table with fidelity and membership-inference metrics, built and kept on the machine that holds the extract. | `strata --private synth-twin`, [decision record](docs/adr/0013-private-twin.md) |
-| Reports | A private report of every claim, kept outside the repository, and a public demo on synthetic data. | `strata report` |
+```bash
+just setup     # .venv (Python 3.12 via uv) + pre-commit hooks
+just demo      # synthetic extract -> warehouse -> models -> claims -> Compose stack + smoke test
+just check     # ruff, mypy --strict, pytest, privacy scan, ledger check, dashboard checks
+just down      # stop Compose stack and remove volumes
+```
 
 ## Architecture
 
@@ -43,75 +26,46 @@ flowchart LR
     SYN[Synthetic generator]
   end
   subgraph pkg [strata package]
-    ING[Contracts, mapping<br/>and ingest] --> WH[(DuckDB warehouse<br/>dbt models and tests)]
-    WH --> LED[Evidence ledger and<br/>robustness checker]
+    ING[Contracts, mapping<br/>and ingest] --> WH[(DuckDB + dbt<br/>marts & tests)]
+    WH --> LED[Evidence ledger &<br/>robustness checker]
     WH --> AN[Analysis modules]
-    WH --> ML[Risk models<br/>MLflow, registry]
+    WH --> ML[Risk models &<br/>MLflow registry]
     WH --> MON[Monitoring queue]
     ML --> GATE{Evaluation gate}
   end
   EXT -- private zone --> ING
   SYN -- public zone --> ING
-  LED --> DOCS[Findings and README<br/>rendered, checked in CI]
-  MON --> REV[(Review store<br/>PostgreSQL or SQLite)]
+  LED --> DOCS[Findings & README<br/>rendered, checked in CI]
+  MON --> REV[(Review store<br/>PostgreSQL / SQLite)]
   WH --> API[FastAPI]
   LED --> API
   ML --> API
   REV --> API
   API --> DASH[React dashboard]
   AF[Airflow DAG] -. one CLI call per task .-> pkg
-  WH -. private zone only .-> TWIN[(Private twin<br/>STRATA_PRIVATE_DIR)]
+  WH -. private zone only .-> TWIN[(Private DP twin)]
 ```
 
-Two zones run the same code. The **public zone** reads the synthetic generator and writes inside
-the repository's ignored workspace; the **private zone** reads the extract through `STRATA_DATA_DIR`
-and writes only under `STRATA_PRIVATE_DIR`, outside the repository. Only allow-listed aggregates
-cross from the second to the first. [`ARCHITECTURE.md`](ARCHITECTURE.md) has the full design and
-[the decision records](docs/adr/README.md) the reasons behind it.
-
-## How a source plugs in
-
-Any extract with clients and dated channel events plugs in through a mapping file
-(`mappings/<source>.yaml`, described in [`mappings/README.md`](mappings/README.md)): which file plays
-which role, its encoding, delimiter, decimal mark and date format, which source column feeds which
-canonical column, and how its codes translate into the vocabulary of the seeds. `strata ingest
---mapping <file>` loads it into three canonical tables, `raw.clients`, `raw.events` and
-`raw.client_aggregates`, and dbt staging reads only those, so every mart, claim and model works
-unchanged on a new source. Two mappings ship: the reference instance (read through its typed
-contracts) and the synthetic generator. Two tests hold the layer to its promise: the reference
-mapping reproduces the manifest, the data-quality report and every model's row count of the pipeline
-as it was before mappings existed, and a property-based test maps a generated, deliberately
-different schema onto the same marts ([ADR 0010](docs/adr/0010-canonical-layer.md)).
-
-## How it is checked
-
-- `just check` runs formatting and lint (`ruff`), strict typing (`mypy`), the test suite (`pytest`
-  with `hypothesis`, coverage gate) on synthetic data, the privacy scan, the ledger check and the
-  dashboard's checks. CI runs the same steps, builds the whole warehouse on synthetic data, runs
-  the Compose stack with its smoke and accessibility tests, and runs the DAG with
-  `airflow dags test`.
-- Every dbt model and seed carries tests, including reconciliations against the ingest manifest and
-  against the data-quality report.
-- The robustness verdict rule was fixed before it met any data, and is tested on cases with a known
-  answer (a textbook reversal, a uniform effect, an effect that vanishes inside strata).
-
-## The dashboard, on synthetic data
-
-| | |
-|---|---|
-| ![Overview: numbers with their intervals beside the channel mix and the calendar of daily activity](docs/images/dashboard-overview-light-1440.png) | ![Silence risk in the dark theme: the ranked clients first, with the served score's probability](docs/images/dashboard-risk-dark-1440.png) |
-| ![Segments in the dark theme: the map with one segment in the accent, and the profile table beside it](docs/images/dashboard-segments-dark-1440.png) | ![Alerts: the ranked queue, each alert's evidence one tap away in a drawer](docs/images/dashboard-alerts-light-1440.png) |
-
-At phone width: the [overview](docs/images/dashboard-overview-dark-390.png) and the
-[simulator](docs/images/dashboard-simulator-dark-390.png). Every page is captured in both themes at
-desktop and phone width in [docs/images](docs/images), by `node scripts/screenshots.mjs` in
-`apps/dashboard`, which refuses to run unless the API serves the public synthetic workspace. The
-Findings page is not pictured: it shows the allow-listed claims of the real extract, which belong
-in the ledger and the documents rendered from it, not in images.
-
-Outside Docker, `pnpm` installs the dashboard's packages through its content store, which it keeps
-at the root of the drive when the repository is not on the drive of the user profile: that is
-pnpm's normal behaviour, and the store is a cache shared by every pnpm project on the drive.
+- **Ingest & Warehouse (`strata/contracts/`, `strata/ingest/`, `mappings/`, `dbt/`):** any
+  client-and-events source plugs in via a YAML mapping (`mappings/README.md`), loads into
+  canonical raw tables, runs sample-free data-quality checks (`strata dq`), and builds tested
+  DuckDB/dbt staging, intermediate, and mart models.
+- **Evidence Ledger & Analysis (`strata/ledger/`, `strata/analysis/`):** client-bootstrap claims
+  with Simpson-paradox re-stratification (`holds` / `weakens` / `reverses`), frequentist & PyMC
+  calendar models, STL seasonality, Lorenz/Gini/RFM concentration, Benford tests, and a
+  Dirichlet-posterior Markov what-if simulator.
+- **Risk Models & Monitoring (`strata/models/`, `strata/review/`):** time-validated silence risk
+  (baselines, GLM, LightGBM, calibration, SHAP), gap survival, online adoption, GMM/KMeans
+  segments, and a YAML-rules + Isolation Forest + empirical-Bayes triage queue with analyst
+  feedback.
+- **Serving, Dashboard & Orchestration (`strata/api/`, `apps/dashboard/`, `orchestration/`):**
+  FastAPI with Prometheus metrics, a 9-page React + TypeScript dashboard (no data bundled, enforced
+  at build time), Docker Compose (API, Dashboard, PostgreSQL, MLflow), and the `strata_daily`
+  Airflow DAG.
+- **Two Privacy Zones:** the **public zone** runs on synthetic data inside `.strata/`; the
+  **private zone** (`strata --private …`) reads `STRATA_DATA_DIR` and writes only to
+  `STRATA_PRIVATE_DIR` outside the repository. Only allow-listed aggregates cross into
+  `docs/ledger/claims.public.json`. See [PRIVACY.md](PRIVACY.md).
 
 <!-- ledger:start -->
 ## What the reference instance shows
@@ -144,114 +98,49 @@ tables, methods, caveats and robustness checks behind each sentence.
   (verdict only, no value published; 2023-10-02 to 2024-10-02; real extract; data fingerprint 85887a44d747; the numbers stay private).
 <!-- ledger:end -->
 
-## Honesty and limitations
+## Quick start & recipes
 
-- **One sample, one year.** The reference instance is a sample of clients over a single rolling
-  year; its size, period and fingerprint travel with every published number. Each month and holiday
-  is seen once, so calendar effects cannot be told apart from trend, and the calendar findings say
-  so. The outcome windows of consecutive cutoffs overlap, so a backtest's training and test labels
-  share calendar weeks.
-- **Assumed meanings.** The bank did not document its codes; gender and marital codes, aggregate
-  flags, some branch labels and the holiday dates are used as inferred and tagged `assumed`
-  ([data card](docs/data_card.md)); every claim that depends on one says so.
-- **Silence is not attrition.** There is no account closing date, so the models predict a quarter
-  without any event, which a dormant but loyal client also produces.
-- **What is public, and what is not.** Only allow-listed aggregates of the real extract are
-  published, each over enough clients; one finding is published as a verdict only, in words, and
-  the quality of the real-data models by a few aggregate metrics only (no score, reason or feature
-  importance). The public registry and model cards describe models trained on synthetic data, which
-  show that a method runs, never how well it predicts. Numbers in the synthetic demo are
-  illustrative by construction.
-- **Monitoring has no ground truth.** On the reference instance nobody labelled an alert; the queue
-  is evaluated against planted scenarios on synthetic data and against pseudo-labels (two rule
-  families agreeing), and it ranks cases for a person, never decides about one.
-- **The private twin pays for privacy with fidelity.** On a sample of this size, a differentially
-  private copula at a small budget keeps membership inference at chance but leaves little of the
-  data's structure; the synthetic generator stays the source of every demo
-  ([decision record](docs/adr/0013-private-twin.md)).
+Requires [uv](https://docs.astral.sh/uv/), [just](https://just.systems/), Docker (for the stack and
+Airflow DAG), and Node 20+ with `corepack` (only for developing the dashboard outside Docker).
 
-## Privacy
+After `just demo`: API `http://localhost:8000` (`/docs`, `/metrics`), Dashboard
+`http://localhost:5173`, MLflow `http://localhost:5000`, PostgreSQL `5432`. Override ports in
+gitignored `.env.local` via `STRATA_{API,DASHBOARD,MLFLOW,PG,AIRFLOW}_PORT`.
 
-The extract is reachable only through `STRATA_DATA_DIR`, set in a gitignored `.env.local` on the
-machine that holds it (which may also hold that machine's Docker Compose port overrides);
-everything derived from it goes to `STRATA_PRIVATE_DIR`, outside the repository. A pre-commit guard
-blocks extract file names and headers, large CSVs, binary data formats, identifier-shaped tokens
-(the shape is learnt from the extract when it is available) and non-allow-listed claims, without
-ever echoing what it found. The dashboard's build fails if its bundle carries data, the API serves
-one zone at a time, and the private twin refuses any destination inside the repository. See
-[`PRIVACY.md`](PRIVACY.md).
-
-## The legacy code and its bugs
-
-The code Strata replaces is kept, frozen, in [`legacy/`](legacy/README.md), with every bug stated in
-plain words so each can be checked against the source. The ones that invalidated its results:
-
-- SMOTE oversampling ran on the whole dataset before the train/test split, so synthetic neighbours
-  of test rows sat in the training set and the reported accuracy was inflated by construction.
-- The join with the aggregate file matched no client (it describes a different sample), so the
-  columns it was meant to fill were empty, and nothing counted the matches.
-- Recency was measured from the day the script ran, not from the end of the extract.
-- The target, each client's most frequent card transaction type, answered no business question,
-  and missing labels became a spurious `'nan'` class.
-- Client-level outcomes were evaluated on a random split, with no baseline and no interval.
-
-The legacy README lists the others: misattributed sample output, mislabelled charts, a misnamed
-feature, absence imputed as average, rare classes dropped silently, repeat rows counted as distinct,
-every warning suppressed, and a sample that sampled nothing.
-
-## Quick start
-
-[`uv`](https://docs.astral.sh/uv/) and [`just`](https://just.systems/) are the tools to install by
-hand (`uv tool install rust-just` provides `just`); Docker runs the stack and the DAG; Node with
-`corepack` is needed only to work on the dashboard outside Docker.
-
-```bash
-just demo      # synthetic extract -> warehouse -> models -> gate -> claims -> analysis -> queue
-               # -> report, then the stack in the background and a smoke test of every endpoint
-just down      # stop the stack and remove its volumes
-just check     # lint, types, tests with coverage, privacy scan, ledger check, dashboard checks
-```
-
-After `just demo`, the API answers on `http://localhost:8000` (documentation at `/docs`, metrics
-at `/metrics`), the dashboard on `http://localhost:5173`, the MLflow UI on `http://localhost:5000`
-and PostgreSQL on 5432. A host port that is already taken on a machine is moved in `.env.local`
-with `STRATA_API_PORT`, `STRATA_DASHBOARD_PORT`, `STRATA_MLFLOW_PORT`, `STRATA_PG_PORT` or
-`STRATA_AIRFLOW_PORT`; the recipes pass that file to Docker Compose when it exists.
-
-| Recipe | What it runs |
-|---|---|
-| `just ledger` | synthetic extract, ingest, quality, dbt, every claim, the public demo report |
-| `just analyse` | the analysis modules: claims, figures and the simulator's inputs |
-| `just train` | the risk models, then the public registry and model cards (synthetic only) |
-| `just anomaly` | the monitoring layer's ranked review queue |
-| `just serve` | the API on the public workspace |
-| `just up` | the whole stack in the foreground |
-| `just dashboard`, `just dashboard-check`, `just dashboard-e2e` | the dashboard in development, its checks, its Playwright and axe smoke tests against the stack |
-| `just dag-test` | `airflow dags test strata_daily` in the Airflow image, on synthetic data |
-| `just private-*`, `just publish-claims` | the private zone, only on the machine that holds the extract (see `PRIVACY.md`) |
-
-`uv run strata --help` lists every command.
+- **Pipeline stages (synthetic):** `just ledger`, `just analyse`, `just train`, `just anomaly`,
+  `just serve`, `just up`, `just dag-test` (`uv run strata --help` lists all CLI commands).
+- **Dashboard:** `just dashboard`, `just dashboard-check`, `just dashboard-e2e`.
+- **Private zone (local extract only):** `just private-ingest`, `just private-dbt`,
+  `just private-report`, `just private-analyse`, `just private-train`, `just publish-claims`.
 
 ## Repository layout
 
-| Path | Contents |
-|---|---|
-| `strata/` | The Python package: configuration, CLI, contracts, ingest, synthetic data and the private twin, ledger, analysis, models, monitoring, review store, API, reports, privacy guard. |
-| `dbt/` | The warehouse: seeds (code maps, bands, cutoffs, calendar), staging, intermediate models, marts and tests. |
-| `mappings/` | Source mappings: the reference instance and the synthetic generator. |
-| `apps/dashboard/` | The React and TypeScript dashboard, its tests, stories and smoke tests. |
-| `orchestration/airflow/` | The DAG `strata_daily` and its plan. |
-| `docker/`, `Dockerfile.*`, `docker-compose.yml` | Images, the nginx configuration and the smoke test. |
-| `models/` | The public model registry (synthetic models only). |
-| `docs/` | Decision records, methods, findings and the README section rendered from the ledger, the public claims, model cards and the data card. |
-| `tests/` | `pytest` and `hypothesis` suites; every test runs on synthetic data. |
-| `legacy/` | The 2024 script and the 2025 package, frozen, with a list of their bugs. |
+```
+strata/            Core package (contracts, ingest, synthetic/twin, ledger, analysis, models, API)
+dbt/               DuckDB warehouse (code-map seeds, staging, intermediate, marts, dbt tests)
+mappings/          Source-mapping YAMLs (reference extract and synthetic generator)
+apps/dashboard/    React 19 + TypeScript dashboard, Vitest, Storybook, Playwright E2E
+orchestration/     Airflow DAG (`strata_daily`)
+docker/            Entrypoint, nginx proxy, and Compose smoke test
+models/            Public synthetic model registry
+docs/              Findings, methods, model cards, data card, public ledger JSON, ADRs
+tests/             Pytest + Hypothesis suite (synthetic data only)
+legacy/            Frozen 2024 script and 2025 package with documented defects
+```
 
-Further reading: [`ARCHITECTURE.md`](ARCHITECTURE.md), [`PRIVACY.md`](PRIVACY.md), [`CHANGELOG.md`](CHANGELOG.md),
-[decision records](docs/adr/README.md), [methods](docs/methods/), [findings](docs/findings/index.md),
-[model cards](docs/model_cards/) and [data card](docs/data_card.md).
+## Limitations & further reading
 
-## Licence and data
+- **One rolling year & inferred codes:** calendar effects cannot be separated from trend, backtest
+  outcome windows overlap, silence (no events in a quarter) is not account closure, and
+  undocumented bank codes are tagged `assumed` ([data card](docs/data_card.md)).
+- **Public vs. private outputs:** public model cards and the synthetic demo show that the pipeline
+  runs, not real-world accuracy; monitoring has no labelled ground truth and serves triage only.
+- **Docs:** [PRIVACY.md](PRIVACY.md) · [Findings](docs/findings/index.md) ·
+  [Methods](docs/methods/) · [Model cards](docs/model_cards/) ·
+  [Data card](docs/data_card.md) · [ADRs](docs/adr/README.md) ·
+  [Legacy code & bugs](legacy/README.md).
 
-The code is released under the MIT licence ([`LICENSE`](LICENSE)). The bank extract is
-confidential and is not, and will never be, part of this repository.
+## Licence
+
+Released under the **MIT Licence** ([LICENSE](LICENSE)). The confidential bank extract is never
+included in this repository.

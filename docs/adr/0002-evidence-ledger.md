@@ -4,9 +4,8 @@ Status: accepted (2026-10-18).
 
 ## Context
 
-Numbers in READMEs and CVs drift from the code that produced them (the detector metrics in a sibling
-project disagreed between the CV and the README). Hand-typed figures also lose their sample size and
-uncertainty.
+Numbers in documentation drift from the code that produced them, and hand-typed figures lose their
+sample size and uncertainty.
 
 A second problem is specific to this project: most real findings must stay private, while a few
 harmless aggregates are worth publishing. Without a single registry, the line between the two is a

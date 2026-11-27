@@ -1,7 +1,6 @@
 # Architecture decision records
 
-Each record states its status, context, decision and consequences. A deviation from
-`ARCHITECTURE.md` needs a record here before the code that implements it.
+Each record states its status, context, decision and consequences.
 
 | ADR | Title | Status |
 |---|---|---|

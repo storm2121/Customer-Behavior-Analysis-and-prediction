@@ -6,7 +6,7 @@ by [ADR 0008](0008-private-zone-outside-the-working-tree.md).
 ## Context
 
 The extract is an anonymised sample of a bank's clients provided for an academic challenge. The
-repository is public and linked from CVs. The project must run end to end for any reader without the
+repository is public. The project must run end to end for any reader without the
 data, and the real findings must stay private except for a few harmless aggregates.
 
 A `.gitignore` entry is not a boundary: `git add -f`, a renamed file, a CSV dumped under another
@@ -48,6 +48,6 @@ The boundary is enforced in layers, each of which would stop a leak on its own:
 ## Consequences
 
 Two generators to maintain. The public demo's numbers are illustrative by construction, which the
-docs state on every page that shows them. The private report is the artefact for interviews. Every
-contributor runs the guard on every commit; false positives are resolved by changing the file,
-never by bypassing the hook.
+docs state on every page that shows them. The private report stays local on the machine that holds
+the extract. Every contributor runs the guard on every commit; false positives are resolved by
+changing the file, never by bypassing the hook.

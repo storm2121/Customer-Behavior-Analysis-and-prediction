@@ -4,9 +4,8 @@ Status: accepted (2026-10-18).
 
 ## Context
 
-The legacy UI was a Tkinter form. The rebuild needs a designed, accessible, testable interface with
-rich charts, and the sibling project (DetectionX5) deliberately uses a different front-end stack
-(Vue 3) so the two projects showcase different skills.
+The legacy UI was a Tkinter form. The rebuild needs a designed, accessible, testable web interface
+with rich charts.
 
 The dashboard must never bundle private numbers: it reads the public claims file and an API that
 serves synthetic data.
@@ -82,7 +81,6 @@ tests, axe accessibility checks. Streamlit was rejected because design is a stat
 
 - **Streamlit or Dash.** Fast to build, but design control, component testing and accessibility are
   limited.
-- **Vue 3.** Already showcased by the sibling project.
 - **Server-rendered templates.** Simple, but the simulator and the review queue are interactive.
 - **Bundling the public claims JSON.** Allowed by the architecture, but fetching it keeps one
   source of truth and lets the bundle check be absolute: no ledger value in the bundle at all.
